@@ -156,6 +156,45 @@ See [definition](core/src/models/config_instance.rs:13).
 - [enum AuthMethod](core/src/models/provider.rs:7) — `ApiKey`, `OAuth`, `BearerToken`, `Custom(String)`
 - [struct RateLimit](core/src/models/provider.rs:20)
 
+### Provider Configuration (Multi-Key) - **NEW**
+
+The provider configuration now supports multiple API keys per provider:
+
+- [struct ProviderConfig](core/src/models/provider_config.rs:11) — Main configuration structure
+  - `keys: Vec<ProviderKey>` — Multiple keys instead of single `api_key`
+  - `models: Vec<String>` — Available models
+  - `metadata: Option<HashMap<String, serde_yaml::Value>>` — Additional metadata
+  - `version: String` — Provider version
+  - `schema_version: String` — Schema version ("3.0" for multi-key)
+  - `created_at: DateTime<Utc>` — Creation timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+- [struct ProviderKey](core/src/models/provider_key.rs:11) — Individual key management
+  - `id: String` — Unique identifier (e.g., "default", "staging", "production")
+  - `value: Option<String>` — Actual key value (null in config files, populated at scan time)
+  - `discovered_at: DateTime<Utc>` — When key was found
+  - `source: String` — File path where key was discovered
+  - `line_number: Option<u32>` — Line number in source file
+  - `confidence: Confidence` — Detection confidence (0.0-1.0)
+  - `environment: Environment` — Environment context (dev/staging/prod)
+  - `last_validated: Option<DateTime<Utc>>` — Last validation timestamp
+  - `validation_status: ValidationStatus` — Current validation state
+  - `metadata: Option<serde_json::Value>` — Additional key-specific metadata
+  - `created_at: DateTime<Utc>` — Key creation timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+- [enum ValidationStatus](core/src/models/provider_key.rs:45) — `Unknown`, `Valid`, `Invalid`, `Expired`
+- [enum Environment](core/src/models/provider_key.rs:32) — `Development`, `Staging`, `Production`
+
+ProviderConfig methods:
+- [new(version: String) -> Self](core/src/models/provider_config.rs:25)
+- [add_key(key: ProviderKey) -> Result<()>](core/src/models/provider_config.rs:30)
+- [key_count() -> usize](core/src/models/provider_config.rs:38)
+- [valid_key_count() -> usize](core/src/models/provider_config.rs:42)
+- [keys_by_environment(env: Environment) -> Vec<&ProviderKey>](core/src/models/provider_config.rs:46)
+- [get_key(id: &str) -> Option<&ProviderKey>](core/src/models/provider_config.rs:50)
+- [from_old_format(...) -> Self](core/src/models/provider_config.rs:54) — Backward compatibility
+
 ### Plugin System
 
 #### Provider Plugins (Validation) - **NEW ARCHITECTURE**

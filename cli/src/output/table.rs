@@ -1,7 +1,7 @@
 use colored::*;
 use genai_keyfinder_core::ScanResult;
 
-pub fn output_table(result: &ScanResult) -> Result<(), anyhow::Error> {
+pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Error> {
     println!("\n{}", "=== Discovered Keys ===".green().bold());
     println!(
         "{:<20} {:<40} {:<15} {:<10}",
@@ -35,6 +35,15 @@ pub fn output_table(result: &ScanResult) -> Result<(), anyhow::Error> {
             key.value_type,
             confidence_color
         );
+
+        // Show key value if verbose
+        if verbose {
+            if let Some(full_value) = key.full_value() {
+                println!("  Value: {}", full_value);
+            } else {
+                println!("  Value: {}", key.redacted_value());
+            }
+        }
     }
 
     if !result.config_instances.is_empty() {
@@ -54,6 +63,11 @@ pub fn output_table(result: &ScanResult) -> Result<(), anyhow::Error> {
                 truncate_path(&instance.config_path.display().to_string(), 50),
                 instance.keys.len()
             );
+
+            // Show config details if verbose
+            if verbose && !instance.keys.is_empty() {
+                println!("  Keys found: {}", instance.keys.len());
+            }
         }
     }
 

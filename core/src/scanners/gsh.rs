@@ -88,8 +88,21 @@ impl ScannerPlugin for GshScanner {
         // Add the unique keys to the result
         result.add_keys(unique_keys);
 
-        // Don't create config instance here - scan_instances() already handles it
-        // This prevents duplicate config instances
+        // Create config instances for GSH installations
+        let mut instances = Vec::new();
+        if let Some(instance) = self.create_config_instance(path, content).ok() {
+            tracing::debug!("Created config instance");
+            instances.push(instance);
+        } else {
+            tracing::debug!("Failed to create config instance");
+        }
+        result.add_instances(instances);
+
+        tracing::debug!(
+            "Parse config result: {} keys, {} instances",
+            result.keys.len(),
+            result.instances.len()
+        );
 
         Ok(result)
     }
@@ -139,12 +152,27 @@ impl GshScanner {
         // Check for fast model keys
         for (key_name, provider) in fast_model_keys {
             if let Some(value) = key_values.get(key_name) {
-                // Only create DiscoveredKey for API_KEY values, not all configuration values
-                if key_name.ends_with("_API_KEY") && !value.is_empty() {
+                if !value.is_empty() {
+                    let value_type = if key_name.ends_with("_API_KEY") {
+                        ValueType::ApiKey
+                    } else if key_name.ends_with("_BASE_URL") {
+                        ValueType::Custom("BaseUrl".to_string())
+                    } else if key_name.ends_with("_ID") {
+                        ValueType::Custom("ModelId".to_string())
+                    } else if key_name.ends_with("_TEMPERATURE") {
+                        ValueType::Custom("Temperature".to_string())
+                    } else if key_name.ends_with("_PARALLEL_TOOL_CALLS") {
+                        ValueType::Custom("ParallelToolCalls".to_string())
+                    } else if key_name.ends_with("_HEADERS") {
+                        ValueType::Custom("Headers".to_string())
+                    } else {
+                        ValueType::Custom("Config".to_string())
+                    };
+                    
                     let discovered_key = DiscoveredKey::new(
                         provider.to_string(),
                         path.display().to_string(),
-                        ValueType::ApiKey,
+                        value_type,
                         self.get_confidence(value),
                         value.to_string(),
                     );
@@ -156,12 +184,21 @@ impl GshScanner {
         // Check for slow model keys
         for (key_name, provider) in slow_model_keys {
             if let Some(value) = key_values.get(key_name) {
-                // Only create DiscoveredKey for API_KEY values, not all configuration values
-                if key_name.ends_with("_API_KEY") && !value.is_empty() {
+                if !value.is_empty() {
+                    let value_type = if key_name.ends_with("_API_KEY") {
+                        ValueType::ApiKey
+                    } else if key_name.ends_with("_BASE_URL") {
+                        ValueType::Custom("BaseUrl".to_string())
+                    } else if key_name.ends_with("_ID") {
+                        ValueType::Custom("ModelId".to_string())
+                    } else {
+                        ValueType::Custom("Config".to_string())
+                    };
+                    
                     let discovered_key = DiscoveredKey::new(
                         provider.to_string(),
                         path.display().to_string(),
-                        ValueType::ApiKey,
+                        value_type,
                         self.get_confidence(value),
                         value.to_string(),
                     );

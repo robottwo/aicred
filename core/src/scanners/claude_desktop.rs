@@ -73,8 +73,21 @@ impl ScannerPlugin for ClaudeDesktopScanner {
             result.add_keys(keys);
         }
 
-        // Don't create config instance here - scan_instances() already handles it
-        // This prevents duplicate config instances
+        // Create config instances for Claude Desktop installations
+        let mut instances = Vec::new();
+        if let Some(instance) = self.create_config_instance(path, &json_value).ok() {
+            tracing::debug!("Created config instance");
+            instances.push(instance);
+        } else {
+            tracing::debug!("Failed to create config instance");
+        }
+        result.add_instances(instances);
+
+        tracing::debug!(
+            "Parse config result: {} keys, {} instances",
+            result.keys.len(),
+            result.instances.len()
+        );
 
         Ok(result)
     }

@@ -1,12 +1,11 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
-use std::path::PathBuf;
 
 mod commands;
 mod output;
 
-use commands::{list::handle_list, scan::handle_scan};
+use commands::{list::handle_list, providers::handle_providers, scan::handle_scan};
 
 /// GenAI Key Finder - Discover GenAI API keys and configurations
 #[derive(Parser)]
@@ -52,10 +51,25 @@ enum Commands {
         /// Write audit log to file
         #[arg(long)]
         audit_log: Option<String>,
+
+        /// Verbose output - show actual discovered keys
+        #[arg(long, short = 'v')]
+        verbose: bool,
+
+        /// Update/create YAML configuration file with discovered providers and keys
+        #[arg(long)]
+        update: bool,
     },
 
     /// List available providers and scanners
     List {
+        /// Show detailed information
+        #[arg(long, short = 'v')]
+        verbose: bool,
+    },
+
+    /// Show available providers and scanners (alias for list)
+    Providers {
         /// Show detailed information
         #[arg(long, short = 'v')]
         verbose: bool,
@@ -78,6 +92,8 @@ fn main() -> Result<()> {
             max_bytes_per_file,
             dry_run,
             audit_log,
+            verbose,
+            update,
         } => handle_scan(
             home,
             format,
@@ -87,8 +103,11 @@ fn main() -> Result<()> {
             max_bytes_per_file,
             dry_run,
             audit_log,
+            verbose,
+            update,
         ),
         Commands::List { verbose } => handle_list(verbose),
+        Commands::Providers { verbose } => handle_providers(verbose),
         Commands::Version => handle_version(),
     }
 }

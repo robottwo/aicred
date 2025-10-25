@@ -1,7 +1,7 @@
 use colored::*;
 use genai_keyfinder_core::ScanResult;
 
-pub fn output_summary(result: &ScanResult) -> Result<(), anyhow::Error> {
+pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Error> {
     println!("\n{}", "Scan Summary".green().bold());
     println!("  Home Directory: {}", result.home_directory);
     println!("  Scan Time: {}", result.scan_completed_at);
@@ -24,6 +24,37 @@ pub fn output_summary(result: &ScanResult) -> Result<(), anyhow::Error> {
         println!("\n{}", "By Provider:".cyan().bold());
         for (provider, count) in by_provider {
             println!("  {}: {}", provider, count);
+        }
+    }
+
+    // Show detailed key information if verbose
+    if verbose && !result.keys.is_empty() {
+        println!("\n{}", "Discovered Keys:".cyan().bold());
+        for key in &result.keys {
+            println!(
+                "  - {}: {} ({} - confidence: {})",
+                key.provider, key.value_type, key.source, key.confidence
+            );
+            if let Some(full_value) = key.full_value() {
+                println!("    Value: {}", full_value);
+            } else {
+                println!("    Value: {}", key.redacted_value());
+            }
+        }
+    }
+
+    // Show detailed config instances if verbose
+    if verbose && !result.config_instances.is_empty() {
+        println!("\n{}", "Config Instances:".cyan().bold());
+        for instance in &result.config_instances {
+            println!(
+                "  - {}: {}",
+                instance.app_name,
+                instance.config_path.display()
+            );
+            if !instance.keys.is_empty() {
+                println!("    Keys: {}", instance.keys.len());
+            }
         }
     }
 

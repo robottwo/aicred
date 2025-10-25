@@ -72,26 +72,6 @@ impl ScannerPlugin for RooCodeScanner {
                     .join("rooveterinaryinc.roo-cline")
                     .join("tasks"),
             );
-
-            // Also check standard VSCode locations
-            paths.push(
-                home_dir
-                    .join(".vscode")
-                    .join("extensions")
-                    .join("rooveterinaryinc.roo-cline-*"),
-            );
-            paths.push(
-                home_dir
-                    .join(".vscode-insiders")
-                    .join("extensions")
-                    .join("rooveterinaryinc.roo-cline-*"),
-            );
-            paths.push(
-                home_dir
-                    .join(".vscode-oss")
-                    .join("extensions")
-                    .join("rooveterinaryinc.roo-cline-*"),
-            );
         }
 
         #[cfg(target_os = "windows")]
@@ -131,6 +111,26 @@ impl ScannerPlugin for RooCodeScanner {
                 );
             }
         }
+
+        // VSCode extensions (available on all platforms)
+        paths.push(
+            home_dir
+                .join(".vscode")
+                .join("extensions")
+                .join("rooveterinaryinc.roo-cline-*"),
+        );
+        paths.push(
+            home_dir
+                .join(".vscode-insiders")
+                .join("extensions")
+                .join("rooveterinaryinc.roo-cline-*"),
+        );
+        paths.push(
+            home_dir
+                .join(".vscode-oss")
+                .join("extensions")
+                .join("rooveterinaryinc.roo-cline-*"),
+        );
 
         // Settings files (may contain Roo Code configuration)
         paths.push(home_dir.join(".vscode").join("settings.json"));
