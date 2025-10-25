@@ -1,0 +1,301 @@
+//! Claude Desktop scanner for discovering API keys in Claude Desktop configuration files.
+
+use super::{ScanResult, ScannerPlugin};
+use crate::error::{Error, Result};
+use crate::models::discovered_key::{Confidence, ValueType};
+use crate::models::{ConfigInstance, DiscoveredKey};
+use chrono::Utc;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+/// Scanner for Claude Desktop application configuration.
+pub struct ClaudeDesktopScanner;
+
+impl ScannerPlugin for ClaudeDesktopScanner {
+    fn name(&self) -> &str {
+        "claude-desktop"
+    }
+
+    fn app_name(&self) -> &str {
+        "Claude Desktop"
+    }
+
+    fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+
+        // Focus only on ~/.claude.json location
+        paths.push(home_dir.join(".claude.json"));
+
+        paths
+    }
+
+    fn can_handle_file(&self, path: &Path) -> bool {
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+        let path_str = path.to_string_lossy();
+
+        file_name.ends_with(".json")
+            && (path_str.contains("Claude")
+                || path_str.contains("claude")
+                || path_str.contains(".claude"))
+    }
+
+    fn supports_provider_scanning(&self) -> bool {
+        true
+    }
+
+    fn supported_providers(&self) -> Vec<String> {
+        vec!["anthropic".to_string()]
+    }
+
+    fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>> {
+        let mut paths = Vec::new();
+
+        // Only check for ~/.claude.json
+        paths.push(home_dir.join(".claude.json"));
+
+        // Filter to only existing paths
+        Ok(paths.into_iter().filter(|p| p.exists()).collect())
+    }
+
+    fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult> {
+        let mut result = ScanResult::new();
+
+        // Try to parse as JSON first
+        let json_value = match serde_json::from_str::<serde_json::Value>(content) {
+            Ok(value) => value,
+            Err(_) => {
+                return Ok(result);
+            }
+        };
+
+        // Extract keys from JSON config
+        if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
+            result.add_keys(keys);
+        }
+
+        // Don't create config instance here - scan_instances() already handles it
+        // This prevents duplicate config instances
+
+        Ok(result)
+    }
+
+    fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>> {
+        let mut instances = Vec::new();
+
+        // Look only for ~/.claude.json
+        let config_path = home_dir.join(".claude.json");
+        if config_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&config_path) {
+                if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if self.is_valid_claude_config(&json_value) {
+                        let instance = self.create_config_instance(&config_path, &json_value)?;
+                        instances.push(instance);
+                    }
+                }
+            }
+        }
+
+        Ok(instances)
+    }
+}
+
+impl ClaudeDesktopScanner {
+    /// Extract keys from JSON configuration.
+    fn extract_keys_from_json(
+        &self,
+        json_value: &serde_json::Value,
+        path: &Path,
+    ) -> Option<Vec<DiscoveredKey>> {
+        let mut keys = Vec::new();
+
+        // Look for API key stored under "userID" field
+        if let Some(user_id) = json_value.get("userID").and_then(|v| v.as_str()) {
+            if self.is_valid_key(user_id) {
+                let discovered_key = DiscoveredKey::new(
+                    "anthropic".to_string(),
+                    path.display().to_string(),
+                    ValueType::ApiKey,
+                    self.get_confidence(user_id),
+                    user_id.to_string(),
+                );
+                keys.push(discovered_key);
+            }
+        }
+
+        if keys.is_empty() {
+            None
+        } else {
+            Some(keys)
+        }
+    }
+
+    /// Check if this is a valid Claude Desktop configuration.
+    fn is_valid_claude_config(&self, json_value: &serde_json::Value) -> bool {
+        // Check for userID field which indicates a valid Claude Desktop config
+        json_value.get("userID").is_some()
+    }
+
+    /// Create a config instance from Claude configuration.
+    fn create_config_instance(
+        &self,
+        path: &Path,
+        json_value: &serde_json::Value,
+    ) -> Result<ConfigInstance> {
+        let mut metadata = HashMap::new();
+
+        // Extract version if available
+        if let Some(version) = json_value.get("claude_version").and_then(|v| v.as_str()) {
+            metadata.insert("version".to_string(), version.to_string());
+        }
+
+        // Extract model configuration
+        if let Some(model) = json_value.get("model").and_then(|v| v.as_str()) {
+            metadata.insert("model".to_string(), model.to_string());
+        }
+
+        // Extract max tokens
+        if let Some(max_tokens) = json_value.get("max_tokens").and_then(|v| v.as_u64()) {
+            metadata.insert("max_tokens".to_string(), max_tokens.to_string());
+        }
+
+        // Extract other settings
+        if let Some(temperature) = json_value.get("temperature").and_then(|v| v.as_f64()) {
+            metadata.insert("temperature".to_string(), temperature.to_string());
+        }
+
+        let instance = ConfigInstance {
+            instance_id: self.generate_instance_id(path),
+            app_name: "claude-desktop".to_string(),
+            config_path: path.to_path_buf(),
+            discovered_at: Utc::now(),
+            keys: Vec::new(), // Will be populated separately
+            metadata,
+        };
+
+        Ok(instance)
+    }
+
+    /// Generate a unique instance ID.
+    fn generate_instance_id(&self, path: &Path) -> String {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(path.to_string_lossy().as_bytes());
+        format!("claude_{:x}", hasher.finalize())
+            .chars()
+            .take(16)
+            .collect()
+    }
+
+    /// Check if a key is valid.
+    fn is_valid_key(&self, key: &str) -> bool {
+        key.len() >= 15 && key.chars().any(|c| c.is_alphanumeric())
+    }
+
+    /// Get confidence score for a key.
+    fn get_confidence(&self, key: &str) -> Confidence {
+        if key.starts_with("sk-ant-") {
+            Confidence::High
+        } else if key.len() >= 30 {
+            Confidence::Medium
+        } else {
+            Confidence::Low
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_claude_desktop_scanner_name() {
+        let scanner = ClaudeDesktopScanner;
+        assert_eq!(scanner.name(), "claude-desktop");
+        assert_eq!(scanner.app_name(), "Claude Desktop");
+    }
+
+    #[test]
+    fn test_scan_paths() {
+        let scanner = ClaudeDesktopScanner;
+        let temp_dir = tempfile::tempdir().unwrap();
+        let home_dir = temp_dir.path();
+        let paths = scanner.scan_paths(home_dir);
+
+        // Should only include ~/.claude.json
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].to_string_lossy().contains(".claude.json"));
+    }
+
+    #[test]
+    fn test_can_handle_file() {
+        let scanner = ClaudeDesktopScanner;
+        let temp_dir = tempfile::tempdir().unwrap();
+        let claude_lib_path = temp_dir
+            .path()
+            .join("Library")
+            .join("Application Support")
+            .join("Claude")
+            .join("config.json");
+        let claude_profile_path = temp_dir
+            .path()
+            .join(".claude")
+            .join("profiles")
+            .join("default.json");
+
+        assert!(scanner.can_handle_file(&claude_lib_path));
+        assert!(scanner.can_handle_file(&claude_profile_path));
+        assert!(!scanner.can_handle_file(Path::new("/random/config.json")));
+    }
+
+    #[test]
+    fn test_parse_valid_config() {
+        let scanner = ClaudeDesktopScanner;
+        let config = r#"{
+            "userID": "sk-ant-test1234567890abcdef"
+        }"#;
+
+        let result = scanner
+            .parse_config(Path::new("test.json"), config)
+            .unwrap();
+        assert_eq!(result.keys.len(), 1);
+        assert_eq!(result.instances.len(), 1);
+
+        // Check key
+        assert_eq!(result.keys[0].provider, "anthropic");
+        assert_eq!(result.keys[0].value_type, ValueType::ApiKey);
+        assert_eq!(result.keys[0].confidence, Confidence::High);
+
+        // Check instance
+        assert_eq!(result.instances[0].app_name, "claude-desktop");
+    }
+
+    #[test]
+    fn test_is_valid_claude_config() {
+        let scanner = ClaudeDesktopScanner;
+
+        let valid_config = serde_json::json!({
+            "userID": "sk-ant-test1234567890abcdef"
+        });
+        assert!(scanner.is_valid_claude_config(&valid_config));
+
+        let invalid_config = serde_json::json!({
+            "random_key": "value"
+        });
+        assert!(!scanner.is_valid_claude_config(&invalid_config));
+    }
+
+    #[test]
+    fn test_create_config_instance() {
+        let scanner = ClaudeDesktopScanner;
+        let config = serde_json::json!({
+            "userID": "sk-ant-test1234567890abcdef"
+        });
+
+        let instance = scanner
+            .create_config_instance(Path::new("/test/config.json"), &config)
+            .unwrap();
+        assert_eq!(instance.app_name, "claude-desktop");
+    }
+}

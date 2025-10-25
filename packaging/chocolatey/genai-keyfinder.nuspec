@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>genai-keyfinder</id>
+    <version>0.1.0</version>
+    <title>GenAI Key Finder</title>
+    <authors>Your Name</authors>
+    <owners>Your Name</owners>
+    <licenseUrl>https://github.com/yourusername/genai-keyfinder/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/yourusername/genai-keyfinder</projectUrl>
+    <iconUrl>https://github.com/yourusername/genai-keyfinder/raw/main/gui/src-tauri/icons/icon.ico</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Cross-platform tool for discovering GenAI API keys and configurations</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright 2024</copyright>
+    <tags>genai security api-keys cli rust</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

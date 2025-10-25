@@ -1,0 +1,18 @@
+language = "C"
+include_guard = "GENAI_KEYFINDER_H"
+documentation = true
+documentation_style = "doxy"
+
+[export]
+include = ["keyfinder_scan", "keyfinder_free", "keyfinder_version", "keyfinder_last_error"]
+
+[fn]
+rename_types = "CamelCase"
+prefix = "keyfinder_"
+
+[struct]
+rename_types = "CamelCase"
+
+[enum]
+rename_types = "CamelCase"
+rename_variants = "CamelCase"

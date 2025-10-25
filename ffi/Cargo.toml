@@ -1,0 +1,16 @@
+[package]
+name = "genai-keyfinder-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "genai_keyfinder_ffi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+genai-keyfinder-core = { path = "../core" }
+serde_json = "1.0"
+libc = "0.2"
+
+[build-dependencies]
+cbindgen = "0.26"

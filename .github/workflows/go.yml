@@ -1,0 +1,52 @@
+name: Go Bindings
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test Go ${{ matrix.go-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.21', '1.22']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build FFI library
+        run: cargo build --release -p genai-keyfinder-ffi
+      
+      - name: Copy FFI library (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p bindings/go/lib
+          cp target/release/libgenai_keyfinder_ffi.* bindings/go/lib/
+      
+      - name: Copy FFI library (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir bindings/go/lib
+          copy target\release\genai_keyfinder_ffi.dll bindings\go\lib\
+          copy target\release\genai_keyfinder_ffi.dll.lib bindings\go\lib\
+      
+      - name: Run Go tests
+        working-directory: bindings/go
+        run: go test -v ./...
+      
+      - name: Build Go examples
+        working-directory: bindings/go/examples/basic_usage
+        run: go build

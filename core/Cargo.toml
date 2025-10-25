@@ -1,0 +1,27 @@
+[package]
+name = "genai-keyfinder-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core library for genai-keyfinder - discovers AI API keys in configuration files"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+dirs-next = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+toml = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.0"
+tokio = { workspace = true, features = ["test-util"] }
+proptest = "1.4"
