@@ -481,7 +481,7 @@ without any key patterns
 
     // Should find 0 keys - but the scanner might find patterns that look like keys
     // Let's just verify it doesn't crash and handles it gracefully
-    assert!(result.keys.len() >= 0);
+    assert_eq!(result.keys.len(), 0);
 
     // Test file with missing keys
     let no_keys_config = r#"

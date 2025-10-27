@@ -3,7 +3,6 @@
 use crate::error::{Error, Result};
 use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
 use crate::plugins::ProviderPlugin;
-use std::path::{Path, PathBuf};
 use url::Url;
 
 /// Configuration for OpenAI provider defaults
@@ -249,6 +248,7 @@ impl OpenAIPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
     use crate::models::{discovered_key::Confidence, ProviderInstance, ProviderKey, Environment, ValidationStatus};
 
     #[test]

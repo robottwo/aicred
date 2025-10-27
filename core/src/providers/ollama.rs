@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
 use crate::plugins::ProviderPlugin;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Plugin for scanning Ollama configuration files.
 pub struct OllamaPlugin;

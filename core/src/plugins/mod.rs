@@ -1,13 +1,13 @@
 //! Plugin system for extensible provider support.
 
 use crate::error::{Error, Result};
-use crate::models::{DiscoveredKey, ProviderInstance};
+use crate::models::ProviderInstance;
 use crate::providers::{
     anthropic::AnthropicPlugin, groq::GroqPlugin, huggingface::HuggingFacePlugin,
     litellm::LiteLLMPlugin, ollama::OllamaPlugin, openai::OpenAIPlugin,
 };
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 /// Trait that all provider plugins must implement.

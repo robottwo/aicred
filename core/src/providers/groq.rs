@@ -1,9 +1,8 @@
 //! Groq provider plugin for scanning Groq API keys and configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
+use crate::models::ProviderInstance;
 use crate::plugins::ProviderPlugin;
-use std::path::{Path, PathBuf};
 
 /// Plugin for scanning Groq API keys and configuration files.
 pub struct GroqPlugin;

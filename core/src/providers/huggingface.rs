@@ -35,7 +35,7 @@ impl ProviderPlugin for HuggingFacePlugin {
         
         // Check for valid Hugging Face base URL patterns
         let is_valid_hf_url = instance.base_url.starts_with("https://huggingface.co") ||
-                             instance.base_url.starts_with("https://api.huggingface.co") ||
+                             instance.base_url.starts_with("https://api-inference.huggingface.co") ||
                              instance.base_url.starts_with("https://huggingface.co/api");
         
         if !is_valid_hf_url {
