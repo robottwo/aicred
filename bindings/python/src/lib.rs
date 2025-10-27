@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 /// Token cost tracking for model usage.
 #[pyclass]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PyTokenCost {
     #[pyo3(get, set)]
     pub input_cost_per_million: Option<f64>,
@@ -42,7 +42,7 @@ impl PyTokenCost {
 
 /// Model capabilities and features.
 #[pyclass]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PyCapabilities {
     #[pyo3(get, set)]
     pub text_generation: bool,

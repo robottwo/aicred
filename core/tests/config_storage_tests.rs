@@ -562,6 +562,9 @@ fn test_manifest_integrity_after_multiple_updates() {
     let manifest_content = serde_yaml::to_string(&manifest).unwrap();
     fs::write(&manifest_path, manifest_content).unwrap();
     
+    // Save original timestamp for comparison
+    let original_timestamp = manifest.last_updated;
+    
     // Simulate multiple provider updates
     for i in 0..5 {
         // Add a new provider
@@ -611,7 +614,6 @@ fn test_manifest_integrity_after_multiple_updates() {
         );
         
         // Update manifest timestamp
-        let original_timestamp = manifest.last_updated;
         std::thread::sleep(std::time::Duration::from_millis(10)); // Small delay to ensure different timestamp
         manifest.last_updated = Utc::now();
     }
