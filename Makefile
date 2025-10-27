@@ -204,7 +204,19 @@ package-windows: build-all
 
 # Platform-specific targets
 .PHONY: build-platform
-build-platform: build-$(PLATFORM)
+
+# Map PLATFORM values to existing build targets
+ifeq ($(PLATFORM),linux)
+BUILD_TARGET := build-all
+else ifeq ($(PLATFORM),macos)
+BUILD_TARGET := build-all
+else ifeq ($(PLATFORM),windows)
+BUILD_TARGET := build-all
+else
+BUILD_TARGET := build-all
+endif
+
+build-platform: $(BUILD_TARGET)
 
 .PHONY: package-platform
 package-platform: package-$(PLATFORM)

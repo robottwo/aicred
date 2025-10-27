@@ -25,8 +25,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/genai-keyfinder"
-Repository = "https://github.com/yourusername/genai-keyfinder"
+Homepage = "https://github.com/robottwo/aicred"
+Repository = "https://github.com/robottwo/aicred"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

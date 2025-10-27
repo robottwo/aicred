@@ -2,6 +2,14 @@ use anyhow::Result;
 use colored::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::fs::OpenOptions;
+use std::io::Write;
+
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
+
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
 
 /// Import the ProviderConfig from core library
 use genai_keyfinder_core::models::ProviderConfig;
@@ -128,8 +136,12 @@ fn scan_providers_directory(providers_dir: &PathBuf) -> Result<Vec<ProviderInfo>
         let entry = entry?;
         let path = entry.path();
         
-        // Only process .yaml files
-        if path.extension().map_or(false, |ext| ext == "yaml") {
+        // Only process .yaml and .yml files (case-insensitive)
+        if path.extension().map_or(false, |ext| {
+            ext.to_str().map_or(false, |s| {
+                s.eq_ignore_ascii_case("yaml") || s.eq_ignore_ascii_case("yml")
+            })
+        }) {
             if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
                 match std::fs::read_to_string(&path) {
                     Ok(content) => {
@@ -248,9 +260,8 @@ fn migrate_from_single_file(old_path: &PathBuf, providers_dir: &PathBuf) -> Resu
                     provider_config.version = version.to_string();
                 }
 
-                // Write individual provider file
-                let yaml_content = serde_yaml::to_string(&provider_config)?;
-                std::fs::write(&provider_file_path, yaml_content)?;
+                // Write individual provider file with secure permissions
+                write_secure_file(&provider_file_path, &serde_yaml::to_string(&provider_config)?)?;
             }
         }
 
@@ -260,5 +271,69 @@ fn migrate_from_single_file(old_path: &PathBuf, providers_dir: &PathBuf) -> Resu
         println!("{}", "Migration completed successfully!".green());
     }
 
+    Ok(())
+}
+
+/// Write a file with secure permissions (0o600 on Unix, restrictive ACL on Windows)
+fn write_secure_file(path: &std::path::Path, content: &str) -> Result<()> {
+    #[cfg(unix)]
+    {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .mode(0o600) // Set restrictive permissions during file creation
+            .open(path)?;
+        
+        file.write_all(content.as_bytes())?;
+        
+        // Additional safety check to ensure permissions are set correctly
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = std::fs::metadata(path)?;
+        let mut permissions = metadata.permissions();
+        permissions.set_mode(0o600);
+        std::fs::set_permissions(path, permissions)?;
+    }
+    
+    #[cfg(windows)]
+    {
+        // On Windows, create the file with restrictive permissions
+        let mut file = OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(path)?;
+        
+        file.write_all(content.as_bytes())?;
+        
+        // On Windows, we should ideally use Windows ACL APIs to set restrictive permissions
+        // For now, we'll create the file and then try to set restrictive permissions
+        // This is a basic implementation - in production you might want to use
+        // the `winapi` crate or `windows-rs` for more granular ACL control
+        
+        // Try to remove inherited permissions and grant access only to current user
+        use std::process::Command;
+        
+        // Use icacls to set restrictive permissions (current user only)
+        // This removes inheritance and grants full control only to the current user
+        let output = Command::new("icacls")
+            .arg(path)
+            .arg("/inheritance:r") // Remove inherited permissions
+            .arg("/grant:r")
+            .arg(&format!("{}:F", std::env::var("USERNAME").unwrap_or_else(|_| "CURRENT_USER".to_string()))) // Grant full control to current user
+            .output();
+        
+        if let Err(e) = output {
+            eprintln!("Warning: Could not set restrictive file permissions on Windows: {}", e);
+            // Continue execution - file is still created, just with default permissions
+        }
+    }
+    
+    #[cfg(not(any(unix, windows)))]
+    {
+        // For other platforms, fall back to standard file creation
+        std::fs::write(path, content)?;
+    }
+    
     Ok(())
 }

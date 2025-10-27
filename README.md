@@ -4,12 +4,12 @@
 
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
-[![CI](https://github.com/yourusername/genai-keyfinder/workflows/CI/badge.svg)](https://github.com/yourusername/genai-keyfinder/actions/workflows/ci.yml)
-[![Python](https://github.com/yourusername/genai-keyfinder/workflows/Python%20Bindings/badge.svg)](https://github.com/yourusername/genai-keyfinder/actions/workflows/python.yml)
-[![Go](https://github.com/yourusername/genai-keyfinder/workflows/Go%20Bindings/badge.svg)](https://github.com/yourusername/genai-keyfinder/actions/workflows/go.yml)
-[![GUI](https://github.com/yourusername/genai-keyfinder/workflows/GUI%20Application/badge.svg)](https://github.com/yourusername/genai-keyfinder/actions/workflows/gui.yml)
-[![Security](https://github.com/yourusername/genai-keyfinder/workflows/Security%20Audit/badge.svg)](https://github.com/yourusername/genai-keyfinder/actions/workflows/security.yml)
-[![codecov](https://codecov.io/gh/yourusername/genai-keyfinder/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/genai-keyfinder)
+[![CI](https://github.com/robottwo/aicred/workflows/CI/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/ci.yml)
+[![Python](https://github.com/robottwo/aicred/workflows/Python%20Bindings/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/python.yml)
+[![Go](https://github.com/robottwo/aicred/workflows/Go%20Bindings/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/go.yml)
+[![GUI](https://github.com/robottwo/aicred/workflows/GUI%20Application/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/gui.yml)
+[![Security](https://github.com/robottwo/aicred/workflows/Security%20Audit/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/robottwo/aicred/branch/main/graph/badge.svg)](https://codecov.io/gh/robottwo/aicred)
 
 ## Features
 
@@ -67,11 +67,11 @@ print(f"Found {len(result['keys'])} keys")
 ### Go
 
 ```bash
-go get github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
 ```
 
 ```go
-import "github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+import "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 
 result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{})
 ```

@@ -59,7 +59,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all
 
 # Python tests
-cd bindings/python && maturin develop && pytest
+cd bindings/python && PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop && pytest
 
 # Go tests
 cd bindings/go && go test ./...

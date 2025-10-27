@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+	"github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 )
 
 func main() {

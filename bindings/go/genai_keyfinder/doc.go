@@ -6,7 +6,7 @@ across various providers and applications.
 
 Basic Usage:
 
-	import "github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+	import "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 
 	func main() {
 		// Scan with default options

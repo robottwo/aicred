@@ -1,5 +1,6 @@
 use genai_keyfinder_core::{scan, ScanOptions};
-use genai_keyfinder_core::models::{ProviderInstance, ProviderInstances, Model, TokenCost, Capabilities, ProviderKey, MigrationConfig, ProviderConfigMigrator};
+// TODO: Core types will be mapped to Py* wrapper types when implementing full functionality
+// Currently only scan and ScanOptions are used directly
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -294,7 +294,3 @@ By default, all secrets are redacted. Only use `include_full_values=True` in sec
 ## Examples
 
 See the [examples directory](./examples/) for more usage examples.
-
-## Migration Guide
-
-For migrating from legacy provider configurations to the new instance-based architecture, refer to the [migration guide](../docs/provider-config-migration.md).

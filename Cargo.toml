@@ -13,8 +13,8 @@ version = "0.1.0"
 authors = ["genai-keyfinder contributors"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/your-org/genai-keyfinder"
-homepage = "https://github.com/your-org/genai-keyfinder"
+repository = "https://github.com/robottwo/aicred"
+homepage = "https://github.com/robottwo/aicred"
 
 [workspace.dependencies]
 # Core dependencies
