@@ -9,7 +9,7 @@ This document covers how to package and distribute genai-keyfinder across differ
 ### Tap Setup
 
 ```bash
-brew tap yourusername/genai-keyfinder
+brew tap robottwo/aicred
 brew install genai-keyfinder
 ```
 
@@ -26,7 +26,7 @@ brew bump-formula-pr --version=X.X.X genai-keyfinder
 ### Bucket Setup
 
 ```powershell
-scoop bucket add genai-keyfinder https://github.com/yourusername/scoop-genai-keyfinder
+scoop bucket add genai-keyfinder https://github.com/robottwo/scoop-aicred
 scoop install genai-keyfinder
 ```
 
@@ -74,8 +74,8 @@ Release:        1%{?dist}
 Summary:        Cross-platform GenAI key discovery tool
 
 License:        MIT
-URL:            https://github.com/yourusername/genai-keyfinder
-Source0:        https://github.com/yourusername/genai-keyfinder/releases/download/v%{version}/keyfinder-linux-x86_64.tar.gz
+URL:            https://github.com/robottwo/aicred
+Source0:        https://github.com/robottwo/aicred/releases/download/v%{version}/keyfinder-linux-x86_64.tar.gz
 
 BuildArch:      x86_64
 BuildRequires:  gcc

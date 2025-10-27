@@ -1,4 +1,4 @@
-//! DiscoveredKey model for representing found API keys with security features.
+//! `DiscoveredKey` model for representing found API keys with security features.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -23,11 +23,11 @@ pub enum ValueType {
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValueType::ApiKey => write!(f, "API Key"),
-            ValueType::AccessToken => write!(f, "Access Token"),
-            ValueType::SecretKey => write!(f, "Secret Key"),
-            ValueType::BearerToken => write!(f, "Bearer Token"),
-            ValueType::Custom(s) => write!(f, "{}", s),
+            Self::ApiKey => write!(f, "API Key"),
+            Self::AccessToken => write!(f, "Access Token"),
+            Self::SecretKey => write!(f, "Secret Key"),
+            Self::BearerToken => write!(f, "Bearer Token"),
+            Self::Custom(s) => write!(f, "{s}"),
         }
     }
 }
@@ -48,10 +48,10 @@ pub enum Confidence {
 impl fmt::Display for Confidence {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Confidence::Low => write!(f, "Low"),
-            Confidence::Medium => write!(f, "Medium"),
-            Confidence::High => write!(f, "High"),
-            Confidence::VeryHigh => write!(f, "Very High"),
+            Self::Low => write!(f, "Low"),
+            Self::Medium => write!(f, "Medium"),
+            Self::High => write!(f, "High"),
+            Self::VeryHigh => write!(f, "Very High"),
         }
     }
 }
@@ -85,6 +85,7 @@ pub struct DiscoveredKey {
 
 impl DiscoveredKey {
     /// Creates a new discovered key with security features.
+    #[must_use]
     pub fn new(
         provider: String,
         source: String,
@@ -110,6 +111,7 @@ impl DiscoveredKey {
     }
 
     /// Creates a new discovered key without storing the full value.
+    #[must_use]
     pub fn new_redacted(
         provider: String,
         source: String,
@@ -135,10 +137,12 @@ impl DiscoveredKey {
     }
 
     /// Returns the redacted version of the key (last 4 characters visible).
+    #[must_use]
     pub fn redacted_value(&self) -> String {
         if let Some(ref value) = self.full_value {
-            if value.len() <= 8 {
-                format!("{}****", &value[..value.len().min(2)])
+            if value.chars().count() <= 8 {
+                let prefix: String = value.chars().take(2).collect();
+                format!("{prefix}****")
             } else {
                 // Use chars() to safely handle Unicode characters
                 let last_chars: String = value
@@ -149,7 +153,7 @@ impl DiscoveredKey {
                     .chars()
                     .rev()
                     .collect();
-                format!("****{}", last_chars)
+                format!("****{last_chars}")
             }
         } else {
             // For redacted keys, we can't show the last 4 chars since we don't store them
@@ -159,6 +163,7 @@ impl DiscoveredKey {
     }
 
     /// Returns the full value if available and explicitly requested.
+    #[must_use]
     pub fn with_full_value(mut self, include: bool) -> Self {
         if !include {
             self.full_value = None;
@@ -167,18 +172,21 @@ impl DiscoveredKey {
     }
 
     /// Gets the full value if available.
+    #[must_use]
     pub fn full_value(&self) -> Option<&str> {
         self.full_value.as_deref()
     }
 
     /// Sets the line and column numbers where the key was found.
-    pub fn with_position(mut self, line: u32, column: u32) -> Self {
+    #[must_use]
+    pub const fn with_position(mut self, line: u32, column: u32) -> Self {
         self.line_number = Some(line);
         self.column_number = Some(column);
         self
     }
 
     /// Sets additional metadata.
+    #[must_use]
     pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
         self.metadata = Some(metadata);
         self
@@ -192,11 +200,13 @@ impl DiscoveredKey {
     }
 
     /// Checks if this key matches another key by hash.
+    #[must_use]
     pub fn matches_hash(&self, other_hash: &str) -> bool {
         self.hash == other_hash
     }
 
     /// Gets a short description of the key.
+    #[must_use]
     pub fn description(&self) -> String {
         format!(
             "{} key for {} (confidence: {})",
@@ -283,6 +293,63 @@ mod tests {
 
         assert_eq!(hash1, hash2);
         assert_eq!(hash1.len(), 64); // SHA-256 produces 64 hex characters
+    }
+
+    #[test]
+    fn test_redacted_value_unicode_short_key() {
+        let key = DiscoveredKey::new(
+            "Test".to_string(),
+            "/test".to_string(),
+            ValueType::ApiKey,
+            Confidence::Low,
+            "αβγ".to_string(), // Greek letters, 3 chars but 6 bytes
+        );
+
+        assert_eq!(key.redacted_value(), "αβ****");
+    }
+
+    #[test]
+    fn test_redacted_value_unicode_long_key() {
+        let key = DiscoveredKey::new(
+            "Test".to_string(),
+            "/test".to_string(),
+            ValueType::ApiKey,
+            Confidence::Low,
+            "sk-test-αβγδεζηθ".to_string(), // Mixed ASCII and Greek
+        );
+
+        assert_eq!(key.redacted_value(), "****εζηθ");
+    }
+
+    #[test]
+    fn test_redacted_value_emoji_short_key() {
+        let key = DiscoveredKey::new(
+            "Test".to_string(),
+            "/test".to_string(),
+            ValueType::ApiKey,
+            Confidence::Low,
+            "🔑🔐".to_string(), // Emojis, 2 chars but 8 bytes
+        );
+
+        assert_eq!(key.redacted_value(), "🔑🔐****");
+    }
+
+    #[test]
+    fn test_redacted_value_emoji_long_key() {
+        let key = DiscoveredKey::new(
+            "Test".to_string(),
+            "/test".to_string(),
+            ValueType::ApiKey,
+            Confidence::Low,
+            "sk-test-🔑🔐🔒🔓".to_string(), // Mixed ASCII and emojis
+        );
+
+        // The actual result shows the last 4 characters correctly
+        let result = key.redacted_value();
+        assert!(result.starts_with("****"));
+        // Each emoji is 4 bytes but 1 character, so total length is 4 asterisks + 4 emojis
+        // But the string length in Rust counts Unicode scalar values, so it's 8
+        assert_eq!(result.chars().count(), 8); // 4 asterisks + 4 emoji characters
     }
 
     #[test]

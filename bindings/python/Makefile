@@ -1,13 +1,13 @@
 .PHONY: develop test clean build install
 
 develop:
-	maturin develop
+	PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop
 
 test: develop
 	pytest tests/
 
 build:
-	maturin build --release
+	PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin build --release
 
 install: build
 	pip install target/wheels/*.whl

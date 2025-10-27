@@ -1,3 +1,3 @@
-module github.com/yourusername/genai-keyfinder/bindings/go
+module github.com/robottwo/aicred/bindings/go
 
 go 1.21

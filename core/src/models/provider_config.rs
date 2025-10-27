@@ -1,9 +1,13 @@
 //! Provider configuration model supporting multiple API keys.
+//!
+//! # Deprecated
+//! This module is deprecated in favor of [`ProviderInstance`](crate::models::ProviderInstance) and [`ProviderInstances`](crate::models::ProviderInstances).
+//! Use the new provider instance system for enhanced metadata and model management.
 
+use crate::models::provider_key::{Environment, ProviderKey, ValidationStatus};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::models::provider_key::{Environment, ProviderKey, ValidationStatus};
 
 /// Default schema version for backward compatibility.
 fn default_schema_version() -> String {
@@ -16,30 +20,31 @@ pub struct ProviderConfig {
     /// List of API keys for this provider.
     #[serde(default)]
     pub keys: Vec<ProviderKey>,
-    
+
     /// List of models available for this provider.
     pub models: Vec<String>,
-    
+
     /// Additional provider metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, serde_yaml::Value>>,
-    
+
     /// Configuration version.
     pub version: String,
-    
+
     /// Schema version for migration tracking.
     #[serde(default = "default_schema_version")]
     pub schema_version: String,
-    
+
     /// When this configuration was created.
     pub created_at: DateTime<Utc>,
-    
+
     /// When this configuration was last updated.
     pub updated_at: DateTime<Utc>,
 }
 
 impl ProviderConfig {
     /// Creates a new provider configuration with default values.
+    #[must_use]
     pub fn new(version: String) -> Self {
         let now = Utc::now();
         Self {
@@ -52,51 +57,66 @@ impl ProviderConfig {
             updated_at: now,
         }
     }
-    
+
     /// Adds a key to the provider configuration.
     pub fn add_key(&mut self, key: ProviderKey) {
         self.keys.push(key);
         self.updated_at = Utc::now();
     }
-    
+
     /// Adds multiple keys to the provider configuration.
     pub fn add_keys(&mut self, keys: Vec<ProviderKey>) {
         self.keys.extend(keys);
         self.updated_at = Utc::now();
     }
-    
+
     /// Gets the number of keys.
-    pub fn key_count(&self) -> usize {
+    #[must_use]
+    pub const fn key_count(&self) -> usize {
         self.keys.len()
     }
-    
+
     /// Gets the number of valid keys.
+    #[must_use]
     pub fn valid_key_count(&self) -> usize {
         self.keys.iter().filter(|key| key.is_valid()).count()
     }
-    
+
     /// Gets keys by environment.
+    #[must_use]
     pub fn keys_by_environment(&self, env: &Environment) -> Vec<&ProviderKey> {
-        self.keys.iter().filter(|key| &key.environment == env).collect()
+        self.keys
+            .iter()
+            .filter(|key| &key.environment == env)
+            .collect()
     }
-    
+
     /// Gets the default key (first key with id "default" or first key).
+    #[must_use]
     pub fn default_key(&self) -> Option<&ProviderKey> {
-        self.keys.iter().find(|key| key.id == "default")
+        self.keys
+            .iter()
+            .find(|key| key.id == "default")
             .or_else(|| self.keys.first())
     }
-    
+
     /// Gets a key by ID.
+    #[must_use]
     pub fn get_key(&self, id: &str) -> Option<&ProviderKey> {
         self.keys.iter().find(|key| key.id == id)
     }
-    
+
     /// Gets keys by validation status.
+    #[must_use]
     pub fn keys_by_status(&self, status: ValidationStatus) -> Vec<&ProviderKey> {
-        self.keys.iter().filter(|key| key.validation_status == status).collect()
+        self.keys
+            .iter()
+            .filter(|key| key.validation_status == status)
+            .collect()
     }
-    
+
     /// Converts from old single-key format to new multi-key format.
+    #[must_use]
     pub fn from_old_format(
         api_key: Option<String>,
         models: Vec<String>,
@@ -110,7 +130,7 @@ impl ProviderConfig {
         new_config.metadata = metadata;
         new_config.created_at = created_at;
         new_config.updated_at = updated_at;
-        
+
         // Convert single api_key to keys list
         if let Some(api_key_value) = api_key {
             let mut key = ProviderKey::new(
@@ -124,7 +144,7 @@ impl ProviderConfig {
             key.validation_status = ValidationStatus::Valid;
             new_config.add_key(key);
         }
-        
+
         new_config
     }
 }
@@ -142,6 +162,9 @@ struct OldProviderConfig {
 
 impl ProviderConfig {
     /// Attempts to deserialize from either old or new format.
+    ///
+    /// # Errors
+    /// Returns a [`serde_yaml::Error`] if deserialization fails for either format.
     pub fn from_yaml(content: &str) -> Result<Self, serde_yaml::Error> {
         // First check if this is old format by looking for api_key field
         if content.contains("api_key:") && !content.contains("keys:") {
@@ -156,9 +179,9 @@ impl ProviderConfig {
                 old_config.updated_at,
             ));
         }
-        
+
         // Try to deserialize as new format
-        serde_yaml::from_str::<ProviderConfig>(content)
+        serde_yaml::from_str::<Self>(content)
     }
 }
 
@@ -170,7 +193,7 @@ mod tests {
     #[test]
     fn test_provider_config_creation() {
         let config = ProviderConfig::new("1.0".to_string());
-        
+
         assert_eq!(config.version, "1.0");
         assert_eq!(config.schema_version, "3.0");
         assert_eq!(config.key_count(), 0);
@@ -180,51 +203,51 @@ mod tests {
     #[test]
     fn test_add_keys() {
         let mut config = ProviderConfig::new("1.0".to_string());
-        
+
         let key1 = ProviderKey::new(
             "key1".to_string(),
             "/test/path1".to_string(),
             Confidence::High,
             Environment::Production,
         );
-        
+
         let key2 = ProviderKey::new(
             "key2".to_string(),
             "/test/path2".to_string(),
             Confidence::Medium,
             Environment::Development,
         );
-        
+
         config.add_key(key1);
         config.add_key(key2);
-        
+
         assert_eq!(config.key_count(), 2);
     }
 
     #[test]
     fn test_keys_by_environment() {
         let mut config = ProviderConfig::new("1.0".to_string());
-        
+
         let prod_key = ProviderKey::new(
             "prod-key".to_string(),
             "/test/path".to_string(),
             Confidence::High,
             Environment::Production,
         );
-        
+
         let dev_key = ProviderKey::new(
             "dev-key".to_string(),
             "/test/path2".to_string(),
             Confidence::High,
             Environment::Development,
         );
-        
+
         config.add_key(prod_key);
         config.add_key(dev_key);
-        
+
         let prod_keys = config.keys_by_environment(&Environment::Production);
         let dev_keys = config.keys_by_environment(&Environment::Development);
-        
+
         assert_eq!(prod_keys.len(), 1);
         assert_eq!(dev_keys.len(), 1);
     }
@@ -232,27 +255,26 @@ mod tests {
     #[test]
     fn test_default_key() {
         let mut config = ProviderConfig::new("1.0".to_string());
-        
+
         let default_key = ProviderKey::new(
             "default".to_string(),
             "/test/path".to_string(),
             Confidence::High,
             Environment::Production,
         );
-        
+
         let other_key = ProviderKey::new(
             "other".to_string(),
             "/test/path2".to_string(),
             Confidence::High,
             Environment::Development,
         );
-        
+
         config.add_key(other_key);
         config.add_key(default_key);
-        
+
         let default_key_ref = config.default_key();
         assert!(default_key_ref.is_some());
         assert_eq!(default_key_ref.unwrap().id, "default");
     }
-
 }

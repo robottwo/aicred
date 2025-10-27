@@ -26,14 +26,8 @@ fn test_langchain_scanner_integration() {
     assert!(scanner.can_handle_file(Path::new(".env")));
     assert!(!scanner.can_handle_file(Path::new("random.txt")));
 
-    // Test supports_provider_scanning
-    assert!(scanner.supports_provider_scanning());
-
-    // Test supported_providers
-    let providers = scanner.supported_providers();
-    assert!(providers.contains(&"openai".to_string()));
-    assert!(providers.contains(&"anthropic".to_string()));
-    assert!(providers.contains(&"huggingface".to_string()));
+    // Test that scanner focuses on application-specific functionality
+    assert_eq!(scanner.app_name(), "LangChain");
 }
 
 #[test]
@@ -98,9 +92,6 @@ fn test_ragit_scanner_integration() {
     let ragit_path = temp_dir.path().join(".ragit").join("config.json");
     assert!(scanner.can_handle_file(&ragit_path));
     assert!(!scanner.can_handle_file(Path::new("/random/config.json")));
-
-    // Test supports_provider_scanning
-    assert!(scanner.supports_provider_scanning());
 }
 
 #[test]
@@ -165,8 +156,8 @@ fn test_claude_desktop_scanner() {
     // Test app_name
     assert_eq!(scanner.app_name(), "Claude Desktop");
 
-    // Test supports_provider_scanning (ClaudeDesktopScanner supports provider scanning)
-    assert!(scanner.supports_provider_scanning());
+    // Test app_name
+    assert_eq!(scanner.app_name(), "Claude Desktop");
 }
 
 #[test]
@@ -183,8 +174,8 @@ fn test_roo_code_scanner() {
     // Test app_name
     assert_eq!(scanner.app_name(), "Roo Code");
 
-    // Test supports_provider_scanning (RooCodeScanner supports provider scanning)
-    assert!(scanner.supports_provider_scanning());
+    // Test app_name
+    assert_eq!(scanner.app_name(), "Roo Code");
 }
 
 #[test]
@@ -219,31 +210,6 @@ fn test_scanner_registry_get_scanners_for_file() {
 
     let env_scanners = registry.get_scanners_for_file(Path::new(".env"));
     assert!(!env_scanners.is_empty());
-}
-
-#[test]
-fn test_provider_scanning_integration() {
-    let temp_home = TempDir::new().unwrap();
-    let scanner = LangChainScanner;
-
-    // Create a .env file
-    let env_content = r#"
-OPENAI_API_KEY=sk-openai-test1234567890abcdef
-ANTHROPIC_API_KEY=sk-ant-anthropic-test1234567890abcdef
-"#;
-    fs::write(temp_home.path().join(".env"), env_content).unwrap();
-
-    // Create a provider config directory
-    let openai_dir = temp_home.path().join(".config").join("openai");
-    fs::create_dir_all(&openai_dir).unwrap();
-
-    let openai_config = r#"{"api_key": "sk-openai-config1234567890abcdef"}"#;
-    fs::write(openai_dir.join("config.json"), openai_config).unwrap();
-
-    // Test scan_provider_configs
-    let provider_paths = scanner.scan_provider_configs(temp_home.path()).unwrap();
-    assert!(!provider_paths.is_empty());
-    assert!(provider_paths.iter().any(|p| p.ends_with(".env")));
 }
 
 #[test]
@@ -286,16 +252,6 @@ fn test_gsh_scanner_integration() {
     assert!(scanner.can_handle_file(Path::new("gshrc")));
     assert!(!scanner.can_handle_file(Path::new("config.json")));
     assert!(!scanner.can_handle_file(Path::new(".bashrc")));
-
-    // Test supports_provider_scanning
-    assert!(scanner.supports_provider_scanning());
-
-    // Test supported_providers
-    let providers = scanner.supported_providers();
-    assert!(providers.contains(&"openai".to_string()));
-    assert!(providers.contains(&"anthropic".to_string()));
-    assert!(providers.contains(&"google".to_string()));
-    assert!(providers.contains(&"huggingface".to_string()));
 
     // Test app_name
     assert_eq!(scanner.app_name(), "GSH");
@@ -481,7 +437,7 @@ without any key patterns
 
     // Should find 0 keys - but the scanner might find patterns that look like keys
     // Let's just verify it doesn't crash and handles it gracefully
-    assert!(result.keys.len() >= 0);
+    assert_eq!(result.keys.len(), 0);
 
     // Test file with missing keys
     let no_keys_config = r#"
@@ -534,26 +490,6 @@ export ANTHROPIC_API_KEY="sk-ant-test1234567890abcdef"
     let instances = scanner.scan_instances(temp_home.path()).unwrap();
     assert!(!instances.is_empty());
     assert_eq!(instances[0].app_name, "gsh");
-}
-
-#[test]
-fn test_gsh_scanner_provider_scanning() {
-    let temp_home = TempDir::new().unwrap();
-    let scanner = GshScanner;
-
-    // Create a .gshrc file
-    let gshrc_content = r#"
-# Provider configuration
-export OPENAI_API_KEY="sk-test1234567890abcdef"
-export ANTHROPIC_API_KEY="sk-ant-test1234567890abcdef"
-"#;
-
-    fs::write(temp_home.path().join(".gshrc"), gshrc_content).unwrap();
-
-    // Test scan_provider_configs
-    let provider_paths = scanner.scan_provider_configs(temp_home.path()).unwrap();
-    assert!(!provider_paths.is_empty());
-    assert!(provider_paths.iter().any(|p| p.ends_with(".gshrc")));
 }
 
 #[test]

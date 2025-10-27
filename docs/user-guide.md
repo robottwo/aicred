@@ -138,7 +138,7 @@ Return schema matches the JSON example in CLI output.
 
 Install:
 ```bash
-go get github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
 ```
 
 Example:
@@ -149,7 +149,7 @@ import (
   "fmt"
   "log"
 
-  "github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+  "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 )
 
 func main() {
@@ -375,6 +375,47 @@ print(f"Found {len(res['keys'])} provider keys")
 - Provider plugins focus on key validation and scoring
 - Better support for application-specific configuration scanning
 - More flexible and extensible plugin system
+
+## Configuration Migration
+
+The GenAI Key Finder now supports automatic migration from legacy `ProviderConfig` format to the new `ProviderInstance` format. This migration happens automatically when loading old configuration files.
+
+### Automatic Migration
+When you load a configuration file, the system automatically detects if it's in the old format and migrates it:
+
+```python
+import genai_keyfinder
+
+# Old format will be automatically migrated
+result = genai_keyfinder.scan()
+```
+
+### Manual Migration (Advanced)
+For more control over the migration process, you can use the migration API:
+
+```rust
+use genai_keyfinder_core::models::{ProviderConfigMigrator, MigrationConfig};
+
+let migration_config = MigrationConfig::new()
+    .with_instance_prefix("migrated".to_string())
+    .with_auto_activation(true);
+
+// Migrate configurations
+let (instances, result) = ProviderConfigMigrator::migrate_configs(
+    old_configs,
+    "openai",
+    "https://api.openai.com",
+    &migration_config
+)?;
+```
+
+### Migration Benefits
+- **Backward Compatibility**: Old configurations continue to work
+- **Enhanced Metadata**: New instances include provider type and base URL
+- **Better Organization**: Instance-based management with unique IDs
+- **Future-Proof**: Ready for upcoming features like multi-region support
+
+See the [ProviderConfig Migration Guide](provider-config-migration.md) for detailed migration information.
 
 ## Notes on Redaction
 

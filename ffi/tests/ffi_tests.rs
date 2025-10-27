@@ -1,3 +1,6 @@
+// Allow clippy lints for FFI tests
+#![allow(unused_unsafe)]
+
 use std::ffi::{CStr, CString};
 use std::ptr;
 
@@ -165,8 +168,9 @@ fn test_free_valid_pointer() {
         // Free the result - should not crash
         keyfinder_free(result);
 
-        // Free again - should not crash (double free protection)
-        keyfinder_free(result);
+        // Note: We don't test double-free as it's undefined behavior.
+        // The null check in keyfinder_free only protects against null pointers,
+        // not already-freed pointers.
     }
 }
 

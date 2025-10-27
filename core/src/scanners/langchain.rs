@@ -1,44 +1,39 @@
-//! LangChain scanner for discovering API keys in LangChain configuration files.
+//! `LangChain` scanner for discovering API keys in `LangChain` configuration files.
 
 use super::{ScanResult, ScannerPlugin};
 use crate::error::{Error, Result};
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
-use chrono::Utc;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-/// Scanner for LangChain application configuration.
+/// Scanner for `LangChain` application configuration.
 pub struct LangChainScanner;
 
 impl ScannerPlugin for LangChainScanner {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "langchain"
     }
 
-    fn app_name(&self) -> &str {
+    fn app_name(&self) -> &'static str {
         "LangChain"
     }
 
     fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
-        let mut paths = Vec::new();
-
-        // Global config
-        paths.push(home_dir.join(".langchain").join("config.yaml"));
-        paths.push(home_dir.join(".langchain").join("config.json"));
-        paths.push(home_dir.join(".langchain").join("settings.json"));
-
-        // Project configs
-        paths.push(PathBuf::from("langchain_config.yaml"));
-        paths.push(PathBuf::from("langchain_config.json"));
-        paths.push(PathBuf::from(".langchain.yaml"));
-        paths.push(PathBuf::from(".langchain.json"));
-
-        // Environment files
-        paths.push(PathBuf::from(".env"));
-        paths.push(PathBuf::from("langchain.env"));
-
-        paths
+        vec![
+            // Global config
+            home_dir.join(".langchain").join("config.yaml"),
+            home_dir.join(".langchain").join("config.json"),
+            home_dir.join(".langchain").join("settings.json"),
+            // Project configs
+            home_dir.join("langchain_config.yaml"),
+            home_dir.join("langchain_config.json"),
+            home_dir.join(".langchain.yaml"),
+            home_dir.join(".langchain.json"),
+            // Environment files
+            home_dir.join(".env"),
+            home_dir.join("langchain.env"),
+        ]
     }
 
     fn can_handle_file(&self, path: &Path) -> bool {
@@ -53,45 +48,6 @@ impl ScannerPlugin for LangChainScanner {
             || path_str.contains("langchain")
     }
 
-    fn supports_provider_scanning(&self) -> bool {
-        true
-    }
-
-    fn supported_providers(&self) -> Vec<String> {
-        vec![
-            "openai".to_string(),
-            "anthropic".to_string(),
-            "google".to_string(),
-            "huggingface".to_string(),
-            "langchain".to_string(),
-        ]
-    }
-
-    fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>> {
-        let mut paths = Vec::new();
-
-        // Common provider configuration files
-        paths.push(home_dir.join(".env"));
-        paths.push(home_dir.join(".env.local"));
-        paths.push(home_dir.join(".envrc"));
-        paths.push(PathBuf::from(".env"));
-        paths.push(PathBuf::from(".env.local"));
-
-        // Provider-specific environment files
-        paths.push(PathBuf::from("openai.env"));
-        paths.push(PathBuf::from("anthropic.env"));
-        paths.push(PathBuf::from("huggingface.env"));
-        paths.push(PathBuf::from("google.env"));
-
-        // Configuration directories
-        paths.push(home_dir.join(".config").join("openai"));
-        paths.push(home_dir.join(".config").join("anthropic"));
-        paths.push(home_dir.join(".config").join("huggingface"));
-
-        // Filter to only existing paths
-        Ok(paths.into_iter().filter(|p| p.exists()).collect())
-    }
-
     fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult> {
         let mut result = ScanResult::new();
 
@@ -104,7 +60,7 @@ impl ScannerPlugin for LangChainScanner {
                 if let Some(keys) = self.extract_keys_from_yaml(&yaml_value, path) {
                     result.add_keys(keys);
                 }
-                if self.is_valid_langchain_config_yaml(&yaml_value) {
+                if Self::is_valid_langchain_config_yaml(&yaml_value) {
                     let instance = self.create_config_instance_yaml(path, &yaml_value)?;
                     result.add_instance(instance);
                 }
@@ -115,14 +71,14 @@ impl ScannerPlugin for LangChainScanner {
                 if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
                     result.add_keys(keys);
                 }
-                if self.is_valid_langchain_config(&json_value) {
-                    let instance = self.create_config_instance(path, &json_value)?;
+                if Self::is_valid_langchain_config(&json_value) {
+                    let instance = Self::create_config_instance(path, &json_value);
                     result.add_instance(instance);
                 }
             }
         } else if file_name == ".env" || file_name.ends_with(".env") {
             // Parse environment file
-            return self.parse_env_file(content);
+            return Ok(Self::parse_env_file(content));
         }
 
         Ok(result)
@@ -140,12 +96,12 @@ impl LangChainScanner {
 
         // Look for API keys in common locations
         if let Some(api_key) = json_value.get("api_key").and_then(|v| v.as_str()) {
-            if self.is_valid_key(api_key) {
+            if Self::is_valid_key(api_key) {
                 let discovered_key = DiscoveredKey::new(
                     "langchain".to_string(),
                     path.display().to_string(),
                     ValueType::ApiKey,
-                    self.get_confidence(api_key),
+                    Self::get_confidence(api_key),
                     api_key.to_string(),
                 );
                 keys.push(discovered_key);
@@ -156,12 +112,12 @@ impl LangChainScanner {
         if let Some(providers) = json_value.get("providers").and_then(|v| v.as_object()) {
             for (provider_name, provider_config) in providers {
                 if let Some(key) = provider_config.get("api_key").and_then(|v| v.as_str()) {
-                    if self.is_valid_key(key) {
+                    if Self::is_valid_key(key) {
                         let discovered_key = DiscoveredKey::new(
                             provider_name.clone(),
                             path.display().to_string(),
                             ValueType::ApiKey,
-                            self.get_confidence(key),
+                            Self::get_confidence(key),
                             key.to_string(),
                         );
                         keys.push(discovered_key);
@@ -173,15 +129,16 @@ impl LangChainScanner {
         // Look for environment variables
         if let Some(env_vars) = json_value.get("env").and_then(|v| v.as_object()) {
             for (env_name, env_value) in env_vars {
-                if env_name.contains("key") || env_name.contains("token") {
+                let env_name_lc = env_name.to_ascii_lowercase();
+                if env_name_lc.contains("key") || env_name_lc.contains("token") {
                     if let Some(value) = env_value.as_str() {
-                        if self.is_valid_key(value) {
-                            let provider = self.infer_provider_from_env_name(env_name);
+                        if Self::is_valid_key(value) {
+                            let provider = Self::infer_provider_from_env_name(env_name);
                             let discovered_key = DiscoveredKey::new(
                                 provider,
                                 path.display().to_string(),
                                 ValueType::ApiKey,
-                                self.get_confidence(value),
+                                Self::get_confidence(value),
                                 value.to_string(),
                             );
                             keys.push(discovered_key);
@@ -195,12 +152,12 @@ impl LangChainScanner {
         if let Some(llm) = json_value.get("llm").and_then(|v| v.as_object()) {
             if let Some(provider) = llm.get("provider").and_then(|v| v.as_str()) {
                 if let Some(api_key) = llm.get("api_key").and_then(|v| v.as_str()) {
-                    if self.is_valid_key(api_key) {
+                    if Self::is_valid_key(api_key) {
                         let discovered_key = DiscoveredKey::new(
                             provider.to_string(),
                             path.display().to_string(),
                             ValueType::ApiKey,
-                            self.get_confidence(api_key),
+                            Self::get_confidence(api_key),
                             api_key.to_string(),
                         );
                         keys.push(discovered_key);
@@ -222,7 +179,7 @@ impl LangChainScanner {
         yaml_value: &serde_yaml::Value,
         path: &Path,
     ) -> Option<Vec<DiscoveredKey>> {
-        let mut keys = Vec::new();
+        let keys = Vec::new();
 
         // Convert YAML to JSON-like structure for easier processing
         if let Ok(json_value) = serde_json::to_value(yaml_value) {
@@ -236,8 +193,8 @@ impl LangChainScanner {
         }
     }
 
-    /// Check if this is a valid LangChain configuration.
-    fn is_valid_langchain_config(&self, json_value: &serde_json::Value) -> bool {
+    /// Check if this is a valid `LangChain` configuration.
+    fn is_valid_langchain_config(json_value: &serde_json::Value) -> bool {
         // Check for LangChain-specific configuration keys
         json_value.get("langchain").is_some()
             || json_value.get("langchain_version").is_some()
@@ -247,22 +204,16 @@ impl LangChainScanner {
             || json_value.get("retriever").is_some()
     }
 
-    /// Check if this is a valid LangChain YAML configuration.
-    fn is_valid_langchain_config_yaml(&self, yaml_value: &serde_yaml::Value) -> bool {
+    /// Check if this is a valid `LangChain` YAML configuration.
+    fn is_valid_langchain_config_yaml(yaml_value: &serde_yaml::Value) -> bool {
         // Convert to JSON for consistent checking
-        if let Ok(json_value) = serde_json::to_value(yaml_value) {
-            self.is_valid_langchain_config(&json_value)
-        } else {
-            false
-        }
+        serde_json::to_value(yaml_value)
+            .map(|json_value| Self::is_valid_langchain_config(&json_value))
+            .unwrap_or(false)
     }
 
-    /// Create a config instance from LangChain configuration.
-    fn create_config_instance(
-        &self,
-        path: &Path,
-        json_value: &serde_json::Value,
-    ) -> Result<ConfigInstance> {
+    /// Create a config instance from `LangChain` configuration.
+    fn create_config_instance(path: &Path, json_value: &serde_json::Value) -> ConfigInstance {
         let mut metadata = HashMap::new();
 
         // Extract version if available
@@ -270,13 +221,18 @@ impl LangChainScanner {
             metadata.insert("version".to_string(), version.to_string());
         }
 
-        // Extract LLM configuration
+        // Extract LLM configuration - avoid storing redundant model_id in metadata
         if let Some(llm) = json_value.get("llm").and_then(|v| v.as_object()) {
             if let Some(provider) = llm.get("provider").and_then(|v| v.as_str()) {
                 metadata.insert("llm_provider".to_string(), provider.to_string());
             }
+            // Don't store model in metadata if it will be handled by the models array
+            // Only store it if it's truly metadata, not a primary model configuration
             if let Some(model) = llm.get("model").and_then(|v| v.as_str()) {
-                metadata.insert("llm_model".to_string(), model.to_string());
+                // Only add to metadata if this is additional context, not the primary model
+                if !llm.contains_key("models") {
+                    metadata.insert("llm_model".to_string(), model.to_string());
+                }
             }
         }
 
@@ -287,36 +243,34 @@ impl LangChainScanner {
             }
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "langchain".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
-        Ok(instance)
+        let mut instance = ConfigInstance::new(
+            Self::generate_instance_id(path),
+            "langchain".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
+        instance
     }
 
-    /// Create a config instance from LangChain YAML configuration.
+    /// Create a config instance from `LangChain` YAML configuration.
     fn create_config_instance_yaml(
         &self,
         path: &Path,
         yaml_value: &serde_yaml::Value,
     ) -> Result<ConfigInstance> {
         // Convert to JSON for consistent processing
-        if let Ok(json_value) = serde_json::to_value(yaml_value) {
-            self.create_config_instance(path, &json_value)
-        } else {
-            Err(Error::ConfigError(
-                "Failed to convert YAML to JSON".to_string(),
-            ))
-        }
+        serde_json::to_value(yaml_value).map_or_else(
+            |_| {
+                Err(Error::ConfigError(
+                    "Failed to convert YAML to JSON".to_string(),
+                ))
+            },
+            |json_value| Ok(Self::create_config_instance(path, &json_value)),
+        )
     }
 
     /// Generate a unique instance ID.
-    fn generate_instance_id(&self, path: &Path) -> String {
+    fn generate_instance_id(path: &Path) -> String {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(path.to_string_lossy().as_bytes());
@@ -327,12 +281,12 @@ impl LangChainScanner {
     }
 
     /// Check if a key is valid.
-    fn is_valid_key(&self, key: &str) -> bool {
-        key.len() >= 15 && key.chars().any(|c| c.is_alphanumeric())
+    fn is_valid_key(key: &str) -> bool {
+        key.len() >= 15 && key.chars().any(char::is_alphanumeric)
     }
 
     /// Get confidence score for a key.
-    fn get_confidence(&self, key: &str) -> Confidence {
+    fn get_confidence(key: &str) -> Confidence {
         if key.starts_with("sk-") || key.starts_with("sk-ant-") || key.starts_with("hf_") {
             Confidence::High
         } else if key.len() >= 30 {
@@ -343,7 +297,7 @@ impl LangChainScanner {
     }
 
     /// Infer provider from environment variable name.
-    fn infer_provider_from_env_name(&self, env_name: &str) -> String {
+    fn infer_provider_from_env_name(env_name: &str) -> String {
         let env_name_lower = env_name.to_lowercase();
         if env_name_lower.contains("openai") {
             "openai".to_string()
@@ -359,27 +313,55 @@ impl LangChainScanner {
     }
 
     /// Parse .env file format.
-    fn parse_env_file(&self, content: &str) -> Result<ScanResult> {
+    fn parse_env_file(content: &str) -> ScanResult {
         let mut result = ScanResult::new();
-        let env_patterns = [
-            ("LANGCHAIN_API_KEY", "langchain"),
+
+        // API key patterns
+        let api_patterns = [
             ("LANGCHAIN_API_KEY", "langchain"),
             ("OPENAI_API_KEY", "openai"),
             ("ANTHROPIC_API_KEY", "anthropic"),
             ("HUGGING_FACE_HUB_TOKEN", "huggingface"),
+            ("HUGGINGFACE_API_KEY", "huggingface"),
+            ("GROQ_API_KEY", "groq"),
+            ("OPENROUTER_API_KEY", "openrouter"),
+            ("TEST_API_KEY", "test"),
         ];
 
-        let keys = super::extract_env_keys(content, &env_patterns);
+        // Metadata patterns - these will be extracted as Custom value types
+        // Note: BaseUrl and ModelId are handled by the ProviderInstance structure,
+        // so we don't need to extract them as metadata here
+        let metadata_patterns = [
+            ("GROQ_TEMPERATURE", "groq", "Temperature"),
+            ("OPENROUTER_TEMPERATURE", "openrouter", "Temperature"),
+            ("ANTHROPIC_TEMPERATURE", "anthropic", "Temperature"),
+            ("OPENAI_TEMPERATURE", "openai", "Temperature"),
+            ("HUGGINGFACE_TEMPERATURE", "huggingface", "Temperature"),
+            ("LANGCHAIN_TEMPERATURE", "langchain", "Temperature"),
+            // Model IDs - these should be extracted as ModelId type
+            ("GROQ_MODEL", "groq", "ModelId"),
+            ("OPENAI_MODEL", "openai", "ModelId"),
+            ("ANTHROPIC_MODEL", "anthropic", "ModelId"),
+            ("HUGGINGFACE_MODEL", "huggingface", "ModelId"),
+            ("OPENROUTER_MODEL", "openrouter", "ModelId"),
+            // Base URLs - these should be extracted as BaseUrl type
+            ("GROQ_BASE_URL", "groq", "BaseUrl"),
+            ("OPENAI_BASE_URL", "openai", "BaseUrl"),
+            ("ANTHROPIC_BASE_URL", "anthropic", "BaseUrl"),
+            ("HUGGINGFACE_BASE_URL", "huggingface", "BaseUrl"),
+            ("OPENROUTER_BASE_URL", "openrouter", "BaseUrl"),
+        ];
+
+        let keys =
+            super::extract_env_keys_with_metadata(content, &api_patterns, &metadata_patterns);
         result.add_keys(keys);
-        Ok(result)
+        result
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
 
     #[test]
     fn test_langchain_scanner_name() {
@@ -480,23 +462,25 @@ chain:
 
     #[test]
     fn test_is_valid_langchain_config() {
-        let scanner = LangChainScanner;
+        // Using associated functions; no scanner instance needed
 
         let valid_config = serde_json::json!({
             "langchain_version": "0.1.0",
             "llm": {"provider": "openai"}
         });
-        assert!(scanner.is_valid_langchain_config(&valid_config));
+        assert!(LangChainScanner::is_valid_langchain_config(&valid_config));
 
         let invalid_config = serde_json::json!({
             "random_key": "value"
         });
-        assert!(!scanner.is_valid_langchain_config(&invalid_config));
+        assert!(!LangChainScanner::is_valid_langchain_config(
+            &invalid_config
+        ));
     }
 
     #[test]
     fn test_create_config_instance() {
-        let scanner = LangChainScanner;
+        // Using associated functions; no scanner instance needed
         let config = serde_json::json!({
             "langchain_version": "0.2.0",
             "llm": {
@@ -508,9 +492,8 @@ chain:
             }
         });
 
-        let instance = scanner
-            .create_config_instance(Path::new("/test/config.json"), &config)
-            .unwrap();
+        let instance =
+            LangChainScanner::create_config_instance(Path::new("/test/config.json"), &config);
         assert_eq!(instance.app_name, "langchain");
         assert_eq!(instance.metadata.get("version"), Some(&"0.2.0".to_string()));
         assert_eq!(

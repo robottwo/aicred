@@ -1,5 +1,10 @@
 //! Property-based tests for core library invariants.
 
+// Allow clippy lints for property tests
+#![allow(clippy::manual_range_contains)]
+
+//! Property-based tests for core library invariants.
+
 use genai_keyfinder_core::{
     models::{discovered_key::Confidence, DiscoveredKey, ValueType},
     providers::openai::OpenAIPlugin,

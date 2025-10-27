@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+	"github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 	if len(result.Keys) > 0 {
 		fmt.Println("\nDiscovered Keys:")
 		for _, key := range result.Keys {
-			fmt.Printf("  %s: %s (confidence: %.2f)\n",
+			fmt.Printf("  %s: %s (confidence: %s)\n",
 				key.Provider, key.Redacted, key.Confidence)
 		}
 	}
@@ -62,7 +62,7 @@ func main() {
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 
-	if err := os.WriteFile("scan_result.json", jsonData, 0644); err != nil {
+	if err := os.WriteFile("scan_result.json", jsonData, 0600); err != nil {
 		log.Fatalf("Failed to write file: %v", err)
 	}
 

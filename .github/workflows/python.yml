@@ -18,21 +18,79 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
+       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
+       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       
-      - name: Install maturin
+      - name: Create and activate virtual environment
+        shell: bash
+        run: |
+          echo "Creating virtual environment..."
+          python -m venv .venv
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "$PWD/.venv/Scripts" >> $GITHUB_PATH
+          else
+            echo "$PWD/.venv/bin" >> $GITHUB_PATH
+          fi
+          echo "Virtual environment created and activated"
+      
+      - name: Install maturin and pytest
         run: pip install maturin pytest
+      
+      - name: Debug Python environment
+        shell: bash
+        run: |
+          echo "=== Python Environment Debug ==="
+          echo "Python version: $(python --version)"
+          echo "Python path: $(which python)"
+          echo "PYTHONPATH: $PYTHONPATH"
+          echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "Current directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
+          echo "Contents of bindings/python:"
+          ls -la bindings/python/
+          echo "=== End Debug ==="
+      
+      - name: Debug Python environment
+        shell: bash
+        run: |
+          echo "=== Python Environment Debug ==="
+          echo "Python version: $(python --version)"
+          echo "Python path: $(which python)"
+          echo "PYTHONPATH: $PYTHONPATH"
+          echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "Current directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
+          echo "Contents of .venv:"
+          ls -la .venv/
+          echo "=== End Debug ==="
       
       - name: Build Python package
         working-directory: bindings/python
-        run: maturin develop
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: '1'
+        run: |
+          echo "Building Python package with maturin..."
+          which maturin
+          maturin --version
+          maturin develop --verbose
+          echo "Build completed successfully"
       
       - name: Run Python tests
         working-directory: bindings/python
@@ -47,11 +105,17 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
+       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
+       
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       

@@ -5,6 +5,7 @@ Basic usage example for genai-keyfinder Python bindings
 
 import genai_keyfinder
 import json
+import os
 
 def main():
     print("GenAI Key Finder - Python Example")
@@ -43,6 +44,8 @@ def main():
     # Save to JSON
     with open('scan_result.json', 'w') as f:
         json.dump(result, f, indent=2)
+    # Set restrictive permissions (owner read/write only)
+    os.chmod('scan_result.json', 0o600)
     print("\nResults saved to scan_result.json")
 
 if __name__ == "__main__":

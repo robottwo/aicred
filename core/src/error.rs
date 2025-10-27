@@ -12,7 +12,12 @@ pub enum Error {
 
     /// Errors when parsing configuration files.
     #[error("Parse error in {path}: {message}")]
-    ParseError { path: PathBuf, message: String },
+    ParseError {
+        /// The path of the file that failed to parse
+        path: PathBuf,
+        /// The error message describing what went wrong
+        message: String,
+    },
 
     /// Errors related to plugin operations.
     #[error("Plugin error: {0}")]

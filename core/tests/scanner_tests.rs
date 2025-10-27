@@ -1,5 +1,8 @@
 //! Tests for the new ScannerPlugin architecture
 
+// Allow clippy lints for scanner tests
+#![allow(unused_imports)]
+
 use genai_keyfinder_core::models::discovered_key::{Confidence, ValueType};
 use genai_keyfinder_core::models::{ConfigInstance, DiscoveredKey};
 use genai_keyfinder_core::scanners::{ScanResult, ScannerPlugin, ScannerRegistry};
@@ -47,14 +50,11 @@ impl ScannerPlugin for MockScanner {
 
         // Create a mock instance if content contains "mock_app"
         if content.contains("mock_app") {
-            let instance = ConfigInstance {
-                instance_id: "mock_instance_123".to_string(),
-                app_name: "mock".to_string(),
-                config_path: path.to_path_buf(),
-                discovered_at: chrono::Utc::now(),
-                keys: Vec::new(),
-                metadata: std::collections::HashMap::new(),
-            };
+            let instance = ConfigInstance::new(
+                "mock_instance_123".to_string(),
+                "mock".to_string(),
+                path.to_path_buf(),
+            );
             result.add_instance(instance);
         }
 
@@ -66,14 +66,6 @@ impl ScannerPlugin for MockScanner {
             .and_then(|n| n.to_str())
             .map(|n| n.contains("mock"))
             .unwrap_or(false)
-    }
-
-    fn supports_provider_scanning(&self) -> bool {
-        true
-    }
-
-    fn supported_providers(&self) -> Vec<String> {
-        vec!["openai".to_string(), "anthropic".to_string()]
     }
 }
 
@@ -127,17 +119,6 @@ fn test_scanner_parse_config() {
 }
 
 #[test]
-fn test_scanner_provider_scanning_support() {
-    let scanner = MockScanner;
-
-    assert!(scanner.supports_provider_scanning());
-    let supported_providers = scanner.supported_providers();
-    assert_eq!(supported_providers.len(), 2);
-    assert!(supported_providers.contains(&"openai".to_string()));
-    assert!(supported_providers.contains(&"anthropic".to_string()));
-}
-
-#[test]
 fn test_scanner_scan_paths() {
     let scanner = MockScanner;
     let temp_dir = tempfile::tempdir().unwrap();
@@ -176,14 +157,12 @@ fn test_scan_result_functionality() {
     assert_eq!(result.keys.len(), 2);
 
     // Test adding instances
-    let instance = ConfigInstance {
-        instance_id: "test_instance".to_string(),
-        app_name: "test".to_string(),
-        config_path: PathBuf::from("/test/config.json"),
-        discovered_at: chrono::Utc::now(),
-        keys: vec![key1],
-        metadata: std::collections::HashMap::new(),
-    };
+    let mut instance = ConfigInstance::new(
+        "test_instance".to_string(),
+        "test".to_string(),
+        PathBuf::from("/test/config.json"),
+    );
+    instance.add_key(key1);
 
     result.add_instance(instance);
     assert_eq!(result.instances.len(), 1);
@@ -216,4 +195,117 @@ fn test_scanner_get_scanners_for_file() {
     // Get scanners for a non-mock file
     let scanners = registry.get_scanners_for_file(Path::new("regular_config.json"));
     assert_eq!(scanners.len(), 0);
+}
+
+#[test]
+fn test_scanner_filtering_ignores_provider_filters() {
+    use genai_keyfinder_core::ScanOptions;
+
+    // Create a scanner registry with multiple scanners
+    let registry = ScannerRegistry::new();
+    let mock_scanner = std::sync::Arc::new(MockScanner);
+    registry.register(mock_scanner).unwrap();
+
+    // Create another mock scanner with a different name
+    struct AnotherMockScanner;
+    impl ScannerPlugin for AnotherMockScanner {
+        fn name(&self) -> &str {
+            "another_mock"
+        }
+
+        fn app_name(&self) -> &str {
+            "Another Mock Application"
+        }
+
+        fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
+            vec![home_dir.join("another_mock_config.json")]
+        }
+
+        fn parse_config(
+            &self,
+            _path: &Path,
+            _content: &str,
+        ) -> Result<ScanResult, genai_keyfinder_core::error::Error> {
+            Ok(ScanResult::new())
+        }
+
+        fn can_handle_file(&self, path: &Path) -> bool {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .map(|n| n.contains("another_mock"))
+                .unwrap_or(false)
+        }
+    }
+
+    let another_scanner = std::sync::Arc::new(AnotherMockScanner);
+    registry.register(another_scanner).unwrap();
+
+    // Verify both scanners are registered
+    assert_eq!(registry.list().len(), 2);
+    assert!(registry.get("mock").is_some());
+    assert!(registry.get("another_mock").is_some());
+
+    // Test: Verify that scanners with names matching provider filters are NOT excluded
+    // The key insight is that scanner names (like "mock", "another_mock") should not be
+    // filtered even if they appear in only_providers or exclude_providers lists.
+    //
+    // Since filter_scanner_registry is private, we test indirectly by verifying that
+    // a scan with provider filters that would exclude scanners (if incorrectly applied)
+    // still succeeds and uses all scanners.
+
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    // Test 1: With only_providers that includes actual provider names (not scanner names)
+    // This should succeed because scanners are not filtered by provider names
+    let scan_options = ScanOptions {
+        home_dir: Some(temp_dir.path().to_path_buf()),
+        include_full_values: false,
+        max_file_size: 1024 * 1024,
+        only_providers: Some(vec!["openai".to_string(), "anthropic".to_string()]),
+        exclude_providers: None,
+    };
+
+    let result = genai_keyfinder_core::scan(&scan_options);
+    // This will succeed because:
+    // 1. Scanners are not filtered by provider names (our fix)
+    // 2. Provider filtering happens separately and finds openai/anthropic providers
+    assert!(
+        result.is_ok(),
+        "Scan should succeed with provider filters that don't match scanner names"
+    );
+
+    // Test 2: With exclude_providers that would exclude scanners if incorrectly applied
+    // Even if we exclude providers with names like "mock", the mock scanner should still run
+    let scan_options_exclude = ScanOptions {
+        home_dir: Some(temp_dir.path().to_path_buf()),
+        include_full_values: false,
+        max_file_size: 1024 * 1024,
+        only_providers: None,
+        exclude_providers: Some(vec!["mock".to_string(), "another_mock".to_string()]),
+    };
+
+    let result = genai_keyfinder_core::scan(&scan_options_exclude);
+    // This should succeed because scanners are not filtered by exclude_providers
+    // The exclude_providers only affects provider/plugin filtering, not scanner selection
+    assert!(
+        result.is_ok(),
+        "Scan should succeed even with exclude_providers that match scanner names"
+    );
+
+    // Test 3: Verify the fix by checking that scanner count is maintained
+    // We can't directly access filter_scanner_registry, but we can verify behavior
+    // by ensuring scans don't fail due to "no scanners" when provider filters are applied
+    let scan_options_no_providers = ScanOptions {
+        home_dir: Some(temp_dir.path().to_path_buf()),
+        include_full_values: false,
+        max_file_size: 1024 * 1024,
+        only_providers: None,
+        exclude_providers: None,
+    };
+
+    let result = genai_keyfinder_core::scan(&scan_options_no_providers);
+    assert!(
+        result.is_ok(),
+        "Scan should succeed with no provider filters"
+    );
 }

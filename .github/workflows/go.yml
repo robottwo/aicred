@@ -24,7 +24,14 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       
-      - name: Install Rust
+      - name: Install Rust (Windows)
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-gnu
+      
+      - name: Install Rust (Non-Windows)
+        if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
       
       - name: Build FFI library
@@ -41,7 +48,7 @@ jobs:
         run: |
           mkdir bindings/go/lib
           copy target\release\genai_keyfinder_ffi.dll bindings\go\lib\
-          copy target\release\genai_keyfinder_ffi.dll.lib bindings\go\lib\
+          copy target\release\genai_keyfinder_ffi.lib bindings\go\lib\
       
       - name: Run Go tests
         working-directory: bindings/go

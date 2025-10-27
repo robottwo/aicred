@@ -13,8 +13,8 @@ version = "0.1.0"
 authors = ["genai-keyfinder contributors"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/your-org/genai-keyfinder"
-homepage = "https://github.com/your-org/genai-keyfinder"
+repository = "https://github.com/robottwo/aicred"
+homepage = "https://github.com/robottwo/aicred"
 
 [workspace.dependencies]
 # Core dependencies
@@ -26,6 +26,7 @@ hex = "0.4"
 dirs-next = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.0"
+url = "2"
 
 # Serialization formats
 toml = "0.8"

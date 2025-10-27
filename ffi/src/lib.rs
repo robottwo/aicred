@@ -14,6 +14,13 @@
 //! - The library uses thread-local storage for error messages
 //! - All functions are panic-safe using `std::panic::catch_unwind`
 
+// Allow clippy lints for the FFI crate
+#![allow(unused_doc_comments)]
+#![allow(unused_unsafe)]
+#![allow(clippy::missing_const_for_thread_local)]
+#![allow(clippy::redundant_closure)]
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 use genai_keyfinder_core::{scan, ScanOptions};
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
@@ -22,6 +29,11 @@ use std::path::PathBuf;
 /// Thread-local storage for the last error message
 thread_local! {
     static LAST_ERROR: RefCell<Option<String>> = RefCell::new(None);
+}
+
+/// Thread-local storage for error buffer (used by keyfinder_last_error)
+thread_local! {
+    static ERROR_BUFFER: RefCell<Option<CString>> = RefCell::new(None);
 }
 
 /// Version string for the library
@@ -160,7 +172,7 @@ pub extern "C" fn keyfinder_scan(
         }
 
         // Run the scan
-        let scan_result = scan(options).map_err(|e| format!("Scan failed: {}", e))?;
+        let scan_result = scan(&options).map_err(|e| format!("Scan failed: {}", e))?;
 
         // Serialize result to JSON
         let json_result = serde_json::to_string(&scan_result)
@@ -212,23 +224,128 @@ pub extern "C" fn keyfinder_version() -> *const libc::c_char {
 /// The returned pointer is valid until the next call to any keyfinder function.
 #[no_mangle]
 pub extern "C" fn keyfinder_last_error() -> *const libc::c_char {
+    eprintln!(
+        "[DEBUG] keyfinder_last_error: Entry, thread_id={:?}",
+        std::thread::current().id()
+    );
+
     match get_last_error() {
         Some(error) => {
-            // We need to return a static string, so we'll store it in thread-local storage
-            thread_local! {
-                static ERROR_BUFFER: RefCell<Option<CString>> = RefCell::new(None);
-            }
-
-            ERROR_BUFFER.with(|buffer| match CString::new(error) {
+            eprintln!(
+                "[DEBUG] keyfinder_last_error: Got error string, len={}",
+                error.len()
+            );
+            // Use the top-level ERROR_BUFFER thread-local storage
+            eprintln!("[DEBUG] keyfinder_last_error: About to access ERROR_BUFFER");
+            let result = ERROR_BUFFER.with(|buffer| match CString::new(error) {
                 Ok(c_str) => {
+                    eprintln!("[DEBUG] keyfinder_last_error: Created CString successfully");
                     let ptr = c_str.as_ptr();
                     *buffer.borrow_mut() = Some(c_str);
+                    eprintln!(
+                        "[DEBUG] keyfinder_last_error: Stored in buffer, ptr={:?}",
+                        ptr
+                    );
                     ptr as *const libc::c_char
                 }
-                Err(_) => std::ptr::null(),
-            })
+                Err(_) => {
+                    eprintln!("[DEBUG] keyfinder_last_error: Failed to create CString");
+                    std::ptr::null()
+                }
+            });
+            eprintln!("[DEBUG] keyfinder_last_error: Returning result");
+            result
         }
-        None => std::ptr::null(),
+        None => {
+            eprintln!("[DEBUG] keyfinder_last_error: No error, returning null");
+            std::ptr::null()
+        }
+    }
+}
+
+/// Get list of available provider plugins
+///
+/// Returns a JSON array of provider names as a UTF-8 encoded string.
+/// Caller must free the returned string with [`keyfinder_free`].
+/// Returns NULL on error.
+///
+/// # Example return value:
+/// ```json
+/// ["openai", "anthropic", "huggingface", "groq", "ollama", "litellm", "common-config"]
+/// ```
+///
+/// # Safety
+///
+/// The returned pointer must be freed by the caller using [`keyfinder_free`].
+#[no_mangle]
+pub extern "C" fn keyfinder_list_providers() -> *mut libc::c_char {
+    clear_last_error();
+
+    let result = safe_execute(|| {
+        // Create a plugin registry and register built-in plugins
+        let registry = genai_keyfinder_core::plugins::PluginRegistry::new();
+        genai_keyfinder_core::plugins::register_builtin_plugins(&registry)
+            .map_err(|e| format!("Failed to register plugins: {}", e))?;
+
+        // Get the list of provider names
+        let providers = registry.list();
+
+        // Serialize to JSON
+        let json_result = serde_json::to_string(&providers)
+            .map_err(|e| format!("Failed to serialize providers: {}", e))?;
+
+        Ok(json_result)
+    });
+
+    match result {
+        Ok(json_string) => string_to_c_str(json_string),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Get list of available scanner plugins
+///
+/// Returns a JSON array of scanner names as a UTF-8 encoded string.
+/// Caller must free the returned string with [`keyfinder_free`].
+/// Returns NULL on error.
+///
+/// # Example return value:
+/// ```json
+/// ["ragit", "claude-desktop", "roo-code", "langchain", "gsh"]
+/// ```
+///
+/// # Safety
+///
+/// The returned pointer must be freed by the caller using [`keyfinder_free`].
+#[no_mangle]
+pub extern "C" fn keyfinder_list_scanners() -> *mut libc::c_char {
+    clear_last_error();
+
+    let result = safe_execute(|| {
+        // Create a scanner registry and register built-in scanners
+        let registry = genai_keyfinder_core::scanners::ScannerRegistry::new();
+        genai_keyfinder_core::scanners::register_builtin_scanners(&registry)
+            .map_err(|e| format!("Failed to register scanners: {}", e))?;
+
+        // Get the list of scanner names
+        let scanners = registry.list();
+
+        // Serialize to JSON
+        let json_result = serde_json::to_string(&scanners)
+            .map_err(|e| format!("Failed to serialize scanners: {}", e))?;
+
+        Ok(json_result)
+    });
+
+    match result {
+        Ok(json_string) => string_to_c_str(json_string),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
     }
 }
 

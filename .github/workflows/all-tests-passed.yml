@@ -1,0 +1,214 @@
+name: All Tests Status
+
+# This workflow provides a single status check that passes only when all tests pass
+# Configure this as a required status check in branch protection rules
+#
+# IMPORTANT: This workflow uses explicit mapping between workflow display names and filenames
+# to avoid fragile filename derivation logic. If you rename a workflow file or add a new one,
+# you MUST update the workflowMapping object in the JavaScript code below.
+#
+# The mapping ensures that workflow renames or non-conforming filenames will fail loudly
+# instead of silently, making the CI/CD pipeline more robust and maintainable.
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  workflow_run:
+    workflows:
+      - "CI"
+      - "Code Coverage"
+      - "Security Audit"
+      - "Go Bindings"
+      - "Python Bindings"
+      - "GUI Application"
+    types:
+      - completed
+
+jobs:
+  check-all-tests:
+    name: All Tests Passed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for workflows to complete (if triggered by workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // When triggered by workflow_run, wait a bit to ensure all workflows have time to start
+            console.log('Workflow triggered by workflow_run event - waiting for other workflows to potentially start...');
+            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+            console.log('Proceeding with status check...');
+      
+      - name: Check workflow runs with retry
+        id: check_workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const maxRetries = 3;
+            const retryDelay = 20000; // 20 seconds
+            
+            async function checkWorkflowsWithRetry(retryCount = 0) {
+              console.log(`=== CHECK ATTEMPT ${retryCount + 1}/${maxRetries} ===`);
+              
+              // Explicit mapping from workflow display names to actual filenames
+              // This is more robust than trying to derive filenames from display names
+              const workflowMapping = {
+                'CI': 'ci.yml',
+                'Code Coverage': 'coverage.yml',
+                'Security Audit': 'security.yml',
+                'Go Bindings': 'go.yml',
+                'Python Bindings': 'python.yml',
+                'GUI Application': 'gui.yml'
+              };
+              
+              const workflows = Object.entries(workflowMapping).map(([name, file]) => ({
+                name,
+                file
+              }));
+              
+              const ref = context.payload.pull_request?.head?.sha || context.sha;
+              console.log(`Checking workflows for ref: ${ref}`);
+              
+              let allPassed = true;
+              let hasInProgress = false;
+              const results = [];
+              
+              for (const { name: workflowName, file: workflowFile } of workflows) {
+                console.log(`\n--- Checking ${workflowName} (${workflowFile}) ---`);
+                
+                // Guard: Skip if workflowFile is undefined or empty
+                if (!workflowFile || workflowFile.trim() === '') {
+                  console.log(`⚠️  ${workflowName}: No filename mapping found - skipping`);
+                  results.push(`${workflowName}: ⚠️ Skipped (no filename mapping)`);
+                  continue;
+                }
+                
+                try {
+                  // Additional validation for workflowFile
+                  if (!workflowFile.endsWith('.yml') && !workflowFile.endsWith('.yaml')) {
+                    console.log(`⚠️  ${workflowName}: Invalid filename format '${workflowFile}' - should end with .yml or .yaml`);
+                    results.push(`${workflowName}: ⚠️ Invalid filename format`);
+                    allPassed = false;
+                    continue;
+                  }
+                  
+                  const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    workflow_id: workflowFile,
+                    head_sha: ref,
+                    per_page: 1
+                  });
+                  
+                  console.log(`Found ${runs.workflow_runs.length} runs for ${workflowName}`);
+                  
+                  if (runs.workflow_runs.length === 0) {
+                    console.log(`⚠️  ${workflowName}: No runs found for file '${workflowFile}'`);
+                    
+                    // Check if this is expected based on branch
+                    const branch = context.ref?.replace('refs/heads/', '') || 'unknown';
+                    console.log(`Current branch: ${branch}`);
+                    
+                    // Some workflows only run on main branch
+                    const mainOnlyWorkflows = ['Code Coverage', 'Security Audit'];
+                    if (mainOnlyWorkflows.includes(workflowName) && branch !== 'main') {
+                      console.log(`⏭️  ${workflowName}: Skipped (main branch only)`);
+                      results.push(`${workflowName}: ⏭️ Skipped (main branch only)`);
+                    } else {
+                      results.push(`${workflowName}: ⚠️ No runs found for '${workflowFile}'`);
+                      allPassed = false; // Fail if no runs found unexpectedly
+                    }
+                    continue;
+                  }
+                  
+                  const run = runs.workflow_runs[0];
+                  const status = run.conclusion;
+                  const runStatus = run.status;
+                  
+                  console.log(`${workflowName} details:`);
+                  console.log(`  - Run ID: ${run.id}`);
+                  console.log(`  - Status: ${runStatus}`);
+                  console.log(`  - Conclusion: ${status}`);
+                  
+                  if (status === 'success') {
+                    console.log(`✅ ${workflowName}: Passed`);
+                    results.push(`${workflowName}: ✅ Passed`);
+                  } else if (status === 'skipped') {
+                    console.log(`⏭️  ${workflowName}: Skipped`);
+                    results.push(`${workflowName}: ⏭️ Skipped`);
+                  } else if (!status || status === 'in_progress' || status === 'queued' || runStatus === 'in_progress' || runStatus === 'queued') {
+                    console.log(`⏳ ${workflowName}: In progress (status: ${runStatus}, conclusion: ${status})`);
+                    results.push(`${workflowName}: ⏳ In progress`);
+                    allPassed = false;
+                    hasInProgress = true;
+                  } else {
+                    console.log(`❌ ${workflowName}: ${status}`);
+                    results.push(`${workflowName}: ❌ ${status}`);
+                    allPassed = false;
+                  }
+                } catch (error) {
+                  console.log(`⚠️  ${workflowName}: Error checking status - ${error.message}`);
+                  
+                  // Check if this is a "Not Found" error, which might indicate the workflow file was renamed
+                  if (error.status === 404 || error.message.includes('Not Found')) {
+                    console.log(`❌ ${workflowName}: Workflow file '${workflowFile}' not found - may have been renamed or deleted`);
+                    results.push(`${workflowName}: ❌ Workflow file '${workflowFile}' not found`);
+                  } else {
+                    results.push(`${workflowName}: ⚠️ Error - ${error.message}`);
+                  }
+                  allPassed = false;
+                }
+              }
+              
+              console.log('\n=== SUMMARY ===');
+              results.forEach(r => console.log(r));
+              
+              console.log(`\nFinal status: allPassed=${allPassed}, hasInProgress=${hasInProgress}`);
+              
+              // If we have in-progress workflows and haven't exceeded max retries, wait and retry
+              if (hasInProgress && retryCount < maxRetries - 1) {
+                console.log(`\n🔄 Some workflows are still in progress. Waiting ${retryDelay/1000} seconds before retry ${retryCount + 2}...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                return checkWorkflowsWithRetry(retryCount + 1);
+              }
+              
+              return { allPassed, hasInProgress, results };
+            }
+            
+            const result = await checkWorkflowsWithRetry();
+            
+            // Set outputs for next step
+            core.setOutput('allPassed', result.allPassed);
+            core.setOutput('hasInProgress', result.hasInProgress)
+            
+            // Always succeed this step - let the next step handle the final decision
+            console.log(`\nCheck completed. allPassed: ${result.allPassed}, hasInProgress: ${result.hasInProgress}`);
+      
+      - name: Final status check
+        run: |
+          echo "All workflows passed: ${{ steps.check_workflows.outputs.allPassed }}"
+          echo "Has in-progress workflows: ${{ steps.check_workflows.outputs.hasInProgress }}"
+          
+          if [ "${{ steps.check_workflows.outputs.allPassed }}" != "true" ]; then
+            echo "❌ Not all required workflows have passed"
+            exit 1
+          else
+            echo "✅ All required workflows passed!"
+          fi
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Test Workflows Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This check ensures all test workflows complete successfully before allowing merge." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Required workflows:" >> $GITHUB_STEP_SUMMARY
+          echo "- CI (Rust tests, fmt, clippy)" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Bindings" >> $GITHUB_STEP_SUMMARY
+          echo "- Python Bindings" >> $GITHUB_STEP_SUMMARY
+          echo "- GUI Application" >> $GITHUB_STEP_SUMMARY

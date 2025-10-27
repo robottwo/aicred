@@ -68,7 +68,7 @@ pub enum AuthenticationMethod {
 }
 ```
 
-### Model Model
+### Model
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -257,6 +257,85 @@ pub trait ProviderPlugin: Send + Sync {
     fn provider_type(&self) -> &str;
 }
 ```
+
+## Configuration Migration System
+
+The architecture includes a robust migration system for converting legacy `ProviderConfig` format to the new `ProviderInstance` format.
+
+### Migration Components
+
+#### ProviderConfigMigrator
+Handles the conversion from legacy ProviderConfig to new ProviderInstance format:
+
+```rust
+pub struct ProviderConfigMigrator;
+
+impl ProviderConfigMigrator {
+    /// Migrates a single ProviderConfig to ProviderInstance
+    pub fn migrate_config(
+        config: ProviderConfig,
+        provider_type: &str,
+        base_url: &str,
+        index: usize,
+        migration_config: &MigrationConfig,
+    ) -> Result<ProviderInstance, MigrationError>
+    
+    /// Migrates multiple ProviderConfigs
+    pub fn migrate_configs(
+        configs: Vec<ProviderConfig>,
+        provider_type: &str,
+        base_url: &str,
+        migration_config: &MigrationConfig,
+    ) -> Result<(Vec<ProviderInstance>, MigrationResult), MigrationError>
+}
+```
+
+#### MigrationConfig
+Configuration for controlling migration behavior:
+
+```rust
+pub struct MigrationConfig {
+    pub generate_unique_ids: bool,
+    pub instance_id_prefix: String,
+    pub auto_activate_instances: bool,
+    pub preserve_metadata: bool,
+}
+```
+
+#### MigrationResult
+Tracks migration statistics and warnings:
+
+```rust
+pub struct MigrationResult {
+    pub configs_migrated: usize,
+    pub instances_created: usize,
+    pub keys_migrated: usize,
+    pub models_migrated: usize,
+    pub warnings: Vec<String>,
+}
+```
+
+### Automatic Migration
+The system automatically detects and migrates legacy configurations when loading:
+
+```rust
+impl ConfigInstance {
+    /// Loads from JSON with automatic migration
+    pub fn from_json(content: &str) -> Result<Self, serde_json::Error>
+    
+    /// Loads from YAML with automatic migration
+    pub fn from_yaml(content: &str) -> Result<Self, serde_yaml::Error>
+    
+    /// Checks if content needs migration
+    pub fn needs_migration(content: &str) -> bool
+}
+```
+
+### Migration Benefits
+- **Backward Compatibility**: Old configurations continue to work seamlessly
+- **Enhanced Metadata**: New instances include explicit provider type and base URL
+- **Better Organization**: Instance-based management with unique IDs and display names
+- **Future-Proof**: Ready for upcoming features like multi-region support and advanced model management
 
 ### Plugin Registry
 
@@ -660,7 +739,7 @@ mod tests {
             redaction_char: '*',
         };
         
-        let key = "sk-1234567890abcdef";
+        let key = "sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef";
         let redacted = redactor.redact(key);
         assert_eq!(redacted, "sk-**************def");
     }

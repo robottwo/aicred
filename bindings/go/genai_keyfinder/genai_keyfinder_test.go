@@ -183,12 +183,19 @@ func TestScanWithFullValues(t *testing.T) {
 }
 
 func TestConcurrentScans(t *testing.T) {
+	// Create temporary directory for concurrent testing
+	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-concurrent-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, _ = Scan(ScanOptions{})
+			_, _ = Scan(ScanOptions{HomeDir: tmpDir})
 		}()
 	}
 	wg.Wait()
