@@ -47,14 +47,11 @@ impl ScannerPlugin for MockScanner {
 
         // Create a mock instance if content contains "mock_app"
         if content.contains("mock_app") {
-            let instance = ConfigInstance {
-                instance_id: "mock_instance_123".to_string(),
-                app_name: "mock".to_string(),
-                config_path: path.to_path_buf(),
-                discovered_at: chrono::Utc::now(),
-                keys: Vec::new(),
-                metadata: std::collections::HashMap::new(),
-            };
+            let instance = ConfigInstance::new(
+                "mock_instance_123".to_string(),
+                "mock".to_string(),
+                path.to_path_buf(),
+            );
             result.add_instance(instance);
         }
 
@@ -176,14 +173,12 @@ fn test_scan_result_functionality() {
     assert_eq!(result.keys.len(), 2);
 
     // Test adding instances
-    let instance = ConfigInstance {
-        instance_id: "test_instance".to_string(),
-        app_name: "test".to_string(),
-        config_path: PathBuf::from("/test/config.json"),
-        discovered_at: chrono::Utc::now(),
-        keys: vec![key1],
-        metadata: std::collections::HashMap::new(),
-    };
+    let mut instance = ConfigInstance::new(
+        "test_instance".to_string(),
+        "test".to_string(),
+        PathBuf::from("/test/config.json"),
+    );
+    instance.add_key(key1);
 
     result.add_instance(instance);
     assert_eq!(result.instances.len(), 1);

@@ -1,7 +1,7 @@
 //! Plugin system for extensible provider support.
 
 use crate::error::{Error, Result};
-use crate::models::DiscoveredKey;
+use crate::models::{DiscoveredKey, ProviderInstance};
 use crate::providers::{
     anthropic::AnthropicPlugin, groq::GroqPlugin, huggingface::HuggingFacePlugin,
     litellm::LiteLLMPlugin, ollama::OllamaPlugin, openai::OpenAIPlugin,
@@ -27,6 +27,40 @@ pub trait ProviderPlugin: Send + Sync {
     /// Gets the provider type this plugin handles.
     fn provider_type(&self) -> &str {
         self.name()
+    }
+
+    /// Initializes the provider with instance-specific configuration.
+    /// This method is called when a provider instance is created or updated.
+    fn initialize_instance(&self, instance: &ProviderInstance) -> Result<()> {
+        // Default implementation - can be overridden by providers that need initialization
+        Ok(())
+    }
+
+    /// Validates the provider instance configuration.
+    /// Returns Ok(()) if valid, or an error message if invalid.
+    fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
+        // Default implementation - can be overridden for provider-specific validation
+        if instance.base_url.is_empty() {
+            return Err(Error::PluginError("Base URL cannot be empty".to_string()));
+        }
+        if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
+            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+        }
+        Ok(())
+    }
+
+    /// Gets the list of models available for this provider instance.
+    /// Returns a vector of model IDs that this instance supports.
+    fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
+        // Default implementation - returns the models configured in the instance
+        Ok(instance.models.iter().map(|m| m.model_id.clone()).collect())
+    }
+
+    /// Checks if the provider instance has valid configuration for operation.
+    /// This includes checking API keys, base URL accessibility, etc.
+    fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
+        // Default implementation - checks if instance has valid keys
+        Ok(instance.has_valid_keys())
     }
 }
 

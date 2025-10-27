@@ -176,15 +176,12 @@ impl ClaudeDesktopScanner {
             metadata.insert("temperature".to_string(), temperature.to_string());
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "claude-desktop".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(path),
+            "claude-desktop".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 

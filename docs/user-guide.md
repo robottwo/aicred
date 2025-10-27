@@ -376,6 +376,47 @@ print(f"Found {len(res['keys'])} provider keys")
 - Better support for application-specific configuration scanning
 - More flexible and extensible plugin system
 
+## Configuration Migration
+
+The GenAI Key Finder now supports automatic migration from legacy `ProviderConfig` format to the new `ProviderInstance` format. This migration happens automatically when loading old configuration files.
+
+### Automatic Migration
+When you load a configuration file, the system automatically detects if it's in the old format and migrates it:
+
+```python
+import genai_keyfinder
+
+# Old format will be automatically migrated
+result = genai_keyfinder.scan()
+```
+
+### Manual Migration (Advanced)
+For more control over the migration process, you can use the migration API:
+
+```rust
+use genai_keyfinder_core::models::{ProviderConfigMigrator, MigrationConfig};
+
+let migration_config = MigrationConfig::new()
+    .with_instance_prefix("migrated".to_string())
+    .with_auto_activation(true);
+
+// Migrate configurations
+let (instances, result) = ProviderConfigMigrator::migrate_configs(
+    old_configs,
+    "openai",
+    "https://api.openai.com",
+    &migration_config
+)?;
+```
+
+### Migration Benefits
+- **Backward Compatibility**: Old configurations continue to work
+- **Enhanced Metadata**: New instances include provider type and base URL
+- **Better Organization**: Instance-based management with unique IDs
+- **Future-Proof**: Ready for upcoming features like multi-region support
+
+See the [ProviderConfig Migration Guide](provider-config-migration.md) for detailed migration information.
+
 ## Notes on Redaction
 
 - By default, full values are not serialized; the `full_value` is skipped.

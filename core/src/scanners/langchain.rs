@@ -287,15 +287,12 @@ impl LangChainScanner {
             }
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "langchain".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(path),
+            "langchain".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 

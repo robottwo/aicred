@@ -227,15 +227,12 @@ impl RagitScanner {
             metadata.insert("default_model".to_string(), default_model.to_string());
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "ragit".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(path),
+            "ragit".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 

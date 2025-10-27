@@ -525,15 +525,12 @@ impl RooCodeScanner {
             metadata.insert("publisher".to_string(), publisher.to_string());
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(extension_path),
-            app_name: "roo-code".to_string(),
-            config_path: extension_path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(extension_path),
+            "roo-code".to_string(),
+            extension_path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 
@@ -560,15 +557,12 @@ impl RooCodeScanner {
             }
         }
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "roo-code".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(path),
+            "roo-code".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 

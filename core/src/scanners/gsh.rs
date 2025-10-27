@@ -341,15 +341,12 @@ impl GshScanner {
         metadata.insert("type".to_string(), "shell_script".to_string());
         metadata.insert("format".to_string(), "KEY=value".to_string());
 
-        let instance = ConfigInstance {
-            instance_id: self.generate_instance_id(path),
-            app_name: "gsh".to_string(),
-            config_path: path.to_path_buf(),
-            discovered_at: Utc::now(),
-            keys: Vec::new(), // Will be populated separately
-            metadata,
-        };
-
+        let mut instance = ConfigInstance::new(
+            self.generate_instance_id(path),
+            "gsh".to_string(),
+            path.to_path_buf(),
+        );
+        instance.metadata.extend(metadata);
         Ok(instance)
     }
 

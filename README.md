@@ -101,6 +101,8 @@ See detailed installation instructions in [docs/installation.md](docs/installati
 - [API Reference](docs/api-reference.md)
 - [Plugin Development](docs/plugin-development.md)
 - [Security](docs/security.md)
+- [ProviderConfig Migration Guide](docs/provider-config-migration.md)
+- [Migration Guide](docs/migration-guide.md)
 
 ## Project Structure
 

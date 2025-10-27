@@ -1272,6 +1272,7 @@ dependencies = [
 name = "genai-keyfinder-python"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dirs-next",
  "genai-keyfinder-core",
  "pyo3",

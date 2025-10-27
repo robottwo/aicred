@@ -3,6 +3,22 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Token cost tracking for model usage.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TokenCost {
+    /// Cost per million input tokens in USD.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_cost_per_million: Option<f64>,
+    
+    /// Cost per million output tokens in USD.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_cost_per_million: Option<f64>,
+    
+    /// Cached input cost modifier (0.1 = 90% discount).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cached_input_cost_modifier: Option<f64>,
+}
+
 /// Model capabilities and features.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Capabilities {
@@ -36,36 +52,46 @@ pub struct Capabilities {
 pub struct Model {
     /// Unique identifier for the model.
     pub model_id: String,
-    /// Reference to the provider this model belongs to.
-    pub provider_id: String,
+    /// Reference to the provider instance this model belongs to.
+    pub provider_instance_id: String,
     /// Human-readable name for the model.
     pub name: String,
     /// Model quantization information (e.g., "fp16", "int8", "fp32").
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub quantization: Option<String>,
-    /// Cost per token in USD (input tokens).
-    pub cost_per_token_input: Option<f64>,
-    /// Cost per token in USD (output tokens).
-    pub cost_per_token_output: Option<f64>,
     /// Maximum context window size in tokens.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub context_window: Option<u32>,
     /// Model capabilities and features.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub capabilities: Option<Capabilities>,
+    /// Optional temperature parameter (0.0-2.0).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    /// Optional tags for categorization and filtering.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    /// Token cost tracking.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost: Option<TokenCost>,
     /// Additional metadata.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
 impl Model {
     /// Creates a new model with required fields.
-    pub fn new(model_id: String, provider_id: String, name: String) -> Self {
+    pub fn new(model_id: String, provider_instance_id: String, name: String) -> Self {
         Self {
             model_id,
-            provider_id,
+            provider_instance_id,
             name,
             quantization: None,
-            cost_per_token_input: None,
-            cost_per_token_output: None,
             context_window: None,
             capabilities: None,
+            temperature: None,
+            tags: None,
+            cost: None,
             metadata: None,
         }
     }
@@ -73,18 +99,6 @@ impl Model {
     /// Sets the quantization for the model.
     pub fn with_quantization(mut self, quantization: String) -> Self {
         self.quantization = Some(quantization);
-        self
-    }
-
-    /// Sets the cost per token for input tokens.
-    pub fn with_cost_per_token_input(mut self, cost: f64) -> Self {
-        self.cost_per_token_input = Some(cost);
-        self
-    }
-
-    /// Sets the cost per token for output tokens.
-    pub fn with_cost_per_token_output(mut self, cost: f64) -> Self {
-        self.cost_per_token_output = Some(cost);
         self
     }
 
@@ -100,6 +114,24 @@ impl Model {
         self
     }
 
+    /// Sets the temperature parameter.
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        self.temperature = Some(temperature);
+        self
+    }
+
+    /// Sets the tags for the model.
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
+    /// Sets the cost tracking for the model.
+    pub fn with_cost(mut self, cost: TokenCost) -> Self {
+        self.cost = Some(cost);
+        self
+    }
+
     /// Sets additional metadata for the model.
     pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
@@ -111,20 +143,15 @@ impl Model {
         if self.model_id.is_empty() {
             return Err("Model ID cannot be empty".to_string());
         }
-        if self.provider_id.is_empty() {
-            return Err("Provider ID cannot be empty".to_string());
+        if self.provider_instance_id.is_empty() {
+            return Err("Provider instance ID cannot be empty".to_string());
         }
         if self.name.is_empty() {
             return Err("Model name cannot be empty".to_string());
         }
-        if let Some(cost) = self.cost_per_token_input {
-            if cost < 0.0 {
-                return Err("Input cost per token cannot be negative".to_string());
-            }
-        }
-        if let Some(cost) = self.cost_per_token_output {
-            if cost < 0.0 {
-                return Err("Output cost per token cannot be negative".to_string());
+        if let Some(temp) = self.temperature {
+            if temp < 0.0 || temp > 2.0 {
+                return Err("Temperature must be between 0.0 and 2.0".to_string());
             }
         }
         if let Some(window) = self.context_window {
@@ -133,16 +160,6 @@ impl Model {
             }
         }
         Ok(())
-    }
-
-    /// Gets the total cost per token (input + output).
-    pub fn total_cost_per_token(&self) -> Option<f64> {
-        match (self.cost_per_token_input, self.cost_per_token_output) {
-            (Some(input), Some(output)) => Some(input + output),
-            (Some(input), None) => Some(input),
-            (None, Some(output)) => Some(output),
-            (None, None) => None,
-        }
     }
 
     /// Checks if the model supports text generation.
@@ -166,13 +183,14 @@ impl Default for Model {
     fn default() -> Self {
         Self {
             model_id: String::new(),
-            provider_id: String::new(),
+            provider_instance_id: String::new(),
             name: String::new(),
             quantization: None,
-            cost_per_token_input: None,
-            cost_per_token_output: None,
             context_window: None,
             capabilities: None,
+            temperature: None,
+            tags: None,
+            cost: None,
             metadata: None,
         }
     }
@@ -186,14 +204,17 @@ mod tests {
     fn test_model_creation() {
         let model = Model::new(
             "gpt-4".to_string(),
-            "openai".to_string(),
+            "openai-prod".to_string(),
             "GPT-4".to_string(),
         );
 
         assert_eq!(model.model_id, "gpt-4");
-        assert_eq!(model.provider_id, "openai");
+        assert_eq!(model.provider_instance_id, "openai-prod");
         assert_eq!(model.name, "GPT-4");
         assert!(model.quantization.is_none());
+        assert!(model.temperature.is_none());
+        assert!(model.tags.is_none());
+        assert!(model.cost.is_none());
     }
 
     #[test]
@@ -206,16 +227,20 @@ mod tests {
 
         let model = Model::new(
             "claude-3".to_string(),
-            "anthropic".to_string(),
+            "anthropic-prod".to_string(),
             "Claude 3".to_string(),
         )
         .with_quantization("fp16".to_string())
         .with_context_window(200000)
-        .with_capabilities(capabilities);
+        .with_capabilities(capabilities)
+        .with_temperature(0.7)
+        .with_tags(vec!["text-generation".to_string(), "code".to_string()]);
 
         assert_eq!(model.quantization, Some("fp16".to_string()));
         assert_eq!(model.context_window, Some(200000));
         assert!(model.capabilities.is_some());
+        assert_eq!(model.temperature, Some(0.7));
+        assert_eq!(model.tags, Some(vec!["text-generation".to_string(), "code".to_string()]));
         assert!(model.supports_text_generation());
     }
 
@@ -223,37 +248,45 @@ mod tests {
     fn test_model_validation() {
         let valid_model = Model::new(
             "valid".to_string(),
-            "provider".to_string(),
+            "provider-instance".to_string(),
             "Valid Model".to_string(),
         );
         assert!(valid_model.validate().is_ok());
 
         let invalid_model = Model::new(
             "".to_string(),
-            "provider".to_string(),
+            "provider-instance".to_string(),
             "Invalid Model".to_string(),
         );
         assert!(invalid_model.validate().is_err());
 
-        let negative_cost_model = Model::new(
-            "cost".to_string(),
-            "provider".to_string(),
-            "Cost Model".to_string(),
+        let temp_model = Model::new(
+            "temp-test".to_string(),
+            "provider-instance".to_string(),
+            "Temp Model".to_string(),
         )
-        .with_cost_per_token_input(-0.01);
-        assert!(negative_cost_model.validate().is_err());
+        .with_temperature(3.0);
+        assert!(temp_model.validate().is_err());
     }
 
     #[test]
-    fn test_total_cost_calculation() {
-        let model = Model::new(
-            "test".to_string(),
-            "provider".to_string(),
-            "Test Model".to_string(),
-        )
-        .with_cost_per_token_input(0.001)
-        .with_cost_per_token_output(0.002);
+    fn test_token_cost() {
+        let cost = TokenCost {
+            input_cost_per_million: Some(0.001),
+            output_cost_per_million: Some(0.002),
+            cached_input_cost_modifier: Some(0.1),
+        };
 
-        assert_eq!(model.total_cost_per_token(), Some(0.003));
+        assert_eq!(cost.input_cost_per_million, Some(0.001));
+        assert_eq!(cost.output_cost_per_million, Some(0.002));
+        assert_eq!(cost.cached_input_cost_modifier, Some(0.1));
+    }
+
+    #[test]
+    fn test_capabilities_default() {
+        let caps = Capabilities::default();
+        assert!(!caps.text_generation);
+        assert!(!caps.image_generation);
+        assert!(!caps.code_generation);
     }
 }

@@ -62,8 +62,10 @@ pip install genai-keyfinder
 ```bash
 cd bindings/python
 pip install maturin
-maturin develop
+PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop
 ```
+
+**Note:** The `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` environment variable is required for Python 3.13.9+ compatibility.
 
 ## Go Bindings
 

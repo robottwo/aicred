@@ -1,4 +1,8 @@
 //! Provider configuration model supporting multiple API keys.
+//! 
+//! # Deprecated
+//! This module is deprecated in favor of [`ProviderInstance`](crate::models::ProviderInstance) and [`ProviderInstances`](crate::models::ProviderInstances).
+//! Use the new provider instance system for enhanced metadata and model management.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -176,7 +180,7 @@ mod tests {
         assert_eq!(config.key_count(), 0);
         assert_eq!(config.valid_key_count(), 0);
     }
-
+    
     #[test]
     fn test_add_keys() {
         let mut config = ProviderConfig::new("1.0".to_string());
@@ -200,7 +204,7 @@ mod tests {
         
         assert_eq!(config.key_count(), 2);
     }
-
+    
     #[test]
     fn test_keys_by_environment() {
         let mut config = ProviderConfig::new("1.0".to_string());
@@ -228,7 +232,7 @@ mod tests {
         assert_eq!(prod_keys.len(), 1);
         assert_eq!(dev_keys.len(), 1);
     }
-
+    
     #[test]
     fn test_default_key() {
         let mut config = ProviderConfig::new("1.0".to_string());

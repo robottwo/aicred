@@ -48,11 +48,12 @@ build-gui: build-core build-gui-frontend
 .PHONY: build-python
 build-python: build-core
 	@command -v maturin >/dev/null 2>&1 || { echo "Error: maturin not found. Install with: pip install maturin"; exit 1; }
-	@echo "Building Python bindings..."
+	@echo "Building Python bindings with PyO3 ABI3 forward compatibility..."
 	@cd bindings/python && PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin build --release || { \
 		echo "Warning: Python bindings build failed. This may be due to Python version incompatibility."; \
 		echo "PyO3 currently supports Python 3.7-3.13. You have: $$(python3 --version 2>/dev/null || echo 'unknown')"; \
-		echo "Set PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 to build anyway, or use Python 3.13 or earlier."; \
+		echo "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 is already set to handle Python 3.13.9+ compatibility."; \
+		echo "If build continues to fail, try using Python 3.13.8 or earlier, or check PyO3 documentation."; \
 		exit 1; \
 	}
 
