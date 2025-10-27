@@ -85,9 +85,10 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
 }
 
 fn truncate_path(path: &str, max_len: usize) -> String {
-    if path.len() <= max_len {
-        path.to_string()
-    } else {
-        format!("...{}", &path[path.len() - (max_len - 3)..])
+    if path.chars().count() <= max_len {
+        return path.to_string();
     }
+    let tail: String = path.chars().rev().take(max_len.saturating_sub(3)).collect();
+    let tail = tail.chars().rev().collect::<String>();
+    format!("...{}", tail)
 }
