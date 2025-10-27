@@ -243,7 +243,7 @@ The `CommonConfigPlugin` provides basic confidence scoring for common configurat
 use genai_keyfinder_core::plugins::CommonConfigPlugin;
 
 let plugin = CommonConfigPlugin;
-let score = plugin.confidence_score("sk-1234567890abcdef");
+let score = plugin.confidence_score("sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef");
 // Returns a score based on length, character diversity, and common patterns
 ```
 

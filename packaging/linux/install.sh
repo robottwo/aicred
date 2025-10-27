@@ -6,7 +6,7 @@ TARGET="x86_64-unknown-linux-musl"
 BINARY_NAME="keyfinder"
 
 echo "Downloading genai-keyfinder v${VERSION}..."
-curl -LO "https://github.com/yourusername/genai-keyfinder/releases/download/v${VERSION}/${BINARY_NAME}-linux-${TARGET}.tar.gz"
+curl -LO "https://github.com/robottwo/aicred/releases/download/v${VERSION}/${BINARY_NAME}-linux-${TARGET}.tar.gz"
 
 echo "Extracting..."
 tar xzf "${BINARY_NAME}-linux-${TARGET}.tar.gz"

@@ -26,6 +26,7 @@ hex = "0.4"
 dirs-next = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.0"
+url = "2"
 
 # Serialization formats
 toml = "0.8"

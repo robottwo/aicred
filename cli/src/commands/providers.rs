@@ -1,6 +1,5 @@
 use anyhow::Result;
 use colored::*;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use genai_keyfinder_core::models::{ProviderInstance, ProviderInstances, ProviderKey, Model, Environment, Confidence, ValidationStatus};
 
@@ -60,8 +59,6 @@ fn load_provider_instances() -> Result<ProviderInstances> {
 
 /// Migrate from old format to new instance-based format
 fn migrate_from_old_format(old_path: &PathBuf, instances_dir: &PathBuf) -> Result<()> {
-    use genai_keyfinder_core::models::ProviderConfig;
-    
     println!("{}", "Backing up old configuration file...".yellow());
     
     // Create backup

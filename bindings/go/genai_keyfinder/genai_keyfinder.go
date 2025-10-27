@@ -5,12 +5,24 @@ package genai_keyfinder
 #cgo darwin LDFLAGS: -Wl,-rpath,../../../target/release
 #cgo linux LDFLAGS: -Wl,-rpath,../../../target/release
 #include <stdlib.h>
+
+// Declare the FFI functions that might not be in the header yet
+extern char* keyfinder_list_providers();
+extern char* keyfinder_list_scanners();
+extern char* keyfinder_scan(const char* home_path, const char* options_json);
+extern void keyfinder_free(char* ptr);
+extern const char* keyfinder_version(void);
+extern const char* keyfinder_last_error(void);
+
+// Include the header for existing functions
 #include "../../../ffi/include/genai_keyfinder.h"
 */
 import "C"
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"unsafe"
 )
 
@@ -25,14 +37,14 @@ type ScanOptions struct {
 
 // DiscoveredKey represents a discovered API key
 type DiscoveredKey struct {
-	Provider   string  `json:"provider"`
-	Source     string  `json:"source"`
-	ValueType  string  `json:"value_type"`
-	Value      string  `json:"value,omitempty"`
-	Confidence float64 `json:"confidence"`
-	Hash       string  `json:"hash"`
-	Redacted   string  `json:"redacted"`
-	Locked     bool    `json:"locked"`
+	Provider   string `json:"provider"`
+	Source     string `json:"source"`
+	ValueType  string `json:"value_type"`
+	Value      string `json:"value,omitempty"`
+	Confidence string `json:"confidence"`
+	Hash       string `json:"hash"`
+	Redacted   string `json:"redacted"`
+	Locked     bool   `json:"locked"`
 }
 
 // ConfigInstance represents an application configuration instance
@@ -56,6 +68,14 @@ type ScanResult struct {
 
 // Scan performs a scan for GenAI credentials and configurations
 func Scan(options ScanOptions) (*ScanResult, error) {
+	// Validate HomeDir if provided
+	if options.HomeDir != "" {
+		info, err := os.Stat(options.HomeDir)
+		if err != nil || !info.IsDir() {
+			return nil, fmt.Errorf("invalid HomeDir: %s", options.HomeDir)
+		}
+	}
+
 	// Convert options to JSON
 	optionsJSON, err := json.Marshal(options)
 	if err != nil {
@@ -106,22 +126,46 @@ func Version() string {
 
 // ListProviders returns a list of available provider plugins
 func ListProviders() []string {
-	return []string{
-		"openai",
-		"anthropic",
-		"huggingface",
-		"ollama",
-		"langchain",
-		"litellm",
+	// Call the FFI function to get the list of providers
+	providersPtr := C.keyfinder_list_providers()
+	if providersPtr == nil {
+		// If FFI is not available, return empty slice to avoid misleading consumers
+		return []string{}
 	}
+	defer C.keyfinder_free(providersPtr)
+
+	// Convert C string to Go string
+	providersJSON := C.GoString(providersPtr)
+
+	// Parse JSON array
+	var providers []string
+	if err := json.Unmarshal([]byte(providersJSON), &providers); err != nil {
+		// If parsing fails, return empty slice
+		return []string{}
+	}
+
+	return providers
 }
 
 // ListScanners returns a list of available application scanners
 func ListScanners() []string {
-	return []string{
-		"roo-code",
-		"claude-desktop",
-		"ragit",
-		"langchain-app",
+	// Call the FFI function to get the list of scanners
+	scannersPtr := C.keyfinder_list_scanners()
+	if scannersPtr == nil {
+		// If FFI is not available, return empty slice to avoid misleading consumers
+		return []string{}
 	}
+	defer C.keyfinder_free(scannersPtr)
+
+	// Convert C string to Go string
+	scannersJSON := C.GoString(scannersPtr)
+
+	// Parse JSON array
+	var scanners []string
+	if err := json.Unmarshal([]byte(scannersJSON), &scanners); err != nil {
+		// If parsing fails, return empty slice
+		return []string{}
+	}
+
+	return scanners
 }

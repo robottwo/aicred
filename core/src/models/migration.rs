@@ -152,6 +152,8 @@ impl ProviderConfigMigrator {
         // Set active status based on configuration and key validity
         if migration_config.auto_activate_instances {
             instance.active = instance.has_valid_keys();
+        } else {
+            instance.active = false;
         }
         
         Ok(instance)

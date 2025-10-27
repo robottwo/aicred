@@ -1,9 +1,8 @@
 //! Anthropic provider plugin for scanning Anthropic API keys and configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
+use crate::models::ProviderInstance;
 use crate::plugins::ProviderPlugin;
-use std::path::{Path, PathBuf};
 
 /// Plugin for scanning Anthropic API keys and configuration files.
 pub struct AnthropicPlugin;

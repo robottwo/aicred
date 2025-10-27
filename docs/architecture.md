@@ -68,7 +68,7 @@ pub enum AuthenticationMethod {
 }
 ```
 
-### Model Model
+### Model
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -739,7 +739,7 @@ mod tests {
             redaction_char: '*',
         };
         
-        let key = "sk-1234567890abcdef";
+        let key = "sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef";
         let redacted = redactor.redact(key);
         assert_eq!(redacted, "sk-**************def");
     }

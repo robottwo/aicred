@@ -132,7 +132,7 @@ jobs:
           echo 'Priority: optional' >> deb/DEBIAN/control
           echo 'Architecture: amd64' >> deb/DEBIAN/control
           echo 'Depends: libc6 (>= 2.14)' >> deb/DEBIAN/control
-          echo 'Maintainer: Your Name <your.email@example.com>' >> deb/DEBIAN/control
+          echo 'Maintainer: robottwo <https://github.com/robottwo/aicred>' >> deb/DEBIAN/control
           echo 'Description: Cross-platform GenAI key discovery tool' >> deb/DEBIAN/control
           echo ' A tool for discovering GenAI API keys and configurations across various providers.' >> deb/DEBIAN/control
           dpkg-deb --build deb genai-keyfinder_${{ github.ref_name }}_amd64.deb

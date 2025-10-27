@@ -121,6 +121,56 @@ pub fn handle_list(verbose: bool) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sanitize_provider_name_basic() {
+        assert_eq!(sanitize_provider_name("OpenAI"), "openai");
+        assert_eq!(sanitize_provider_name("Anthropic"), "anthropic");
+        assert_eq!(sanitize_provider_name("Google Cloud"), "google_cloud");
+    }
+
+    #[test]
+    fn test_sanitize_provider_name_special_chars() {
+        assert_eq!(sanitize_provider_name("OpenAI/ChatGPT"), "openai_chatgpt");
+        assert_eq!(sanitize_provider_name("Azure-OpenAI"), "azure-openai");
+        assert_eq!(sanitize_provider_name("AWS Bedrock v2.0"), "aws_bedrock_v2_0");
+        assert_eq!(sanitize_provider_name("Provider@Home"), "provider_home");
+        assert_eq!(sanitize_provider_name("Test[Provider]"), "test_provider");
+    }
+
+    #[test]
+    fn test_sanitize_provider_name_consecutive_underscores() {
+        assert_eq!(sanitize_provider_name("OpenAI  ChatGPT"), "openai_chatgpt");
+        assert_eq!(sanitize_provider_name("Test___Provider"), "test_provider");
+        assert_eq!(sanitize_provider_name("A__B__C"), "a_b_c");
+    }
+
+    #[test]
+    fn test_sanitize_provider_name_edge_cases() {
+        assert_eq!(sanitize_provider_name(""), "provider");
+        assert_eq!(sanitize_provider_name("___"), "provider");
+        assert_eq!(sanitize_provider_name("123"), "123");
+        assert_eq!(sanitize_provider_name("___test___"), "test");
+    }
+
+    #[test]
+    fn test_sanitize_provider_name_path_traversal() {
+        assert_eq!(sanitize_provider_name("../../../etc/passwd"), "etc_passwd");
+        assert_eq!(sanitize_provider_name("..\\..\\windows\\system32"), "windows_system32");
+        assert_eq!(sanitize_provider_name("provider/../evil"), "provider_evil");
+    }
+
+    #[test]
+    fn test_sanitize_provider_name_unicode() {
+        assert_eq!(sanitize_provider_name("Café"), "caf");
+        assert_eq!(sanitize_provider_name("北京"), "provider");
+        assert_eq!(sanitize_provider_name("тест"), "provider");
+    }
+}
+
 /// Scans the providers directory and returns provider information
 fn scan_providers_directory(providers_dir: &PathBuf) -> Result<Vec<ProviderInfo>> {
     let mut providers = Vec::new();
@@ -201,6 +251,46 @@ fn scan_providers_directory(providers_dir: &PathBuf) -> Result<Vec<ProviderInfo>
     Ok(providers)
 }
 
+/// Sanitizes a provider name to prevent path traversal and OS issues
+fn sanitize_provider_name(name: &str) -> String {
+    // Convert to lowercase
+    let mut sanitized = name.to_lowercase();
+    
+    // Replace any character not in [a-z0-9_-] with underscore
+    sanitized = sanitized.chars().map(|c| {
+        if c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-' {
+            c
+        } else {
+            '_'
+        }
+    }).collect();
+    
+    // Collapse consecutive underscores into single underscore
+    let mut result = String::new();
+    let mut prev_was_underscore = false;
+    for c in sanitized.chars() {
+        if c == '_' {
+            if !prev_was_underscore {
+                result.push(c);
+                prev_was_underscore = true;
+            }
+        } else {
+            result.push(c);
+            prev_was_underscore = false;
+        }
+    }
+    
+    // Trim leading/trailing underscores
+    let trimmed = result.trim_matches('_');
+    
+    // If result is empty, use safe default
+    if trimmed.is_empty() {
+        "provider".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
 /// Migrates from the old single-file format to the new multi-file format
 fn migrate_from_single_file(old_path: &PathBuf, providers_dir: &PathBuf) -> Result<()> {
     println!("{}", "Backing up old configuration file...".yellow());
@@ -223,7 +313,8 @@ fn migrate_from_single_file(old_path: &PathBuf, providers_dir: &PathBuf) -> Resu
         for (provider_name, provider_data) in providers {
             if let Some(name) = provider_name.as_str() {
                 let provider_name = name.to_string();
-                let provider_file_name = format!("{}.yaml", provider_name.to_lowercase().replace(' ', "_"));
+                let sanitized_name = sanitize_provider_name(&provider_name);
+                let provider_file_name = format!("{}.yaml", sanitized_name);
                 let provider_file_path = providers_dir.join(&provider_file_name);
 
                 // Convert provider data to new format

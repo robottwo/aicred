@@ -626,7 +626,7 @@ fn test_manifest_integrity_after_multiple_updates() {
     
     assert_eq!(final_manifest.providers.len(), 7); // 2 original + 5 new
     assert_eq!(final_manifest.schema_version, "2.0");
-    assert!(final_manifest.last_updated >= manifest.last_updated);
+    assert!(final_manifest.last_updated >= original_timestamp);
 }
 
 // Note: Concurrent access testing would require more complex setup with multiple threads/processes

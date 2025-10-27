@@ -1244,6 +1244,7 @@ dependencies = [
  "tokio",
  "toml 0.8.2",
  "tracing",
+ "url",
 ]
 
 [[package]]

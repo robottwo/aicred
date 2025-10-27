@@ -112,15 +112,25 @@ impl PyCapabilities {
 #[pyclass]
 #[derive(Debug)]
 pub struct PyModel {
+    #[pyo3(get, set)]
     pub model_id: String,
+    #[pyo3(get, set)]
     pub provider_instance_id: String,
+    #[pyo3(get, set)]
     pub name: String,
+    #[pyo3(get, set)]
     pub quantization: Option<String>,
+    #[pyo3(get, set)]
     pub context_window: Option<u32>,
+    #[pyo3(get, set)]
     pub capabilities: Option<PyCapabilities>,
+    #[pyo3(get, set)]
     pub temperature: Option<f32>,
+    #[pyo3(get, set)]
     pub tags: Option<Vec<String>>,
+    #[pyo3(get, set)]
     pub cost: Option<PyTokenCost>,
+    #[pyo3(get, set)]
     pub metadata: Option<HashMap<String, Py<PyAny>>>,
 }
 

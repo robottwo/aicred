@@ -232,6 +232,92 @@ pub extern "C" fn keyfinder_last_error() -> *const libc::c_char {
     }
 }
 
+/// Get list of available provider plugins
+///
+/// Returns a JSON array of provider names as a UTF-8 encoded string.
+/// Caller must free the returned string with [`keyfinder_free`].
+/// Returns NULL on error.
+///
+/// # Example return value:
+/// ```json
+/// ["openai", "anthropic", "huggingface", "groq", "ollama", "litellm", "common-config"]
+/// ```
+///
+/// # Safety
+///
+/// The returned pointer must be freed by the caller using [`keyfinder_free`].
+#[no_mangle]
+pub extern "C" fn keyfinder_list_providers() -> *mut libc::c_char {
+    clear_last_error();
+
+    let result = safe_execute(|| {
+        // Create a plugin registry and register built-in plugins
+        let registry = genai_keyfinder_core::plugins::PluginRegistry::new();
+        genai_keyfinder_core::plugins::register_builtin_plugins(&registry)
+            .map_err(|e| format!("Failed to register plugins: {}", e))?;
+
+        // Get the list of provider names
+        let providers = registry.list();
+
+        // Serialize to JSON
+        let json_result = serde_json::to_string(&providers)
+            .map_err(|e| format!("Failed to serialize providers: {}", e))?;
+
+        Ok(json_result)
+    });
+
+    match result {
+        Ok(json_string) => string_to_c_str(json_string),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Get list of available scanner plugins
+///
+/// Returns a JSON array of scanner names as a UTF-8 encoded string.
+/// Caller must free the returned string with [`keyfinder_free`].
+/// Returns NULL on error.
+///
+/// # Example return value:
+/// ```json
+/// ["ragit", "claude-desktop", "roo-code", "langchain", "gsh"]
+/// ```
+///
+/// # Safety
+///
+/// The returned pointer must be freed by the caller using [`keyfinder_free`].
+#[no_mangle]
+pub extern "C" fn keyfinder_list_scanners() -> *mut libc::c_char {
+    clear_last_error();
+
+    let result = safe_execute(|| {
+        // Create a scanner registry and register built-in scanners
+        let registry = genai_keyfinder_core::scanners::ScannerRegistry::new();
+        genai_keyfinder_core::scanners::register_builtin_scanners(&registry)
+            .map_err(|e| format!("Failed to register scanners: {}", e))?;
+
+        // Get the list of scanner names
+        let scanners = registry.list();
+
+        // Serialize to JSON
+        let json_result = serde_json::to_string(&scanners)
+            .map_err(|e| format!("Failed to serialize scanners: {}", e))?;
+
+        Ok(json_result)
+    });
+
+    match result {
+        Ok(json_string) => string_to_c_str(json_string),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

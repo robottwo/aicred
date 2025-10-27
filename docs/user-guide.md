@@ -138,7 +138,7 @@ Return schema matches the JSON example in CLI output.
 
 Install:
 ```bash
-go get github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
 ```
 
 Example:
@@ -149,7 +149,7 @@ import (
   "fmt"
   "log"
 
-  "github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+  "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 )
 
 func main() {

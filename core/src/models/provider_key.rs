@@ -2,7 +2,6 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fmt;
 use crate::models::discovered_key::Confidence;
 
@@ -165,8 +164,9 @@ impl ProviderKey {
     pub fn redacted_value(&self) -> String {
         match &self.value {
             Some(value) => {
-                if value.len() <= 8 {
-                    format!("{}****", &value[..value.len().min(2)])
+                if value.chars().count() <= 8 {
+                    let prefix: String = value.chars().take(2).collect();
+                    format!("{}****", prefix)
                 } else {
                     let last_chars: String = value
                         .chars()
@@ -270,5 +270,58 @@ mod tests {
         assert_eq!(ValidationStatus::Valid.to_string(), "Valid");
         assert_eq!(ValidationStatus::Invalid.to_string(), "Invalid");
         assert_eq!(ValidationStatus::Expired.to_string(), "Expired");
+    }
+
+    #[test]
+    fn test_redacted_value_unicode_short_key() {
+        let key = ProviderKey::new(
+            "test-key".to_string(),
+            "/test/path".to_string(),
+            Confidence::High,
+            Environment::Production,
+        ).with_value("αβγ".to_string()); // Greek letters, 3 chars but 6 bytes
+
+        assert_eq!(key.redacted_value(), "αβ****");
+    }
+
+    #[test]
+    fn test_redacted_value_unicode_long_key() {
+        let key = ProviderKey::new(
+            "test-key".to_string(),
+            "/test/path".to_string(),
+            Confidence::High,
+            Environment::Production,
+        ).with_value("sk-test-αβγδεζηθ".to_string()); // Mixed ASCII and Greek
+
+        assert_eq!(key.redacted_value(), "****εζηθ");
+    }
+
+    #[test]
+    fn test_redacted_value_emoji_short_key() {
+        let key = ProviderKey::new(
+            "test-key".to_string(),
+            "/test/path".to_string(),
+            Confidence::High,
+            Environment::Production,
+        ).with_value("🔑🔐".to_string()); // Emojis, 2 chars but 8 bytes
+
+        assert_eq!(key.redacted_value(), "🔑🔐****");
+    }
+
+    #[test]
+    fn test_redacted_value_emoji_long_key() {
+        let key = ProviderKey::new(
+            "test-key".to_string(),
+            "/test/path".to_string(),
+            Confidence::High,
+            Environment::Production,
+        ).with_value("sk-test-🔑🔐🔒🔓".to_string()); // Mixed ASCII and emojis
+
+        // The actual result shows the last 4 characters correctly
+        let result = key.redacted_value();
+        assert!(result.starts_with("****"));
+        // Each emoji is 4 bytes but 1 character, so total length is 4 asterisks + 4 emojis
+        // But the string length in Rust counts Unicode scalar values, so it's 8
+        assert_eq!(result.chars().count(), 8); // 4 asterisks + 4 emoji characters
     }
 }

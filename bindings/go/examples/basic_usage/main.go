@@ -44,7 +44,7 @@ func main() {
 	if len(result.Keys) > 0 {
 		fmt.Println("\nDiscovered Keys:")
 		for _, key := range result.Keys {
-			fmt.Printf("  %s: %s (confidence: %.2f)\n",
+			fmt.Printf("  %s: %s (confidence: %s)\n",
 				key.Provider, key.Redacted, key.Confidence)
 		}
 	}

@@ -41,7 +41,7 @@ jobs:
         run: |
           mkdir bindings/go/lib
           copy target\release\genai_keyfinder_ffi.dll bindings\go\lib\
-          copy target\release\genai_keyfinder_ffi.dll.lib bindings\go\lib\
+          copy target\release\genai_keyfinder_ffi.lib bindings\go\lib\
       
       - name: Run Go tests
         working-directory: bindings/go

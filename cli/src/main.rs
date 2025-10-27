@@ -263,6 +263,6 @@ fn handle_version() -> Result<()> {
         env!("CARGO_PKG_NAME").green().bold(),
         env!("CARGO_PKG_VERSION").cyan()
     );
-    println!("Core library version: {}", "0.1.0".cyan());
+    println!("Core library version: {}", env!("CARGO_PKG_VERSION").cyan());
     Ok(())
 }

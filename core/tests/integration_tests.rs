@@ -48,7 +48,7 @@ ANTHROPIC_API_KEY=sk-ant-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
     // Verify that the scan completed successfully and found keys
     assert!(result.scan_completed_at > result.scan_started_at);
     // The scan should find keys through the scanner plugins
-    assert!(result.keys.len() >= 0);
+    assert!(result.keys.len() > 0);
 }
 
 #[test]

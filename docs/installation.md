@@ -19,8 +19,8 @@ cargo install genai-keyfinder
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/genai-keyfinder
-cd genai-keyfinder
+git clone https://github.com/robottwo/aicred
+cd aicred
 cargo build --release -p genai-keyfinder
 ```
 
@@ -29,7 +29,7 @@ cargo build --release -p genai-keyfinder
 #### macOS (Homebrew)
 
 ```bash
-brew tap yourusername/genai-keyfinder
+brew tap robottwo/aicred
 brew install genai-keyfinder
 ```
 
@@ -37,7 +37,7 @@ brew install genai-keyfinder
 
 ```bash
 # Download latest release
-curl -LO https://github.com/yourusername/genai-keyfinder/releases/latest/download/keyfinder-linux-x86_64.tar.gz
+curl -LO https://github.com/robottwo/aicred/releases/latest/download/keyfinder-linux-x86_64.tar.gz
 tar xzf keyfinder-linux-x86_64.tar.gz
 sudo mv keyfinder /usr/local/bin/
 ```
@@ -45,7 +45,7 @@ sudo mv keyfinder /usr/local/bin/
 #### Windows (Scoop)
 
 ```powershell
-scoop bucket add genai-keyfinder https://github.com/yourusername/scoop-genai-keyfinder
+scoop bucket add genai-keyfinder https://github.com/robottwo/scoop-aicred
 scoop install genai-keyfinder
 ```
 
@@ -70,14 +70,14 @@ PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop
 ## Go Bindings
 
 ```bash
-go get github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
 ```
 
 ## GUI Application
 
 ### Download Installers
 
-Download platform-specific installers from [releases](https://github.com/yourusername/genai-keyfinder/releases):
+Download platform-specific installers from [releases](https://github.com/robottwo/aicred/releases):
 
 - **macOS**: `.dmg` file
 - **Windows**: `.msi` installer

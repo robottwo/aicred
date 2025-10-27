@@ -67,11 +67,11 @@ print(f"Found {len(result['keys'])} keys")
 ### Go
 
 ```bash
-go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go
 ```
 
 ```go
-import "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+import "github.com/robottwo/aicred/bindings/go"
 
 result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{})
 ```
@@ -101,7 +101,6 @@ See detailed installation instructions in [docs/installation.md](docs/installati
 - [API Reference](docs/api-reference.md)
 - [Plugin Development](docs/plugin-development.md)
 - [Security](docs/security.md)
-- [ProviderConfig Migration Guide](docs/provider-config-migration.md)
 - [Migration Guide](docs/migration-guide.md)
 
 ## Project Structure

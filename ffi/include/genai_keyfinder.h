@@ -57,4 +57,40 @@ const char *keyfinder_version(void);
  */
 const char *keyfinder_last_error(void);
 
+/**
+ * Get list of available provider plugins
+ *
+ * Returns a JSON array of provider names as a UTF-8 encoded string.
+ * Caller must free the returned string with [`keyfinder_free`].
+ * Returns NULL on error.
+ *
+ * # Example return value:
+ * ```json
+ * ["openai", "anthropic", "huggingface", "groq", "ollama", "litellm", "common-config"]
+ * ```
+ *
+ * # Safety
+ *
+ * The returned pointer must be freed by the caller using [`keyfinder_free`].
+ */
+char *keyfinder_list_providers(void);
+
+/**
+ * Get list of available scanner plugins
+ *
+ * Returns a JSON array of scanner names as a UTF-8 encoded string.
+ * Caller must free the returned string with [`keyfinder_free`].
+ * Returns NULL on error.
+ *
+ * # Example return value:
+ * ```json
+ * ["ragit", "claude-desktop", "roo-code", "langchain", "gsh"]
+ * ```
+ *
+ * # Safety
+ *
+ * The returned pointer must be freed by the caller using [`keyfinder_free`].
+ */
+char *keyfinder_list_scanners(void);
+
 #endif /* GENAI_KEYFINDER_H */

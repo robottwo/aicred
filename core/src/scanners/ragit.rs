@@ -87,8 +87,10 @@ impl ScannerPlugin for RagitScanner {
             Ok(value) => value,
             Err(_) => {
                 // If JSON parsing fails, try to extract from .env format
-                if path.file_name().unwrap_or_default() == ".env" {
-                    return self.parse_env_file(content);
+                if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
+                    if filename == ".env" || filename == ".env.local" {
+                        return self.parse_env_file(content);
+                    }
                 }
                 return Ok(result);
             }

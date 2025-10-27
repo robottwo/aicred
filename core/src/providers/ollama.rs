@@ -28,22 +28,19 @@ impl ProviderPlugin for OllamaPlugin {
         // First perform base validation
         self.validate_base_instance(instance)?;
         
-        // Ollama-specific validation
-        if instance.base_url.is_empty() {
-            return Err(Error::PluginError("Ollama base URL cannot be empty".to_string()));
-        }
-        
-        // Ollama typically uses local URLs
-        let is_valid_ollama_url = instance.base_url.starts_with("http://localhost") ||
-                                 instance.base_url.starts_with("https://localhost") ||
-                                 instance.base_url.starts_with("http://127.0.0.1") ||
-                                 instance.base_url.starts_with("https://127.0.0.1") ||
-                                 instance.base_url.starts_with("http://0.0.0.0") ||
-                                 instance.base_url.contains(":11434"); // Default Ollama port
-        
-        if !is_valid_ollama_url {
+        // Parse and enforce loopback/local + default port 11434
+        let url = url::Url::parse(&instance.base_url)
+            .map_err(|e| Error::PluginError(format!("Invalid Ollama base URL: {e}")))?;
+        let host_ok = match url.host_str() {
+            Some("localhost") => true,
+            Some(h) if h == "127.0.0.1" || h == "0.0.0.0" => true,
+            Some(h) => h.parse::<std::net::IpAddr>().map(|ip| ip.is_loopback()).unwrap_or(false),
+            None => false,
+        } || matches!(url.host(), Some(url::Host::Ipv6(addr)) if addr.is_loopback());
+        let port_ok = url.port().map_or(false, |p| p == 11434);
+        if !(host_ok && port_ok) {
             return Err(Error::PluginError(
-                "Invalid Ollama base URL. Expected format: http://localhost:11434 or similar local URL".to_string()
+                "Invalid Ollama base URL. Expected local loopback host and port 11434 (e.g., http://localhost:11434)".to_string()
             ));
         }
 

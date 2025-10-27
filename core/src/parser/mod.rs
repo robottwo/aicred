@@ -72,14 +72,41 @@ impl ConfigParser {
             }
         }
 
-        // TOML detection - look for TOML-like patterns
+        // TOML detection - look for TOML-specific patterns
+        // Check for table-array markers "[[" or dotted keys with '.' before '=' or quoted keys
         if trimmed.contains('=') && trimmed.contains('[') && trimmed.contains(']') {
-            return Ok(FileFormat::Toml);
+            // More specific TOML patterns
+            let has_table_array = trimmed.contains("[[");
+            let has_dotted_key = trimmed.lines().any(|line| {
+                let line = line.trim();
+                if let Some(eq_pos) = line.find('=') {
+                    let key_part = &line[..eq_pos].trim();
+                    // Check for dotted keys (key with dots) or quoted keys
+                    key_part.contains('.') || (key_part.starts_with('"') && key_part.ends_with('"'))
+                } else {
+                    false
+                }
+            });
+            
+            if has_table_array || has_dotted_key {
+                return Ok(FileFormat::Toml);
+            }
         }
 
-        // INI detection - look for INI-like patterns
+        // INI detection - look for INI-like patterns (single-bracket section headers)
+        // Only if we didn't detect TOML-specific patterns above
         if trimmed.contains('[') && trimmed.contains(']') && trimmed.contains('=') {
-            return Ok(FileFormat::Ini);
+            // Check for single-bracket section headers like [section]
+            let has_ini_section = trimmed.lines().any(|line| {
+                let line = line.trim();
+                // Match lines that are exactly [section_name] with optional whitespace
+                line.starts_with('[') && line.ends_with(']') &&
+                line[1..line.len()-1].chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+            });
+            
+            if has_ini_section {
+                return Ok(FileFormat::Ini);
+            }
         }
 
         // Dotenv detection - look for KEY=VALUE patterns
@@ -134,6 +161,16 @@ impl ConfigParser {
                         key.clone()
                     } else {
                         format!("{}.{}", prefix, key)
+                    };
+                    Self::extract_json_values(val, new_prefix, result);
+                }
+            }
+            JsonValue::Array(arr) => {
+                for (idx, val) in arr.iter().enumerate() {
+                    let new_prefix = if prefix.is_empty() {
+                        format!("[{}]", idx)
+                    } else {
+                        format!("{}[{}]", prefix, idx)
                     };
                     Self::extract_json_values(val, new_prefix, result);
                 }

@@ -1,0 +1,10 @@
+{
+  "keys": [],
+  "config_instances": [],
+  "home_directory": ".",
+  "scan_started_at": "2025-10-27T01:58:23.063983Z",
+  "providers_scanned": [
+    "openai",
+    "anthropic"
+  ]
+}

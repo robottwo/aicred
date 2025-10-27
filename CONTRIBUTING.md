@@ -6,7 +6,7 @@ Thank you for your interest in contributing!
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/genai-keyfinder
+git clone https://github.com/robottwo/aicred
 cd genai-keyfinder
 
 # Build all components

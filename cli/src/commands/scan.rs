@@ -4,8 +4,11 @@ use genai_keyfinder_core::{scan, ScanOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 
 /// YAML configuration structure for individual provider files
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -265,7 +268,19 @@ fn migrate_from_single_file(old_path: &PathBuf, config_dir: &PathBuf) -> Result<
 }
 
 fn write_audit_log(log_path: &str, result: &genai_keyfinder_core::ScanResult) -> Result<()> {
-    let mut file = File::create(log_path)?;
+    #[cfg(unix)]
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(log_path)?;
+    #[cfg(not(unix))]
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(log_path)?;
     writeln!(file, "GenAI Key Finder Audit Log")?;
     writeln!(file, "=========================")?;
     writeln!(file, "Scan Date: {}", result.scan_completed_at)?;

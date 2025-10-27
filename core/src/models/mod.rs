@@ -19,7 +19,7 @@ pub use discovered_key::{Confidence, DiscoveredKey, ValueType};
 pub use migration::{MigrationConfig, MigrationResult, ProviderConfigMigrator};
 pub use model::{Capabilities, Model, TokenCost};
 pub use provider::{AuthMethod, Provider, RateLimit};
-#[deprecated(since = "4.0.0", note = "Use ProviderInstance and ProviderInstances instead")]
+#[deprecated(since = "0.1.0", note = "Use ProviderInstance and ProviderInstances instead")]
 pub use provider_config::ProviderConfig;
 pub use provider_instance::ProviderInstance;
 pub use provider_instances::ProviderInstances;
