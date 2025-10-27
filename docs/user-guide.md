@@ -9,7 +9,8 @@ The CLI binary is `keyfinder`.
 ### Commands
 
 - `keyfinder scan` — Scan for GenAI credentials and configurations
-- `keyfinder list` — List available providers and application scanners
+- `keyfinder providers` — Show available providers and application scanners
+- `keyfinder instances` — List provider instances with their configurations
 - `keyfinder version` — Show version information
 
 ### Scan Options
@@ -41,6 +42,45 @@ keyfinder scan --dry-run
 
 # Write an audit log
 keyfinder scan --audit-log scan-audit.log
+```
+
+### Provider Instance Management
+
+The `keyfinder instances` command allows you to manage provider instances with their configurations:
+
+```bash
+# List all provider instances (default behavior)
+keyfinder instances
+
+# Get detailed information about a specific instance using shorthand syntax
+keyfinder instances my-openai
+
+# Get instance information with full secret values (DANGEROUS - use with caution)
+keyfinder instances my-openai --include-values
+
+# List instances with detailed information
+keyfinder instances list --verbose
+
+# Filter instances by provider type
+keyfinder instances list --provider-type openai
+
+# Show only active instances
+keyfinder instances list --active-only
+
+# Add a new provider instance
+keyfinder instances add --id my-openai --name "My OpenAI" --provider-type openai --base-url https://api.openai.com/v1 --models gpt-4,gpt-3.5-turbo
+
+# Remove an instance
+keyfinder instances remove --id my-openai
+
+# Update an existing instance
+keyfinder instances update --id my-openai --name "Updated OpenAI" --active false
+
+# Get detailed information about a specific instance (alternative syntax)
+keyfinder instances get --id my-openai
+
+# Validate instance configurations
+keyfinder instances validate
 ```
 
 ### Output Formats
@@ -138,7 +178,7 @@ Return schema matches the JSON example in CLI output.
 
 Install:
 ```bash
-go get github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
 ```
 
 Example:
@@ -149,7 +189,7 @@ import (
   "fmt"
   "log"
 
-  "github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder"
+  "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
 )
 
 func main() {
@@ -337,8 +377,8 @@ print(f"Found {len(res['keys'])} provider keys")
 ### No output or empty results:
 - Ensure the home directory is correct: `--home /path`
 - Increase file size limit: `--max-bytes-per-file 2097152`
-- Verify provider list: `keyfinder list`
-- Check if scanners are available: `keyfinder list --scanners`
+- Verify provider list: `keyfinder providers`
+- Check if scanners are available: `keyfinder providers --verbose`
 - Try scanning for applications: `keyfinder scan --only roo-code,claude-desktop`
 
 ### Permission errors when reading files:
@@ -375,6 +415,22 @@ print(f"Found {len(res['keys'])} provider keys")
 - Provider plugins focus on key validation and scoring
 - Better support for application-specific configuration scanning
 - More flexible and extensible plugin system
+
+## Configuration Validation and Rewrite
+
+The GenAI Key Finder uses a validation-and-rewrite approach for configuration files. When invalid configurations are encountered, they are automatically replaced with default settings rather than attempting complex migrations.
+
+### Automatic Configuration Handling
+When loading configuration files, the system validates them against current requirements:
+
+- **Valid configurations**: Loaded and used as-is
+- **Invalid configurations**: Automatically replaced with default settings
+- **Missing configurations**: Created with default settings
+
+This approach ensures:
+- **Simplicity**: No complex migration logic to maintain
+- **Reliability**: Invalid configs are replaced with known-good defaults
+- **Consistency**: All configurations follow current format requirements
 
 ## Notes on Redaction
 

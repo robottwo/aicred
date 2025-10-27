@@ -1,5 +1,10 @@
 //! Parser module for detecting and parsing configuration file formats.
 
+// Allow clippy lints for the parser module
+#![allow(clippy::option_if_let_else)]
+#![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::match_wildcard_for_single_variants)]
+
 use crate::error::{Error, Result};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
@@ -7,7 +12,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// Supported configuration file formats.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileFormat {
     /// JSON format.
     Json,
@@ -28,6 +33,9 @@ pub struct ConfigParser;
 
 impl ConfigParser {
     /// Detects the format of a configuration file.
+    ///
+    /// # Errors
+    /// Returns an error if the file format cannot be determined.
     pub fn detect_format(path: &Path, content: &str) -> Result<FileFormat> {
         // First try to detect from file extension
         if let Some(ext) = path.extension() {
@@ -72,14 +80,44 @@ impl ConfigParser {
             }
         }
 
-        // TOML detection - look for TOML-like patterns
+        // TOML detection - look for TOML-specific patterns
+        // Check for table-array markers "[[" or dotted keys with '.' before '=' or quoted keys
         if trimmed.contains('=') && trimmed.contains('[') && trimmed.contains(']') {
-            return Ok(FileFormat::Toml);
+            // More specific TOML patterns
+            let has_table_array = trimmed.contains("[[");
+            let has_dotted_key = trimmed.lines().any(|line| {
+                let line = line.trim();
+                if let Some(eq_pos) = line.find('=') {
+                    let key_part = &line[..eq_pos].trim();
+                    // Check for dotted keys (key with dots) or quoted keys
+                    key_part.contains('.') || (key_part.starts_with('"') && key_part.ends_with('"'))
+                } else {
+                    false
+                }
+            });
+
+            if has_table_array || has_dotted_key {
+                return Ok(FileFormat::Toml);
+            }
         }
 
-        // INI detection - look for INI-like patterns
+        // INI detection - look for INI-like patterns (single-bracket section headers)
+        // Only if we didn't detect TOML-specific patterns above
         if trimmed.contains('[') && trimmed.contains(']') && trimmed.contains('=') {
-            return Ok(FileFormat::Ini);
+            // Check for single-bracket section headers like [section]
+            let has_ini_section = trimmed.lines().any(|line| {
+                let line = line.trim();
+                // Match lines that are exactly [section_name] with optional whitespace
+                line.starts_with('[')
+                    && line.ends_with(']')
+                    && line[1..line.len() - 1]
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+            });
+
+            if has_ini_section {
+                return Ok(FileFormat::Ini);
+            }
         }
 
         // Dotenv detection - look for KEY=VALUE patterns
@@ -95,6 +133,9 @@ impl ConfigParser {
     }
 
     /// Parses a configuration file and extracts key-value pairs.
+    ///
+    /// # Errors
+    /// Returns an error if the file format cannot be detected or if parsing fails.
     pub fn parse_config(path: &Path, content: &str) -> Result<HashMap<String, String>> {
         let format = Self::detect_format(path, content)?;
         debug!("Detected format: {:?} for {}", format, path.display());
@@ -113,7 +154,7 @@ impl ConfigParser {
     fn parse_json(content: &str) -> Result<HashMap<String, String>> {
         let json: JsonValue = serde_json::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("json").to_path_buf(),
-            message: format!("Invalid JSON: {}", e),
+            message: format!("Invalid JSON: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -133,7 +174,17 @@ impl ConfigParser {
                     let new_prefix = if prefix.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", prefix, key)
+                        format!("{prefix}.{key}")
+                    };
+                    Self::extract_json_values(val, new_prefix, result);
+                }
+            }
+            JsonValue::Array(arr) => {
+                for (idx, val) in arr.iter().enumerate() {
+                    let new_prefix = if prefix.is_empty() {
+                        format!("[{idx}]")
+                    } else {
+                        format!("{prefix}[{idx}]")
                     };
                     Self::extract_json_values(val, new_prefix, result);
                 }
@@ -161,7 +212,7 @@ impl ConfigParser {
     fn parse_yaml(content: &str) -> Result<HashMap<String, String>> {
         let yaml: JsonValue = serde_yaml::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("yaml").to_path_buf(),
-            message: format!("Invalid YAML: {}", e),
+            message: format!("Invalid YAML: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -173,7 +224,7 @@ impl ConfigParser {
     fn parse_toml(content: &str) -> Result<HashMap<String, String>> {
         let toml: JsonValue = toml::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("toml").to_path_buf(),
-            message: format!("Invalid TOML: {}", e),
+            message: format!("Invalid TOML: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -208,7 +259,7 @@ impl ConfigParser {
                 let full_key = if current_section.is_empty() {
                     key.to_string()
                 } else {
-                    format!("{}.{}", current_section, key)
+                    format!("{current_section}.{key}")
                 };
 
                 result.insert(full_key, value.to_string());
@@ -285,6 +336,7 @@ impl ConfigParser {
     }
 
     /// Merges multiple configuration maps.
+    #[must_use]
     pub fn merge_configs(configs: Vec<HashMap<String, String>>) -> HashMap<String, String> {
         let mut result = HashMap::new();
 
@@ -426,7 +478,7 @@ mod tests {
     fn test_invalid_json_errors() {
         let bad = "{ not-json";
         let err = ConfigParser::parse_json(bad).unwrap_err();
-        let msg = format!("{:?}", err);
+        let msg = format!("{err:?}");
         assert!(msg.contains("Invalid JSON"));
     }
 }

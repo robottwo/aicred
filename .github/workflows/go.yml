@@ -24,10 +24,23 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       
-      - name: Install Rust
+      - name: Install Rust (Windows)
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-gnu
+          targets: x86_64-pc-windows-gnu
+      
+      - name: Install Rust (Non-Windows)
+        if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
       
-      - name: Build FFI library
+      - name: Build FFI library (Windows)
+        if: runner.os == 'Windows'
+        run: cargo build --release --target x86_64-pc-windows-gnu -p genai-keyfinder-ffi
+      
+      - name: Build FFI library (Non-Windows)
+        if: runner.os != 'Windows'
         run: cargo build --release -p genai-keyfinder-ffi
       
       - name: Copy FFI library (Linux/macOS)
@@ -40,8 +53,26 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           mkdir bindings/go/lib
-          copy target\release\genai_keyfinder_ffi.dll bindings\go\lib\
-          copy target\release\genai_keyfinder_ffi.dll.lib bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\libgenai_keyfinder_ffi.a bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\
+          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\genai_keyfinder\
+      
+      - name: Set CGO_LDFLAGS (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: echo "CGO_LDFLAGS=-L${{ github.workspace }}/target/release" >> $GITHUB_ENV
+      
+      - name: Set CGO_LDFLAGS (Windows)
+        if: runner.os == 'Windows'
+        run: echo "CGO_LDFLAGS=-L${{ github.workspace }}\target\x86_64-pc-windows-gnu\release" >> $env:GITHUB_ENV
+      
+      - name: Add DLL to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: echo "${{ github.workspace }}\target\x86_64-pc-windows-gnu\release" >> $env:GITHUB_PATH
+      
+      - name: Generate go.sum
+        working-directory: bindings/go
+        run: go mod tidy
       
       - name: Run Go tests
         working-directory: bindings/go

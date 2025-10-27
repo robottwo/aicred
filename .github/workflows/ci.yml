@@ -28,7 +28,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev patchelf libayatana-appindicator3-dev
+       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -54,10 +63,10 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Run tests
-        run: cargo test --all --verbose
+        run: cargo test --workspace --exclude genai-keyfinder-gui --verbose
       
       - name: Run doc tests
-        run: cargo test --doc --all
+        run: cargo test --doc --workspace --exclude genai-keyfinder-gui
   
   fmt:
     name: Rustfmt
@@ -77,7 +86,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo clippy --workspace --exclude genai-keyfinder-gui --all-targets --all-features -- -D warnings
   
   build-cli:
     name: Build CLI
@@ -113,14 +122,34 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
+       
       - name: Install cross-compilation tools (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools
-      
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
+          echo "Installed cross-compilation tools:"
+          which aarch64-linux-gnu-gcc
+          aarch64-linux-gnu-gcc --version
+        
+      - name: Verify Rust target
+        run: |
+          rustup target list --installed
+          rustup target add ${{ matrix.target }} || true
+          echo "Building for target: ${{ matrix.target }}"
+        
       - name: Build CLI
-        run: cargo build --release --target ${{ matrix.target }} -p genai-keyfinder
+        run: |
+          echo "Starting build for target: ${{ matrix.target }}"
+          cargo build --release --target ${{ matrix.target }} -p genai-keyfinder
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4

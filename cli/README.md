@@ -27,7 +27,7 @@ keyfinder scan
 
 #### List available providers and scanners
 ```bash
-keyfinder list
+keyfinder providers
 ```
 
 #### Show version information

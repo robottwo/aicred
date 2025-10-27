@@ -15,7 +15,7 @@ This directory contains packaging configurations for various platforms.
 
 ### Homebrew
 ```bash
-brew install --build-from-source yourusername/genai-keyfinder/genai-keyfinder
+brew install --build-from-source robottwo/aicred/genai-keyfinder
 ```
 
 ### Scoop

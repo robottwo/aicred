@@ -1,7 +1,7 @@
 class GenaiKeyfinder < Formula
   desc "Cross-platform GenAI key discovery tool"
-  homepage "https://github.com/yourusername/genai-keyfinder"
-  url "https://github.com/yourusername/genai-keyfinder/archive/v0.1.0.tar.gz"
+  homepage "https://github.com/robottwo/aicred"
+  url "https://github.com/robottwo/aicred/archive/v0.1.0.tar.gz"
   sha256 "REPLACE_WITH_ACTUAL_SHA"
   license "MIT"
   version "0.1.0"

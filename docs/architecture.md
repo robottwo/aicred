@@ -68,7 +68,7 @@ pub enum AuthenticationMethod {
 }
 ```
 
-### Model Model
+### Model
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -257,6 +257,61 @@ pub trait ProviderPlugin: Send + Sync {
     fn provider_type(&self) -> &str;
 }
 ```
+
+## Configuration Validation and Rewrite System
+
+The architecture uses a validation-and-rewrite approach for handling configuration files. Instead of complex migration logic, invalid configurations are automatically replaced with default settings.
+
+### Validation Components
+
+#### ConfigValidator
+Handles validation of configuration files and determines if they should be replaced with defaults:
+
+```rust
+pub struct ConfigValidator;
+
+impl ConfigValidator {
+    /// Validates configuration content
+    pub fn validate_config(content: &str, format: ConfigFormat) -> Result<bool, ValidationError>
+    
+    /// Returns default configuration for a given format
+    pub fn get_default_config(format: ConfigFormat) -> String
+}
+```
+
+#### ConfigFormat
+Supported configuration formats:
+
+```rust
+pub enum ConfigFormat {
+    Json,
+    Yaml,
+    Toml,
+    Env,
+}
+```
+
+### Automatic Configuration Handling
+The system automatically validates and handles configurations when loading:
+
+```rust
+impl ConfigInstance {
+    /// Loads from JSON with validation
+    pub fn from_json(content: &str) -> Result<Self, ConfigError>
+    
+    /// Loads from YAML with validation
+    pub fn from_yaml(content: &str) -> Result<Self, ConfigError>
+    
+    /// Checks if content is valid
+    pub fn is_valid(content: &str) -> bool
+}
+```
+
+### Validation Benefits
+- **Simplicity**: No complex migration logic to maintain
+- **Reliability**: Invalid configs are replaced with known-good defaults
+- **Consistency**: All configurations follow current format requirements
+- **Security**: No risk of malformed configurations causing issues
 
 ### Plugin Registry
 
@@ -660,7 +715,7 @@ mod tests {
             redaction_char: '*',
         };
         
-        let key = "sk-1234567890abcdef";
+        let key = "sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef";
         let redacted = redactor.redact(key);
         assert_eq!(redacted, "sk-**************def");
     }

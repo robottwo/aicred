@@ -48,11 +48,12 @@ build-gui: build-core build-gui-frontend
 .PHONY: build-python
 build-python: build-core
 	@command -v maturin >/dev/null 2>&1 || { echo "Error: maturin not found. Install with: pip install maturin"; exit 1; }
-	@echo "Building Python bindings..."
+	@echo "Building Python bindings with PyO3 ABI3 forward compatibility..."
 	@cd bindings/python && PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin build --release || { \
 		echo "Warning: Python bindings build failed. This may be due to Python version incompatibility."; \
 		echo "PyO3 currently supports Python 3.7-3.13. You have: $$(python3 --version 2>/dev/null || echo 'unknown')"; \
-		echo "Set PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 to build anyway, or use Python 3.13 or earlier."; \
+		echo "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 is already set to handle Python 3.13.9+ compatibility."; \
+		echo "If build continues to fail, try using Python 3.13.8 or earlier, or check PyO3 documentation."; \
 		exit 1; \
 	}
 
@@ -123,6 +124,10 @@ watch:
 fmt:
 	cargo fmt --all
 
+.PHONY: fmt-check
+fmt-check:
+	cargo fmt --all --check
+
 .PHONY: clippy
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
@@ -152,7 +157,15 @@ endif
 .PHONY: test-python
 test-python: build-python
 	@command -v pytest >/dev/null 2>&1 || { echo "Error: pytest not found. Run 'make dev-setup' to install it."; exit 1; }
-	cd bindings/python && pytest tests/
+	@echo "Installing Python wheel..."
+	@WHEEL=$$(ls target/wheels/genai_keyfinder-*.whl 2>/dev/null | head -1); \
+	if [ -z "$$WHEEL" ]; then echo "Error: Python wheel not found. Run 'make build-python' first."; exit 1; fi; \
+	echo "Installing $$WHEEL..."; \
+	python3 -m pip install --break-system-packages --user --force-reinstall "$$WHEEL" || { \
+		echo "Failed to install Python wheel. Make sure python3 and pip are available and the wheel is built."; \
+		exit 1; \
+	}
+	cd bindings/python && python3 -m pytest tests/
 
 .PHONY: test-go
 test-go: build-go
@@ -187,23 +200,34 @@ package-all: package-linux package-macos package-windows
 package-linux: build-all
 	mkdir -p dist/linux
 	cp target/release/keyfinder dist/linux/
-	cp target/release/libgenai_keyfinder_ffi.$(LIB_EXT) dist/linux/
+	cp target/release/libgenai_keyfinder_ffi.so dist/linux/
 
 .PHONY: package-macos
 package-macos: build-all
 	mkdir -p dist/macos
 	cp target/release/keyfinder dist/macos/
-	cp target/release/libgenai_keyfinder_ffi.$(LIB_EXT) dist/macos/
+	cp target/release/libgenai_keyfinder_ffi.dylib dist/macos/
 
 .PHONY: package-windows
 package-windows: build-all
 	mkdir -p dist/windows
-	cp target/release/keyfinder$(EXE_EXT) dist/windows/
-	cp target/release/genai_keyfinder_ffi.$(LIB_EXT) dist/windows/
-
+	cp target/release/keyfinder.exe dist/windows/
+	cp target/release/genai_keyfinder_ffi.dll dist/windows/
 # Platform-specific targets
 .PHONY: build-platform
-build-platform: build-$(PLATFORM)
+
+# Map PLATFORM values to existing build targets
+ifeq ($(PLATFORM),linux)
+BUILD_TARGET := build-all
+else ifeq ($(PLATFORM),macos)
+BUILD_TARGET := build-all
+else ifeq ($(PLATFORM),windows)
+BUILD_TARGET := build-all
+else
+BUILD_TARGET := build-all
+endif
+
+build-platform: $(BUILD_TARGET)
 
 .PHONY: package-platform
 package-platform: package-$(PLATFORM)
@@ -296,6 +320,7 @@ help:
 	@echo "  check-optional - Check optional tools"
 	@echo "  watch          - Watch for changes and rebuild"
 	@echo "  fmt            - Format all code"
+	@echo "  fmt-check      - Check code formatting without making changes"
 	@echo "  clippy         - Run clippy linter"
 	@echo "  check          - Check code without building"
 	@echo ""
@@ -342,7 +367,7 @@ help:
 	@echo "  info           - Show toolchain information"
 	@echo "  help           - Show this help message"
 	@echo ""
-	@echo "Default target: build-all"
+	@echo "Default target: help"
 
 # Default help when no target specified
 .DEFAULT_GOAL := help

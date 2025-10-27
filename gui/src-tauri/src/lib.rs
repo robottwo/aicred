@@ -20,7 +20,7 @@ fn perform_scan(options: ScanOptions) -> Result<String, String> {
         exclude_providers: options.exclude_providers,
     };
 
-    match scan(core_options) {
+    match scan(&core_options) {
         Ok(result) => {
             serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {}", e))
         }

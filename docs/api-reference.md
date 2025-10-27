@@ -175,7 +175,7 @@ The provider configuration now supports multiple API keys per provider:
   - `discovered_at: DateTime<Utc>` — When key was found
   - `source: String` — File path where key was discovered
   - `line_number: Option<u32>` — Line number in source file
-  - `confidence: Confidence` — Detection confidence (0.0-1.0)
+  - `confidence: Confidence` — Detection confidence enum with variants: Low, Medium, High, VeryHigh
   - `environment: Environment` — Environment context (dev/staging/prod)
   - `last_validated: Option<DateTime<Utc>>` — Last validation timestamp
   - `validation_status: ValidationStatus` — Current validation state
@@ -287,7 +287,7 @@ Implementation detail: Python uses Core [scan(ScanOptions)](bindings/python/src/
 
 ## Go API
 
-Package: `github.com/yourusername/genai-keyfinder/bindings/go/genai_keyfinder`.
+Package: `github.com/robottwo/aicred/bindings/go/genai_keyfinder`.
 
 Types:
 - [type ScanOptions struct](bindings/go/genai_keyfinder/genai_keyfinder.go:18)
@@ -298,7 +298,7 @@ Types:
   - `ExcludeProviders []string`
 - [type DiscoveredKey struct](bindings/go/genai_keyfinder/genai_keyfinder.go:27)
   - `Provider, Source, ValueType, Hash string`
-  - `Confidence float64`
+  - `Confidence string` (enum values: "Low", "Medium", "High", "VeryHigh")
   - `Redacted string` (may be empty; not populated by core unless post-processed)
   - `Locked bool` (not set by core; reserved)
 - [type ConfigInstance struct](bindings/go/genai_keyfinder/genai_keyfinder.go:39)

@@ -6,9 +6,9 @@
     <title>GenAI Key Finder</title>
     <authors>Your Name</authors>
     <owners>Your Name</owners>
-    <licenseUrl>https://github.com/yourusername/genai-keyfinder/blob/main/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/yourusername/genai-keyfinder</projectUrl>
-    <iconUrl>https://github.com/yourusername/genai-keyfinder/raw/main/gui/src-tauri/icons/icon.ico</iconUrl>
+    <licenseUrl>https://github.com/robottwo/aicred/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/robottwo/aicred</projectUrl>
+    <iconUrl>https://github.com/robottwo/aicred/raw/main/gui/src-tauri/icons/icon.ico</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Cross-platform tool for discovering GenAI API keys and configurations</description>
     <releaseNotes>Initial release</releaseNotes>

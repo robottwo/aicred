@@ -1,0 +1,9 @@
+{
+  "invalid": "json",
+  "no_api_keys": true,
+  "random_data": {
+    "nested": {
+      "value": 123
+    }
+  }
+}

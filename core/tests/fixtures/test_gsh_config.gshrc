@@ -1,0 +1,21 @@
+# GSH Test Configuration
+# This file tests the GSH scanner with multiple providers and settings
+
+# Fast Model Configuration (Groq)
+export GSH_FAST_MODEL_API_KEY="gsk_test1234567890abcdef1234567890abcdef"
+export GSH_FAST_MODEL_BASE_URL="https://api.groq.com/openai/v1"
+export GSH_FAST_MODEL_ID="llama3-70b-8192"
+export GSH_FAST_MODEL_TEMPERATURE="0.7"
+export GSH_FAST_MODEL_PARALLEL_TOOL_CALLS="true"
+
+# Slow Model Configuration (OpenRouter)
+export GSH_SLOW_MODEL_API_KEY="sk-or-v1_test1234567890abcdef1234567890abcdef"
+export GSH_SLOW_MODEL_BASE_URL="https://openrouter.ai/api/v1"
+export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
+
+# Additional Provider Keys
+export OPENAI_API_KEY="sk-test1234567890abcdef1234567890abcdef"
+export ANTHROPIC_API_KEY="sk-ant-test1234567890abcdef1234567890abcdef"
+export GOOGLE_API_KEY="AIzaSyTest1234567890abcdef1234567890abcdef"
+export HUGGING_FACE_HUB_TOKEN="hf_test1234567890abcdef1234567890abcdef"
+export GROQ_API_KEY="gsk_test1234567890abcdef1234567890abcdef"

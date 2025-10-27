@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Authentication method supported by a provider.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AuthMethod {
     /// API key authentication.
     ApiKey,
@@ -49,7 +49,8 @@ pub struct Provider {
 
 impl Provider {
     /// Creates a new provider with required fields.
-    pub fn new(name: String, provider_type: String, base_url: String) -> Self {
+    #[must_use]
+    pub const fn new(name: String, provider_type: String, base_url: String) -> Self {
         Self {
             name,
             provider_type,
@@ -62,30 +63,37 @@ impl Provider {
     }
 
     /// Sets the description for the provider.
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
     }
 
     /// Sets the documentation URL for the provider.
+    #[must_use]
     pub fn with_documentation_url(mut self, url: String) -> Self {
         self.documentation_url = Some(url);
         self
     }
 
     /// Sets the rate limits for the provider.
+    #[must_use]
     pub fn with_rate_limits(mut self, rate_limits: RateLimit) -> Self {
         self.rate_limits = Some(rate_limits);
         self
     }
 
     /// Sets the authentication methods for the provider.
+    #[must_use]
     pub fn with_auth_methods(mut self, methods: Vec<AuthMethod>) -> Self {
         self.authentication_methods = Some(methods);
         self
     }
 
     /// Validates the provider configuration.
+    ///
+    /// # Errors
+    /// Returns an error if the provider name or type is empty.
     pub fn validate(&self) -> Result<(), String> {
         if self.name.is_empty() {
             return Err("Provider name cannot be empty".to_string());
@@ -162,7 +170,7 @@ mod tests {
         assert!(valid_provider.validate().is_ok());
 
         let invalid_provider = Provider::new(
-            "".to_string(),
+            String::new(),
             "invalid".to_string(),
             "https://api.invalid.com".to_string(),
         );
