@@ -417,6 +417,169 @@ ScannerConfig (Core scanner engine):
   - A generic preview like `"****"` for display
   - If and only if `include_full_values` was used, applications may compute previews locally (e.g., last 4 chars).
 
+## Built-in Scanners
+
+The following scanner plugins are available for discovering API keys in various applications:
+
+### Goose Scanner
+
+**Scanner Name**: `goose`
+**Application**: Goose AI Agent
+**Description**: Discovers API keys in Goose configuration files for automated engineering tasks
+
+#### Supported Configuration Formats
+- **Primary**: YAML (`config.yaml`)
+- **Alternative**: Environment variables (`.env`, `.goosebench.env`)
+- **Benchmark**: JSON (`config.json`)
+- **Recipes**: YAML files in `recipes/` directories
+
+#### Configuration File Locations
+
+**Linux/macOS (XDG Base Directory)**:
+```
+~/.config/goose/config.yaml
+~/.config/goose/.gooseignore
+~/.config/goose/.gdrive-server-credentials.json
+~/.config/goose/gcp-oauth.keys.json
+```
+
+**macOS Application Support**:
+```
+~/Library/Application Support/Goose/config.yaml
+~/Library/Application Support/Goose/.gooseignore
+```
+
+**Windows APPDATA**:
+```
+%APPDATA%\Block\goose\config.yaml
+%APPDATA%\Block\goose\.gooseignore
+```
+
+**Environment Files**:
+```
+.goosebench.env
+recipes/*.yaml
+goose-recipes/*.yaml
+```
+
+#### Supported Providers (16 total)
+- `openai` - OpenAI GPT models
+- `anthropic` - Anthropic Claude models
+- `google` - Google Gemini models
+- `databricks` - Databricks platform
+- `groq` - Groq inference engine
+- `ollama` - Ollama local models
+- `bedrock` - Amazon Bedrock
+- `azure-openai` - Azure OpenAI Service
+- `xai` - xAI Grok models
+- `venice` - Venice AI platform
+- `openrouter` - OpenRouter API
+- `litellm` - LiteLLM proxy
+- `tetrate` - Tetrate Agent Router
+- `sagemaker` - Amazon SageMaker
+- `gcp-vertex-ai` - GCP Vertex AI
+- `huggingface` - Hugging Face Hub
+
+#### Key Detection Patterns
+
+**High Confidence** (prefix-based):
+- `sk-*` - OpenAI API keys
+- `sk-ant-*` - Anthropic API keys
+- `hf_*` - Hugging Face tokens
+- `gsk_*` - Groq API keys
+- `dapi_*` - Databricks tokens
+- `rlc-*` - Relace tokens
+
+**Medium Confidence** (length-based):
+- Keys with 30+ characters and alphanumeric content
+
+**Low Confidence**:
+- Valid keys meeting minimum 15-character requirement
+
+#### Configuration Examples
+
+**Main Configuration (config.yaml)**:
+```yaml
+# Model Configuration
+GOOSE_PROVIDER: "anthropic"
+GOOSE_MODEL: "claude-3.5-sonnet"
+GOOSE_TEMPERATURE: 0.7
+
+# Extension with API Keys
+extensions:
+  github:
+    name: GitHub
+    envs:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_test1234567890abcdef"
+  
+  google-drive:
+    name: Google Drive
+    envs:
+      GDRIVE_CREDENTIALS_PATH: "~/.config/credentials.json"
+```
+
+**Environment Variables**:
+```bash
+# Provider API Keys
+export OPENAI_API_KEY="sk-test1234567890abcdef"
+export ANTHROPIC_API_KEY="sk-ant-test1234567890abcdef"
+export GOOGLE_API_KEY="AIzaTest1234567890abcdef"
+export GROQ_API_KEY="gsk_test1234567890abcdef"
+
+# Goose Configuration
+export GOOSE_PROVIDER="anthropic"
+export GOOSE_MODEL="claude-3.5-sonnet"
+```
+
+**Benchmark Configuration (config.json)**:
+```json
+{
+  "models": [
+    {
+      "provider": "databricks",
+      "name": "gpt-4-1-mini",
+      "parallel_safe": true
+    }
+  ],
+  "env_file": "/path/to/.goosebench.env"
+}
+```
+
+#### Integration with Main Scanning System
+
+The Goose scanner integrates with the main scanning system through the [`ScannerPlugin`](core/src/scanners/mod.rs:23) trait:
+
+```rust
+impl ScannerPlugin for GooseScanner {
+    fn name(&self) -> &str { "goose" }
+    fn app_name(&self) -> &str { "Goose" }
+    fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf>
+    fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult>
+    fn can_handle_file(&self, path: &Path) -> bool
+    fn supports_provider_scanning(&self) -> bool { true }
+    fn supported_providers(&self) -> Vec<String>
+    fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>>
+    fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>>
+}
+```
+
+**Key Features**:
+- **Multi-platform support**: Linux, macOS, Windows
+- **Extension system**: Scans extension configurations for API keys
+- **Recipe automation**: Supports automated workflow configurations
+- **Benchmark framework**: Includes performance testing configurations
+- **Environment variable scanning**: Comprehensive env var detection
+- **Confidence scoring**: Assigns confidence levels to discovered keys
+- **Provider inference**: Automatically determines provider from key patterns
+
+**Usage**:
+```rust
+use genai_keyfinder_core::scanners::GooseScanner;
+
+let scanner = GooseScanner;
+let result = scanner.parse_config(Path::new("config.yaml"), yaml_content)?;
+```
+
 ## Architecture Changes - **IMPORTANT**
 
 ### New Plugin Architecture

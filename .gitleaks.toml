@@ -1,7 +1,8 @@
 title = "GenAI Keyfinder Gitleaks Config"
 
 [allowlist]
-description = "Allow documentation samples"
+description = "Allow documentation samples and scanner specification files"
 paths = [
-    '''docs/.*'''
+    '''docs/.*''',
+    '''examples/goose-scanner-spec\.md'''
 ]

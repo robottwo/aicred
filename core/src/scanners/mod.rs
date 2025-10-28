@@ -1,12 +1,14 @@
 //! Scanner plugins for various applications that store API keys.
 
 mod claude_desktop;
+mod goose;
 mod gsh;
 mod langchain;
 mod ragit;
 mod roo_code;
 
 pub use claude_desktop::ClaudeDesktopScanner;
+pub use goose::GooseScanner;
 pub use gsh::GshScanner;
 pub use langchain::LangChainScanner;
 pub use ragit::RagitScanner;
@@ -280,6 +282,7 @@ pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<Discove
 /// Registers all built-in scanner plugins.
 pub fn register_builtin_scanners(registry: &ScannerRegistry) -> Result<()> {
     registry.register(std::sync::Arc::new(RagitScanner))?;
+    registry.register(std::sync::Arc::new(GooseScanner))?;
     registry.register(std::sync::Arc::new(ClaudeDesktopScanner))?;
     registry.register(std::sync::Arc::new(RooCodeScanner))?;
     registry.register(std::sync::Arc::new(LangChainScanner))?;

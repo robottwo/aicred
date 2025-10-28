@@ -23,7 +23,31 @@ impl ScannerPlugin for RagitScanner {
     fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
         let mut paths = Vec::new();
 
-        // Global config
+        // Platform-specific global configs (highest priority)
+        // XDG Base Directory Specification: ~/.config/ragit/
+        paths.push(home_dir.join(".config").join("ragit").join("api.json"));
+        paths.push(home_dir.join(".config").join("ragit").join("build.json"));
+        paths.push(home_dir.join(".config").join("ragit").join("query.json"));
+        paths.push(home_dir.join(".config").join("ragit").join("config.json"));
+
+        // Linux system-wide config
+        if cfg!(target_os = "linux") {
+            paths.push(PathBuf::from("/etc").join("ragit").join("api.json"));
+            paths.push(PathBuf::from("/etc").join("ragit").join("build.json"));
+            paths.push(PathBuf::from("/etc").join("ragit").join("query.json"));
+            paths.push(PathBuf::from("/etc").join("ragit").join("config.json"));
+        }
+
+        // Windows APPDATA
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let appdata_path = PathBuf::from(appdata).join("ragit");
+            paths.push(appdata_path.join("api.json"));
+            paths.push(appdata_path.join("build.json"));
+            paths.push(appdata_path.join("query.json"));
+            paths.push(appdata_path.join("config.json"));
+        }
+
+        // User-specific config
         paths.push(home_dir.join(".ragit").join("config.json"));
 
         // Project configs
@@ -35,12 +59,22 @@ impl ScannerPlugin for RagitScanner {
 
     fn can_handle_file(&self, path: &Path) -> bool {
         let file_name = path.file_name().unwrap_or_default().to_string_lossy();
-        file_name == "config.json"
-            && (path.to_string_lossy().contains("ragit")
-                || path
-                    .parent()
-                    .map(|p| p.ends_with(".ragit"))
-                    .unwrap_or(false))
+        
+        // Check for Ragit-specific files
+        file_name == "config.json" && (
+            path.to_string_lossy().contains("ragit") ||
+            path.parent()
+                .map(|p| p.ends_with(".ragit"))
+                .unwrap_or(false)
+        ) ||
+        file_name == "ragit_config.json" ||
+        // Check for provider-specific config files in ragit directories
+        (file_name == "api.json" || file_name == "build.json" || file_name == "query.json") && (
+            path.to_string_lossy().contains("ragit") ||
+            path.parent()
+                .map(|p| p.ends_with(".config") || p.ends_with("ragit"))
+                .unwrap_or(false)
+        )
     }
 
     fn supports_provider_scanning(&self) -> bool {
@@ -53,6 +87,7 @@ impl ScannerPlugin for RagitScanner {
             "anthropic".to_string(),
             "huggingface".to_string(),
             "google".to_string(),
+            "groq".to_string(),
             "ragit".to_string(),
         ]
     }
@@ -60,20 +95,44 @@ impl ScannerPlugin for RagitScanner {
     fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>> {
         let mut paths = Vec::new();
 
-        // Ragit-specific provider configs
+        // Global provider configs (highest priority)
+        // XDG Base Directory Specification: ~/.config/ragit/
+        let global_config_dir = home_dir.join(".config").join("ragit");
+        paths.push(global_config_dir.join("api.json"));
+        paths.push(global_config_dir.join("build.json"));
+        paths.push(global_config_dir.join("query.json"));
+
+        // Linux system-wide config
+        if cfg!(target_os = "linux") {
+            paths.push(PathBuf::from("/etc").join("ragit").join("api.json"));
+            paths.push(PathBuf::from("/etc").join("ragit").join("build.json"));
+            paths.push(PathBuf::from("/etc").join("ragit").join("query.json"));
+        }
+
+        // Windows APPDATA
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let appdata_path = PathBuf::from(appdata).join("ragit");
+            paths.push(appdata_path.join("api.json"));
+            paths.push(appdata_path.join("build.json"));
+            paths.push(appdata_path.join("query.json"));
+        }
+
+        // User-specific provider configs
         paths.push(home_dir.join(".ragit").join("providers.json"));
         paths.push(home_dir.join(".ragit").join("llm_config.json"));
 
-        // Environment files
+        // Environment files (lowest priority)
         paths.push(home_dir.join(".env"));
         paths.push(home_dir.join(".env.local"));
         paths.push(PathBuf::from(".env"));
+        paths.push(PathBuf::from(".env.local"));
+        paths.push(PathBuf::from("ragit.env"));
 
         // Provider-specific environment files
-        paths.push(PathBuf::from("ragit.env"));
         paths.push(PathBuf::from("openai.env"));
         paths.push(PathBuf::from("anthropic.env"));
         paths.push(PathBuf::from("huggingface.env"));
+        paths.push(PathBuf::from("groq.env"));
 
         // Filter to only existing paths
         Ok(paths.into_iter().filter(|p| p.exists()).collect())
@@ -113,20 +172,89 @@ impl ScannerPlugin for RagitScanner {
     fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>> {
         let mut instances = Vec::new();
 
-        // Look for global config
-        let global_path = home_dir.join(".ragit").join("config.json");
-        if global_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&global_path) {
+        // Priority order: global → user → project → alternative
+        // 1. Global configs (highest priority)
+        let global_config_paths = vec![
+            home_dir.join(".config").join("ragit").join("config.json"),
+            home_dir.join(".config").join("ragit").join("api.json"),
+            home_dir.join(".config").join("ragit").join("build.json"),
+            home_dir.join(".config").join("ragit").join("query.json"),
+        ];
+
+        for config_path in global_config_paths {
+            if config_path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&config_path) {
+                    if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if self.is_valid_ragit_config(&json_value) {
+                            let instance = self.create_config_instance(&config_path, &json_value)?;
+                            instances.push(instance);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Linux system-wide config
+        if cfg!(target_os = "linux") {
+            let system_paths = vec![
+                PathBuf::from("/etc").join("ragit").join("config.json"),
+                PathBuf::from("/etc").join("ragit").join("api.json"),
+                PathBuf::from("/etc").join("ragit").join("build.json"),
+                PathBuf::from("/etc").join("ragit").join("query.json"),
+            ];
+
+            for config_path in system_paths {
+                if config_path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&config_path) {
+                        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
+                            if self.is_valid_ragit_config(&json_value) {
+                                let instance = self.create_config_instance(&config_path, &json_value)?;
+                                instances.push(instance);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Windows APPDATA
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let appdata_path = PathBuf::from(appdata).join("ragit");
+            let appdata_paths = vec![
+                appdata_path.join("config.json"),
+                appdata_path.join("api.json"),
+                appdata_path.join("build.json"),
+                appdata_path.join("query.json"),
+            ];
+
+            for config_path in appdata_paths {
+                if config_path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&config_path) {
+                        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
+                            if self.is_valid_ragit_config(&json_value) {
+                                let instance = self.create_config_instance(&config_path, &json_value)?;
+                                instances.push(instance);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. User-specific config
+        let user_path = home_dir.join(".ragit").join("config.json");
+        if user_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&user_path) {
                 if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
                     if self.is_valid_ragit_config(&json_value) {
-                        let instance = self.create_config_instance(&global_path, &json_value)?;
+                        let instance = self.create_config_instance(&user_path, &json_value)?;
                         instances.push(instance);
                     }
                 }
             }
         }
 
-        // Look for project configs in current directory and subdirectories
+        // 5. Project configs in current directory and subdirectories (lowest priority)
         self.scan_project_configs(Path::new("."), &mut instances)?;
 
         Ok(instances)
@@ -209,6 +337,8 @@ impl RagitScanner {
             || json_value.get("ragit").is_some()
             || json_value.get("vector_store").is_some()
             || json_value.get("chunking").is_some()
+            || json_value.get("chunk_size").is_some()
+            || json_value.get("model").is_some()
     }
 
     /// Create a config instance from Ragit configuration.
@@ -276,6 +406,8 @@ impl RagitScanner {
             "google".to_string()
         } else if env_name_lower.contains("huggingface") || env_name_lower.contains("hf_") {
             "huggingface".to_string()
+        } else if env_name_lower.contains("groq") {
+            "groq".to_string()
         } else {
             "unknown".to_string()
         }
@@ -289,6 +421,9 @@ impl RagitScanner {
             ("OPENAI_API_KEY", "openai"),
             ("ANTHROPIC_API_KEY", "anthropic"),
             ("HUGGING_FACE_HUB_TOKEN", "huggingface"),
+            ("GROQ_API_KEY", "groq"),
+            ("GOOGLE_API_KEY", "google"),
+            ("GEMINI_API_KEY", "google"),
         ];
 
         let keys = super::extract_env_keys(content, &env_patterns);
