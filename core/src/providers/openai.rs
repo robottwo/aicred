@@ -1,7 +1,10 @@
 //! OpenAI provider plugin for scanning OpenAI API keys and configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
+use crate::models::{
+    discovered_key::{Confidence, DiscoveredKey, ValueType},
+    ProviderInstance,
+};
 use crate::plugins::ProviderPlugin;
 use url::Url;
 
@@ -535,7 +538,12 @@ mod tests {
             );
             
             let result = plugin.validate_instance(&instance);
-            assert!(result.is_ok(), "URL '{}' should be valid but got error: {:?}", url, result.err());
+            assert!(
+                result.is_ok(),
+                "URL '{}' should be valid but got error: {:?}",
+                url,
+                result.err()
+            );
         }
     }
 

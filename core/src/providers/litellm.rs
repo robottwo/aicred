@@ -231,7 +231,9 @@ impl LiteLLMPlugin {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
-            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+            return Err(Error::PluginError(
+                "Base URL must start with http:// or https://".to_string(),
+            ));
         }
         Ok(())
     }

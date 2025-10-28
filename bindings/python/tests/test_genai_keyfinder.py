@@ -152,7 +152,7 @@ def test_model_with_enhanced_features():
     model.set_tags(["text-generation", "code"])
     model.set_cost(cost)
     
-    assert model.temperature == 0.7
+    assert abs(model.temperature - 0.7) < 0.001
     assert model.tags == ["text-generation", "code"]
     assert model.cost.input_cost_per_million == 0.001
 

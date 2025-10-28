@@ -379,21 +379,21 @@ fn test_error_handling_corrupted_files() {
     // Test corrupted manifest
     fs::write(&manifest_path, "invalid yaml content: { broken").unwrap();
     
-    let result = fs::read_to_string(&manifest_path)
-        .and_then(|content| serde_yaml::from_str::<Manifest>(&content).map_err(|_| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid YAML")
-        }));
+    let result = fs::read_to_string(&manifest_path).and_then(|content| {
+        serde_yaml::from_str::<Manifest>(&content)
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid YAML"))
+    });
     
     assert!(result.is_err());
     
     // Test corrupted provider file
     let provider_path = providers_dir.join("corrupted.yaml");
     fs::write(&provider_path, "invalid: yaml: content: [").unwrap();
+    let provider_result = fs::read_to_string(&provider_path).and_then(|content| {
+        serde_yaml::from_str::<ProviderConfig>(&content)
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid YAML"))
+    });
     
-    let provider_result = fs::read_to_string(&provider_path)
-        .and_then(|content| serde_yaml::from_str::<ProviderConfig>(&content).map_err(|_| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid YAML")
-        }));
     
     assert!(provider_result.is_err());
 }

@@ -33,7 +33,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgobject-2.0-dev pkg-config
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
        
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -123,7 +126,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgobject-2.0-dev pkg-config
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
        
       - name: Install cross-compilation tools (Linux)
         if: runner.os == 'Linux'

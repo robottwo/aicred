@@ -174,7 +174,8 @@ fn test_provider_key_serialization() {
 
     // Test serialization
     let serialized = serde_json::to_string(&key).expect("Failed to serialize key");
-    let deserialized: ProviderKey = serde_json::from_str(&serialized).expect("Failed to deserialize key");
+    let deserialized: ProviderKey =
+        serde_json::from_str(&serialized).expect("Failed to deserialize key");
     
     assert_eq!(deserialized.id, key.id);
     assert_eq!(deserialized.confidence, key.confidence);
@@ -206,7 +207,8 @@ fn test_provider_config_serialization() {
     
     // Test YAML serialization
     let yaml_content = serde_yaml::to_string(&config).expect("Failed to serialize config");
-    let deserialized: ProviderConfig = serde_yaml::from_str(&yaml_content).expect("Failed to deserialize config");
+    let deserialized: ProviderConfig =
+        serde_yaml::from_str(&yaml_content).expect("Failed to deserialize config");
     
     assert_eq!(deserialized.key_count(), 1);
     assert_eq!(deserialized.models.len(), 2);

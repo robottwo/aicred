@@ -153,7 +153,15 @@ endif
 .PHONY: test-python
 test-python: build-python
 	@command -v pytest >/dev/null 2>&1 || { echo "Error: pytest not found. Run 'make dev-setup' to install it."; exit 1; }
-	cd bindings/python && pytest tests/
+	@echo "Installing Python wheel..."
+	@WHEEL=$$(ls target/wheels/genai_keyfinder-*.whl 2>/dev/null | head -1); \
+	if [ -z "$$WHEEL" ]; then echo "Error: Python wheel not found. Run 'make build-python' first."; exit 1; fi; \
+	echo "Installing $$WHEEL..."; \
+	python3 -m pip install --break-system-packages --user --force-reinstall "$$WHEEL" || { \
+		echo "Failed to install Python wheel. Make sure python3 and pip are available and the wheel is built."; \
+		exit 1; \
+	}
+	cd bindings/python && python3 -m pytest tests/
 
 .PHONY: test-go
 test-go: build-go
