@@ -2,9 +2,9 @@
   "keys": [],
   "config_instances": [],
   "home_directory": ".",
-  "scan_started_at": "2025-10-27T01:58:23.063983Z",
+  "scan_started_at": "2025-10-28T16:52:37.502178Z",
   "providers_scanned": [
-    "openai",
-    "anthropic"
+    "anthropic",
+    "openai"
   ]
 }

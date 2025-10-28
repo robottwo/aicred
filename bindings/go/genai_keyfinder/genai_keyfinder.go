@@ -86,8 +86,10 @@ func Scan(options ScanOptions) (*ScanResult, error) {
 	var homeDir *C.char
 	if options.HomeDir != "" {
 		homeDir = C.CString(options.HomeDir)
-		defer C.free(unsafe.Pointer(homeDir))
+	} else {
+		homeDir = C.CString("")
 	}
+	defer C.free(unsafe.Pointer(homeDir))
 
 	// Convert options JSON to C string
 	optionsStr := C.CString(string(optionsJSON))

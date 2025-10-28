@@ -31,7 +31,7 @@ Supported Providers:
   - Anthropic (Claude)
   - Hugging Face
   - Ollama
-  - LangChain
+  - Groq
   - LiteLLM
 
 Supported Applications:

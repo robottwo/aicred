@@ -138,12 +138,12 @@ def scan(
         exclude_providers: Exclude these providers
     
     Returns:
-        Dictionary containing:
-        - keys: List of discovered keys
-        - config_instances: List of config instances
-        - home_dir: Scanned home directory
-        - scanned_at: Timestamp of scan
-        - providers_scanned: List of providers scanned
+       Dictionary containing:
+       - keys: List of discovered keys
+       - config_instances: List of config instances
+       - home_directory: Scanned home directory
+       - scan_started_at: Timestamp of scan
+       - providers_scanned: List of providers scanned
     
     Example:
         >>> result = scan()
