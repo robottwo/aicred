@@ -39,7 +39,6 @@ class Capabilities:
     streaming: bool
     multimodal: bool
     tool_use: bool
-    custom: Dict[str, Any]
     
     def __repr__(self) -> str: ...
 
@@ -61,7 +60,6 @@ class Model:
     
     def set_quantization(self, quantization: str) -> None: ...
     def set_context_window(self, size: int) -> None: ...
-    def set_capabilities(self, capabilities: Capabilities) -> None: ...
     def set_temperature(self, temperature: float) -> None: ...
     def set_tags(self, tags: List[str]) -> None: ...
     def set_cost(self, cost: TokenCost) -> None: ...
@@ -80,12 +78,12 @@ class ProviderInstance:
     display_name: str
     provider_type: str
     base_url: str
-    keys: List[Any]
+    keys: Optional[List[Any]]
     models: List[Model]
     metadata: Optional[Dict[str, str]]
     active: bool
     created_at: str
-    updated_at: str
+    updated_at: Optional[str]
     
     def add_key(self, key: Any) -> None: ...
     def add_keys(self, keys: List[Any]) -> None: ...

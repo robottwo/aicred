@@ -124,6 +124,10 @@ watch:
 fmt:
 	cargo fmt --all
 
+.PHONY: fmt-check
+fmt-check:
+	cargo fmt --all --check
+
 .PHONY: clippy
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
@@ -317,6 +321,7 @@ help:
 	@echo "  check-optional - Check optional tools"
 	@echo "  watch          - Watch for changes and rebuild"
 	@echo "  fmt            - Format all code"
+	@echo "  fmt-check      - Check code formatting without making changes"
 	@echo "  clippy         - Run clippy linter"
 	@echo "  check          - Check code without building"
 	@echo ""
@@ -363,7 +368,7 @@ help:
 	@echo "  info           - Show toolchain information"
 	@echo "  help           - Show this help message"
 	@echo ""
-	@echo "Default target: build-all"
+	@echo "Default target: help"
 
 # Default help when no target specified
 .DEFAULT_GOAL := help

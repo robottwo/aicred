@@ -29,45 +29,16 @@ pub trait ScannerPlugin: Send + Sync {
     fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf>;
 
     /// Parses a configuration file and extracts discovered keys and config instances.
+    /// # Errors
+    /// Returns an error if the configuration file cannot be parsed or is invalid.
     fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult>;
 
     /// Validates that this scanner can handle the given file.
     fn can_handle_file(&self, path: &Path) -> bool;
 
-    /// Returns true if this scanner can discover provider-specific configurations.
-    /// This enables the scanner to look for provider keys in application configs.
-    fn supports_provider_scanning(&self) -> bool {
-        // Default implementation - override to enable provider scanning
-        false
-    }
-
-    /// Returns a list of provider names that this scanner can discover.
-    /// Only used when supports_provider_scanning() returns true.
-    fn supported_providers(&self) -> Vec<String> {
-        // Default implementation - override to specify supported providers
-        Vec::new()
-    }
-
-    /// Scans for provider-specific configuration files (e.g., .env files, provider configs).
-    /// This method enables scanners to discover provider keys in standard locations.
-    fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>> {
-        // Default implementation - override to scan for provider-specific configs
-        let mut paths = Vec::new();
-
-        // Common provider configuration file patterns
-        paths.push(home_dir.join(".env"));
-        paths.push(home_dir.join(".env.local"));
-        paths.push(home_dir.join(".envrc"));
-        paths.push(home_dir.join("config.json"));
-        paths.push(home_dir.join("config.yaml"));
-        paths.push(home_dir.join("config.yml"));
-        paths.push(home_dir.join("settings.json"));
-
-        // Filter to only existing paths
-        Ok(paths.into_iter().filter(|p| p.exists()).collect())
-    }
-
     /// Scans for multiple instances of this application (e.g., multiple installations).
+    /// # Errors
+    /// Returns an error if scanning fails or configuration files cannot be read.
     fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>> {
         // Default implementation - override for multi-instance applications
         let mut instances = Vec::new();
@@ -80,23 +51,6 @@ pub trait ScannerPlugin: Send + Sync {
                     if let Ok(result) = self.parse_config(&path, &content) {
                         if !result.keys.is_empty() || !result.instances.is_empty() {
                             instances.extend(result.instances);
-                        }
-                    }
-                }
-            }
-        }
-
-        // If this scanner supports provider scanning, also scan for provider configs
-        if self.supports_provider_scanning() {
-            if let Ok(provider_paths) = self.scan_provider_configs(home_dir) {
-                for path in provider_paths {
-                    if path.exists() {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            if let Ok(result) = self.parse_config(&path, &content) {
-                                if !result.keys.is_empty() || !result.instances.is_empty() {
-                                    instances.extend(result.instances);
-                                }
-                            }
                         }
                     }
                 }
@@ -118,7 +72,8 @@ pub struct ScanResult {
 
 impl ScanResult {
     /// Creates a new scan result.
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             keys: Vec::new(),
             instances: Vec::new(),
@@ -171,6 +126,7 @@ impl std::fmt::Debug for ScannerRegistry {
 
 impl ScannerRegistry {
     /// Creates a new empty scanner registry.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             scanners: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
@@ -178,6 +134,8 @@ impl ScannerRegistry {
     }
 
     /// Registers a new scanner.
+    /// # Errors
+    /// Returns an error if the scanner cannot be registered (e.g., already exists).
     pub fn register(&self, scanner: std::sync::Arc<dyn ScannerPlugin>) -> Result<()> {
         let mut scanners = self.scanners.write().map_err(|_| {
             Error::PluginError("Failed to acquire write lock on scanners".to_string())
@@ -186,16 +144,17 @@ impl ScannerRegistry {
         let name = scanner.name().to_string();
         if scanners.contains_key(&name) {
             return Err(Error::PluginError(format!(
-                "Scanner '{}' is already registered",
-                name
+                "Scanner '{name}' is already registered"
             )));
         }
 
         scanners.insert(name, scanner);
+        drop(scanners); // Explicitly drop the lock to avoid significant_drop_tightening warning
         Ok(())
     }
 
     /// Gets a scanner by name.
+    #[must_use]
     pub fn get(&self, name: &str) -> Option<std::sync::Arc<dyn ScannerPlugin>> {
         self.scanners
             .read()
@@ -204,6 +163,7 @@ impl ScannerRegistry {
     }
 
     /// Lists all registered scanner names.
+    #[must_use]
     pub fn list(&self) -> Vec<String> {
         self.scanners
             .read()
@@ -213,6 +173,7 @@ impl ScannerRegistry {
     }
 
     /// Gets all scanners that can handle a specific file.
+    #[must_use]
     pub fn get_scanners_for_file(&self, path: &Path) -> Vec<std::sync::Arc<dyn ScannerPlugin>> {
         self.scanners
             .read()
@@ -235,19 +196,28 @@ impl Default for ScannerRegistry {
 }
 
 /// Helper function to parse JSON config files.
+/// # Errors
+/// Returns an error if the JSON content cannot be parsed.
 pub fn parse_json_config(content: &str) -> Result<serde_json::Value> {
     serde_json::from_str(content)
-        .map_err(|e| Error::ConfigError(format!("Failed to parse JSON: {}", e)))
+        .map_err(|e| Error::ConfigError(format!("Failed to parse JSON: {e}")))
 }
 
 /// Helper function to parse YAML config files.
+/// # Errors
+/// Returns an error if the YAML content cannot be parsed.
 pub fn parse_yaml_config(content: &str) -> Result<serde_yaml::Value> {
     serde_yaml::from_str(content)
-        .map_err(|e| Error::ConfigError(format!("Failed to parse YAML: {}", e)))
+        .map_err(|e| Error::ConfigError(format!("Failed to parse YAML: {e}")))
 }
 
 /// Helper function to extract keys from environment variable format.
-pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<DiscoveredKey> {
+/// # Errors
+/// Returns an error if regex pattern compilation fails.
+///
+/// # Panics
+/// Panics if some regex patterns are invalid.
+#[must_use] pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<DiscoveredKey> {
     let mut keys = Vec::new();
 
     for (env_var, provider) in patterns {
@@ -262,7 +232,7 @@ pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<Discove
                 let key_value = key_match.as_str();
 
                 let discovered_key = DiscoveredKey::new(
-                    provider.to_string(),
+                    (*provider).to_string(),
                     "env_file".to_string(),
                     crate::models::discovered_key::ValueType::ApiKey,
                     crate::models::discovered_key::Confidence::High,
@@ -277,7 +247,81 @@ pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<Discove
     keys
 }
 
+/// Helper function to extract keys and metadata from environment variable format.
+/// This function extracts both API keys and metadata (`base_url`, `model_id`, etc.)
+/// # Errors
+/// Returns an error if regex pattern compilation fails.
+///
+/// # Panics
+/// Panics if some regex patterns are invalid.
+#[must_use] pub fn extract_env_keys_with_metadata(
+    content: &str,
+    api_patterns: &[(&str, &str)],
+    metadata_patterns: &[(&str, &str, &str)],
+) -> Vec<DiscoveredKey> {
+    let mut keys = Vec::new();
+
+    // First, extract API keys
+    for (env_var, provider) in api_patterns {
+        let pattern = format!(r"(?i){}\s*=\s*(.+)", regex::escape(env_var));
+        let regex = regex::Regex::new(&pattern).unwrap();
+
+        for cap in regex.captures_iter(content) {
+            if let Some(key_match) = cap.get(1) {
+                let key_value = key_match.as_str().trim_matches('"').trim();
+
+                // Only add if it's a reasonable API key length
+                if key_value.len() >= 8
+                    && key_value
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                {
+                    let discovered_key = DiscoveredKey::new(
+                        (*provider).to_string(),
+                        "env_file".to_string(),
+                        crate::models::discovered_key::ValueType::ApiKey,
+                        crate::models::discovered_key::Confidence::High,
+                        key_value.to_string(),
+                    );
+
+                    keys.push(discovered_key);
+                }
+            }
+        }
+    }
+
+    // Then, extract metadata
+    for (env_var, provider, custom_type) in metadata_patterns {
+        let pattern = format!(r"(?i){}\s*=\s*(.+)", regex::escape(env_var));
+        let regex = regex::Regex::new(&pattern).unwrap();
+
+        for cap in regex.captures_iter(content) {
+            if let Some(value_match) = cap.get(1) {
+                let value = value_match.as_str().trim_matches('"').trim();
+
+                if !value.is_empty() {
+                    let discovered_key = DiscoveredKey::new(
+                        (*provider).to_string(),
+                        "env_file".to_string(),
+                        crate::models::discovered_key::ValueType::Custom(
+                            (*custom_type).to_string(),
+                        ),
+                        crate::models::discovered_key::Confidence::High,
+                        value.to_string(),
+                    );
+
+                    keys.push(discovered_key);
+                }
+            }
+        }
+    }
+
+    keys
+}
+
 /// Registers all built-in scanner plugins.
+/// # Errors
+/// Returns an error if a scanner fails to register.
 pub fn register_builtin_scanners(registry: &ScannerRegistry) -> Result<()> {
     registry.register(std::sync::Arc::new(RagitScanner))?;
     registry.register(std::sync::Arc::new(ClaudeDesktopScanner))?;

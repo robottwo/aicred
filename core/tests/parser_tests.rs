@@ -12,7 +12,7 @@ port = 8080
 server = "192.168.1.1"
 ports = [8001, 8001, 8002]
 "#;
-    
+
     let path = Path::new("test.toml");
     let format = ConfigParser::detect_format(path, toml_content).unwrap();
     assert_eq!(format, FileFormat::Toml);
@@ -25,7 +25,7 @@ server.host = "example.com"
 server.port = 8080
 database.server = "192.168.1.1"
 "#;
-    
+
     let path = Path::new("test.toml");
     let format = ConfigParser::detect_format(path, toml_content).unwrap();
     assert_eq!(format, FileFormat::Toml);
@@ -41,7 +41,7 @@ key2 = value2
 [section2]
 key3 = value3
 "#;
-    
+
     let path = Path::new("test.ini");
     let format = ConfigParser::detect_format(path, ini_content).unwrap();
     assert_eq!(format, FileFormat::Ini);
@@ -54,8 +54,8 @@ fn test_ambiguous_content_defaults_to_ini() {
 [section]
 key = value
 "#;
-    
-    let path = Path::new("test.ini");
+
+    let path = Path::new("test.conf");
     let format = ConfigParser::detect_format(path, ambiguous_content).unwrap();
     assert_eq!(format, FileFormat::Ini);
 }
@@ -66,7 +66,7 @@ fn test_toml_with_quoted_keys() {
 "quoted.key" = "value"
 "another key" = "value2"
 "#;
-    
+
     let path = Path::new("test.toml");
     let format = ConfigParser::detect_format(path, toml_content).unwrap();
     assert_eq!(format, FileFormat::Toml);
@@ -83,11 +83,11 @@ fn test_json_array_handling() {
     "api_keys": ["key1", "key2", "key3"]
 }
 "#;
-    
+
     let path = Path::new("test.json");
     let format = ConfigParser::detect_format(path, json_content).unwrap();
     assert_eq!(format, FileFormat::Json);
-    
+
     // Test that arrays are properly parsed
     let result = ConfigParser::parse_config(path, json_content).unwrap();
     assert!(result.contains_key("servers[0].host"));

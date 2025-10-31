@@ -32,7 +32,7 @@ fn test_provider_key_creation() {
 #[test]
 fn test_provider_config_with_multiple_keys() {
     let mut config = ProviderConfig::new("1.0".to_string());
-    
+
     let key1 = ProviderKey {
         id: "default".to_string(),
         value: Some("sk-default123".to_string()),
@@ -67,17 +67,27 @@ fn test_provider_config_with_multiple_keys() {
     config.add_key(key2.clone());
 
     assert_eq!(config.key_count(), 2);
-    assert!(config.keys.iter().any(|k| k.id == "default" && k.value == key1.value));
-    assert!(config.keys.iter().any(|k| k.id == "staging" && k.value == key2.value));
+    assert!(config
+        .keys
+        .iter()
+        .any(|k| k.id == "default" && k.value == key1.value));
+    assert!(config
+        .keys
+        .iter()
+        .any(|k| k.id == "staging" && k.value == key2.value));
     assert!(!config.keys.iter().any(|k| k.id == "nonexistent"));
 }
 
 #[test]
 fn test_provider_config_key_count_by_environment() {
     let mut config = ProviderConfig::new("1.0".to_string());
-    
+
     // Add keys for different environments
-    for (env, count) in &[(Environment::Production, 3), (Environment::Staging, 2), (Environment::Development, 1)] {
+    for (env, count) in &[
+        (Environment::Production, 3),
+        (Environment::Staging, 2),
+        (Environment::Development, 1),
+    ] {
         for i in 0..*count {
             let key = ProviderKey {
                 id: format!("{:?}-key-{}", env, i),
@@ -98,14 +108,18 @@ fn test_provider_config_key_count_by_environment() {
     }
 
     assert_eq!(config.key_count(), 6);
-    
+
     // Test environment filtering
-    let prod_keys: Vec<&ProviderKey> = config.keys.iter()
+    let prod_keys: Vec<&ProviderKey> = config
+        .keys
+        .iter()
         .filter(|k| k.environment == Environment::Production)
         .collect();
     assert_eq!(prod_keys.len(), 3);
-    
-    let staging_keys: Vec<&ProviderKey> = config.keys.iter()
+
+    let staging_keys: Vec<&ProviderKey> = config
+        .keys
+        .iter()
         .filter(|k| k.environment == Environment::Staging)
         .collect();
     assert_eq!(staging_keys.len(), 2);
@@ -125,7 +139,10 @@ fn test_backward_compatibility_from_old_format() {
 
     assert_eq!(old_config.key_count(), 1);
     assert_eq!(old_config.keys[0].id, "default");
-    assert_eq!(old_config.keys[0].value, Some("sk-oldformat123".to_string()));
+    assert_eq!(
+        old_config.keys[0].value,
+        Some("sk-oldformat123".to_string())
+    );
     assert_eq!(old_config.keys[0].environment, Environment::Production);
     assert_eq!(old_config.models.len(), 2);
 }
@@ -150,7 +167,7 @@ fn test_validation_status_transitions() {
     // Test validation status update
     key.validation_status = ValidationStatus::Valid;
     key.last_validated = Some(Utc::now());
-    
+
     assert_eq!(key.validation_status, ValidationStatus::Valid);
     assert!(key.last_validated.is_some());
 }
@@ -176,7 +193,7 @@ fn test_provider_key_serialization() {
     let serialized = serde_json::to_string(&key).expect("Failed to serialize key");
     let deserialized: ProviderKey =
         serde_json::from_str(&serialized).expect("Failed to deserialize key");
-    
+
     assert_eq!(deserialized.id, key.id);
     assert_eq!(deserialized.confidence, key.confidence);
     assert_eq!(deserialized.environment, key.environment);
@@ -186,7 +203,7 @@ fn test_provider_key_serialization() {
 #[test]
 fn test_provider_config_serialization() {
     let mut config = ProviderConfig::new("1.0".to_string());
-    
+
     let key = ProviderKey {
         id: "test-serialization".to_string(),
         value: Some("sk-serialize456".to_string()),
@@ -201,15 +218,15 @@ fn test_provider_config_serialization() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    
+
     config.add_key(key);
     config.models = vec!["model1".to_string(), "model2".to_string()];
-    
+
     // Test YAML serialization
     let yaml_content = serde_yaml::to_string(&config).expect("Failed to serialize config");
     let deserialized: ProviderConfig =
         serde_yaml::from_str(&yaml_content).expect("Failed to deserialize config");
-    
+
     assert_eq!(deserialized.key_count(), 1);
     assert_eq!(deserialized.models.len(), 2);
     assert_eq!(deserialized.schema_version, "3.0");

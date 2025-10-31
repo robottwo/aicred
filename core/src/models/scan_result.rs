@@ -1,4 +1,4 @@
-//! ScanResult model for collecting and querying discovered keys.
+//! `ScanResult` model for collecting and querying discovered keys.
 
 use crate::models::config_instance::ConfigInstance;
 use crate::models::discovered_key::{Confidence, DiscoveredKey, ValueType};
@@ -31,7 +31,7 @@ pub struct ScanResult {
 
 impl ScanResult {
     /// Creates a new scan result.
-    pub fn new(
+    #[must_use] pub fn new(
         home_directory: String,
         providers_scanned: Vec<String>,
         scan_started_at: DateTime<Utc>,
@@ -50,13 +50,34 @@ impl ScanResult {
     }
 
     /// Adds a discovered key to the result.
+    /// Only adds the key if no key with the same hash already exists.
     pub fn add_key(&mut self, key: DiscoveredKey) {
-        self.keys.push(key);
+        // Check if a key with the same hash already exists
+        if self
+            .keys
+            .iter()
+            .any(|existing_key| existing_key.hash == key.hash) {
+            tracing::debug!(
+                "Skipping duplicate key for provider: {} (hash: {})",
+                key.provider,
+                &key.hash[..8]
+            );
+        } else {
+            tracing::debug!(
+                "Adding key for provider: {} (hash: {})",
+                key.provider,
+                &key.hash[..8]
+            );
+            self.keys.push(key);
+        }
     }
 
     /// Adds multiple discovered keys to the result.
+    /// Only adds keys that don't have duplicate hashes.
     pub fn add_keys(&mut self, keys: Vec<DiscoveredKey>) {
-        self.keys.extend(keys);
+        for key in keys {
+            self.add_key(key);
+        }
     }
 
     /// Adds a configuration instance to the result.
@@ -75,7 +96,7 @@ impl ScanResult {
     }
 
     /// Sets scan statistics.
-    pub fn set_stats(&mut self, files: u32, directories: u32) {
+    pub const fn set_stats(&mut self, files: u32, directories: u32) {
         self.files_scanned = files;
         self.directories_scanned = directories;
     }
@@ -86,17 +107,17 @@ impl ScanResult {
     }
 
     /// Gets the total number of discovered keys.
-    pub fn total_keys(&self) -> usize {
+    #[must_use] pub const fn total_keys(&self) -> usize {
         self.keys.len()
     }
 
     /// Gets the total number of configuration instances.
-    pub fn total_config_instances(&self) -> usize {
+    #[must_use] pub const fn total_config_instances(&self) -> usize {
         self.config_instances.len()
     }
 
     /// Gets the number of keys by provider.
-    pub fn keys_by_provider(&self) -> HashMap<String, usize> {
+    #[must_use] pub fn keys_by_provider(&self) -> HashMap<String, usize> {
         let mut counts = HashMap::new();
         for key in &self.keys {
             *counts.entry(key.provider.clone()).or_insert(0) += 1;
@@ -105,7 +126,7 @@ impl ScanResult {
     }
 
     /// Gets the number of keys by type.
-    pub fn keys_by_type(&self) -> HashMap<ValueType, usize> {
+    #[must_use] pub fn keys_by_type(&self) -> HashMap<ValueType, usize> {
         let mut counts = HashMap::new();
         for key in &self.keys {
             *counts.entry(key.value_type.clone()).or_insert(0) += 1;
@@ -114,7 +135,7 @@ impl ScanResult {
     }
 
     /// Gets the number of keys by confidence level.
-    pub fn keys_by_confidence(&self) -> HashMap<Confidence, usize> {
+    #[must_use] pub fn keys_by_confidence(&self) -> HashMap<Confidence, usize> {
         let mut counts = HashMap::new();
         for key in &self.keys {
             *counts.entry(key.confidence).or_insert(0) += 1;
@@ -123,7 +144,7 @@ impl ScanResult {
     }
 
     /// Filters keys by provider.
-    pub fn filter_by_provider(&self, provider: &str) -> Vec<&DiscoveredKey> {
+    #[must_use] pub fn filter_by_provider(&self, provider: &str) -> Vec<&DiscoveredKey> {
         self.keys
             .iter()
             .filter(|key| key.provider == provider)
@@ -131,7 +152,7 @@ impl ScanResult {
     }
 
     /// Filters keys by confidence level (minimum confidence).
-    pub fn filter_by_confidence(&self, min_confidence: Confidence) -> Vec<&DiscoveredKey> {
+    #[must_use] pub fn filter_by_confidence(&self, min_confidence: Confidence) -> Vec<&DiscoveredKey> {
         self.keys
             .iter()
             .filter(|key| key.confidence >= min_confidence)
@@ -139,31 +160,31 @@ impl ScanResult {
     }
 
     /// Filters keys by type.
-    pub fn filter_by_type(&self, value_type: &ValueType) -> Vec<&DiscoveredKey> {
+    #[must_use] pub fn filter_by_type(&self, value_type: &ValueType) -> Vec<&DiscoveredKey> {
         self.keys
             .iter()
             .filter(|key| &key.value_type == value_type)
             .collect()
     }
 
-    /// Gets high confidence keys (High and VeryHigh).
-    pub fn high_confidence_keys(&self) -> Vec<&DiscoveredKey> {
+    /// Gets high confidence keys (High and `VeryHigh`).
+    #[must_use] pub fn high_confidence_keys(&self) -> Vec<&DiscoveredKey> {
         self.filter_by_confidence(Confidence::High)
     }
 
     /// Checks if any keys were found.
-    pub fn has_keys(&self) -> bool {
+    #[must_use] pub const fn has_keys(&self) -> bool {
         !self.keys.is_empty()
     }
 
     /// Gets the scan duration in seconds.
-    pub fn scan_duration(&self) -> f64 {
+    #[must_use] pub fn scan_duration(&self) -> f64 {
         let duration = self.scan_completed_at - self.scan_started_at;
         duration.num_milliseconds() as f64 / 1000.0
     }
 
     /// Gets a summary of the scan results.
-    pub fn summary(&self) -> ScanSummary {
+    #[must_use] pub fn summary(&self) -> ScanSummary {
         ScanSummary {
             total_keys: self.total_keys(),
             total_config_instances: self.total_config_instances(),
@@ -200,7 +221,7 @@ pub struct ScanSummary {
 
 impl ScanSummary {
     /// Gets the number of high confidence keys.
-    pub fn high_confidence_count(&self) -> usize {
+    #[must_use] pub fn high_confidence_count(&self) -> usize {
         self.confidence_distribution
             .iter()
             .filter(|(confidence, _)| **confidence >= Confidence::High)
@@ -209,7 +230,7 @@ impl ScanSummary {
     }
 
     /// Gets the number of medium confidence keys.
-    pub fn medium_confidence_count(&self) -> usize {
+    #[must_use] pub fn medium_confidence_count(&self) -> usize {
         self.confidence_distribution
             .get(&Confidence::Medium)
             .copied()
@@ -217,7 +238,7 @@ impl ScanSummary {
     }
 
     /// Gets the number of low confidence keys.
-    pub fn low_confidence_count(&self) -> usize {
+    #[must_use] pub fn low_confidence_count(&self) -> usize {
         self.confidence_distribution
             .get(&Confidence::Low)
             .copied()
@@ -225,7 +246,7 @@ impl ScanSummary {
     }
 
     /// Checks if any keys were found.
-    pub fn has_keys(&self) -> bool {
+    #[must_use] pub const fn has_keys(&self) -> bool {
         self.total_keys > 0
     }
 }
@@ -240,12 +261,14 @@ mod tests {
         value_type: ValueType,
         confidence: Confidence,
     ) -> DiscoveredKey {
+        // Create different key values based on provider and confidence to avoid deduplication in tests
+        let key_value = format!("test-key-{provider}-{confidence:?}");
         DiscoveredKey::new_redacted(
             provider.to_string(),
             "/test".to_string(),
             value_type,
             confidence,
-            "test-key",
+            &key_value,
         )
     }
 
@@ -278,7 +301,7 @@ mod tests {
         result.add_key(key1);
         result.add_key(key2);
 
-        assert_eq!(result.total_keys(), 2);
+        assert_eq!(result.total_keys(), 2); // 2 keys (different hashes due to different providers)
         assert!(result.has_keys());
     }
 
@@ -311,7 +334,7 @@ mod tests {
         assert_eq!(high_confidence.len(), 1);
 
         let api_keys = result.filter_by_type(&ValueType::ApiKey);
-        assert_eq!(api_keys.len(), 2);
+        assert_eq!(api_keys.len(), 2); // 2 API keys (different hashes due to different providers)
     }
 
     #[test]
@@ -335,11 +358,11 @@ mod tests {
         ));
 
         let by_provider = result.keys_by_provider();
-        assert_eq!(by_provider.get("openai"), Some(&2));
+        assert_eq!(by_provider.get("openai"), Some(&2)); // 2 OpenAI keys (different hashes)
         assert_eq!(by_provider.get("anthropic"), Some(&1));
 
         let by_type = result.keys_by_type();
-        assert_eq!(by_type.get(&ValueType::ApiKey), Some(&2));
+        assert_eq!(by_type.get(&ValueType::ApiKey), Some(&2)); // 2 API keys (different hashes)
         assert_eq!(by_type.get(&ValueType::SecretKey), Some(&1));
     }
 
@@ -360,7 +383,7 @@ mod tests {
         ));
 
         let summary = result.summary();
-        assert_eq!(summary.total_keys, 2);
+        assert_eq!(summary.total_keys, 2); // 2 keys (different hashes due to different providers)
         assert_eq!(summary.total_config_instances, 0);
         assert_eq!(summary.files_scanned, 100);
         assert_eq!(summary.directories_scanned, 20);

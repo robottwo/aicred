@@ -24,3 +24,13 @@ target
 #.idea/
 
 gui/node_modules/
+
+# Environment files - exclude sensitive credentials
+*.env
+.env
+.env.local
+.env.*.local
+
+# Test fixtures containing dummy credentials
+tests/fixtures/*.env
+core/tests/fixtures/*.env

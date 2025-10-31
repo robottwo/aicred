@@ -1,7 +1,10 @@
 use anyhow::Result;
 use colored::*;
+use genai_keyfinder_core::models::{
+    Confidence, Environment, Model, ProviderInstance, ProviderInstances, ProviderKey,
+    ValidationStatus,
+};
 use std::path::PathBuf;
-use genai_keyfinder_core::models::{ProviderInstance, ProviderInstances, ProviderKey, Model, Environment, Confidence, ValidationStatus};
 
 /// Load provider instances from configuration directory
 fn load_provider_instances() -> Result<ProviderInstances> {
@@ -10,13 +13,15 @@ fn load_provider_instances() -> Result<ProviderInstances> {
         .join(".config")
         .join("aicred");
 
-    let instances_dir = config_dir.join("instances");
-    let providers_dir = config_dir.join("providers");
+    let instances_dir = config_dir.join("inference_services");
     let old_config_path = config_dir.join("providers.yaml");
 
     // Check if we need to migrate from old format
     if old_config_path.exists() && !instances_dir.exists() {
-        println!("{}", "Migrating from old single-file format to new instance-based format...".yellow());
+        println!(
+            "{}",
+            "Migrating from old single-file format to new instance-based format...".yellow()
+        );
         migrate_from_old_format(&old_config_path, &instances_dir)?;
     }
 
@@ -28,12 +33,12 @@ fn load_provider_instances() -> Result<ProviderInstances> {
 
     // Load all instance files
     let mut instances = ProviderInstances::new();
-    
+
     let entries = std::fs::read_dir(&instances_dir)?;
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.extension().map_or(false, |ext| ext == "yaml") {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 match serde_yaml::from_str::<ProviderInstance>(&content) {
@@ -41,17 +46,16 @@ fn load_provider_instances() -> Result<ProviderInstances> {
                         let _ = instances.add_instance(instance);
                     }
                     Err(e) => {
-                        eprintln!("{} {}: {}", "Error parsing instance file:".red(), path.display(), e);
+                        eprintln!(
+                            "{} {}: {}",
+                            "Error parsing instance file:".red(),
+                            path.display(),
+                            e
+                        );
                     }
                 }
             }
         }
-    }
-
-    // If no instances found, try to load from providers directory as fallback
-    if instances.is_empty() && providers_dir.exists() {
-        println!("{}", "No instances found, loading from legacy provider configurations...".yellow());
-        load_instances_from_providers(&providers_dir, &mut instances)?;
     }
 
     Ok(instances)
@@ -60,7 +64,7 @@ fn load_provider_instances() -> Result<ProviderInstances> {
 /// Migrate from old format to new instance-based format
 fn migrate_from_old_format(old_path: &PathBuf, instances_dir: &PathBuf) -> Result<()> {
     println!("{}", "Backing up old configuration file...".yellow());
-    
+
     // Create backup
     let backup_path = old_path.with_extension("yaml.backup");
     std::fs::copy(old_path, &backup_path)?;
@@ -78,7 +82,7 @@ fn migrate_from_old_format(old_path: &PathBuf, instances_dir: &PathBuf) -> Resul
             if let Some(name) = provider_name.as_str() {
                 let instance_id = name.to_lowercase().replace(' ', "_");
                 let display_name = name.to_string();
-                
+
                 // Determine provider type and base URL from known patterns
                 let (provider_type, base_url) = match name.to_lowercase().as_str() {
                     "openai" => ("openai", "https://api.openai.com"),
@@ -113,11 +117,7 @@ fn migrate_from_old_format(old_path: &PathBuf, instances_dir: &PathBuf) -> Resul
                 // Extract models if available
                 if let Some(models) = provider_data.get("models").and_then(|v| v.as_sequence()) {
                     for model_str in models.iter().filter_map(|m| m.as_str()) {
-                        let model = Model::new(
-                            model_str.to_string(),
-                            instance_id.clone(),
-                            model_str.to_string(),
-                        );
+                        let model = Model::new(model_str.to_string(), model_str.to_string());
                         instance.add_model(model);
                     }
                 }
@@ -140,9 +140,12 @@ fn migrate_from_old_format(old_path: &PathBuf, instances_dir: &PathBuf) -> Resul
 }
 
 /// Load instances from legacy provider configurations
-fn load_instances_from_providers(providers_dir: &PathBuf, instances: &mut ProviderInstances) -> Result<()> {
+fn load_instances_from_providers(
+    providers_dir: &PathBuf,
+    instances: &mut ProviderInstances,
+) -> Result<()> {
     use genai_keyfinder_core::models::ProviderConfig;
-    
+
     if !providers_dir.exists() {
         return Ok(());
     }
@@ -151,7 +154,7 @@ fn load_instances_from_providers(providers_dir: &PathBuf, instances: &mut Provid
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.extension().map_or(false, |ext| ext == "yaml") {
             if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
                 if let Ok(content) = std::fs::read_to_string(&path) {
@@ -164,7 +167,9 @@ fn load_instances_from_providers(providers_dir: &PathBuf, instances: &mut Provid
                                 let mut chars = word.chars();
                                 match chars.next() {
                                     None => String::new(),
-                                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                                    Some(first) => {
+                                        first.to_uppercase().collect::<String>() + chars.as_str()
+                                    }
                                 }
                             })
                             .collect::<Vec<String>>()
@@ -172,8 +177,12 @@ fn load_instances_from_providers(providers_dir: &PathBuf, instances: &mut Provid
 
                         let (provider_type, base_url) = match file_stem.to_lowercase().as_str() {
                             s if s.contains("openai") => ("openai", "https://api.openai.com"),
-                            s if s.contains("anthropic") => ("anthropic", "https://api.anthropic.com"),
-                            s if s.contains("huggingface") => ("huggingface", "https://huggingface.co"),
+                            s if s.contains("anthropic") => {
+                                ("anthropic", "https://api.anthropic.com")
+                            }
+                            s if s.contains("huggingface") => {
+                                ("huggingface", "https://huggingface.co")
+                            }
                             s if s.contains("ollama") => ("ollama", "http://localhost:11434"),
                             s if s.contains("groq") => ("groq", "https://api.groq.com"),
                             _ => ("unknown", "https://api.example.com"),
@@ -191,11 +200,7 @@ fn load_instances_from_providers(providers_dir: &PathBuf, instances: &mut Provid
 
                         // Convert model strings to Model objects
                         for model_id in &config.models {
-                            let model = Model::new(
-                                model_id.clone(),
-                                instance.id.clone(),
-                                model_id.clone(),
-                            );
+                            let model = Model::new(model_id.clone(), model_id.clone());
                             instance.add_model(model);
                         }
 
@@ -215,7 +220,7 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
         .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
         .join(".config")
         .join("aicred")
-        .join("instances");
+        .join("inference_services");
 
     std::fs::create_dir_all(&config_dir)?;
 
@@ -231,12 +236,19 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
 }
 
 /// Handle the list-instances command
-pub fn handle_list_instances(verbose: bool, provider_type: Option<String>, active_only: bool) -> Result<()> {
+pub fn handle_list_instances(
+    verbose: bool,
+    provider_type: Option<String>,
+    active_only: bool,
+) -> Result<()> {
     let instances = load_provider_instances()?;
 
     if instances.is_empty() {
         println!("{}", "No provider instances configured.".yellow());
-        println!("{}", "Use 'keyfinder instances add' to create a new instance.".dimmed());
+        println!(
+            "{}",
+            "Use 'keyfinder instances add' to create a new instance.".dimmed()
+        );
         return Ok(());
     }
 
@@ -246,7 +258,8 @@ pub fn handle_list_instances(verbose: bool, provider_type: Option<String>, activ
     let filtered_instances: Vec<&ProviderInstance> = all_instances
         .into_iter()
         .filter(|instance| {
-            let type_match = provider_type.as_ref()
+            let type_match = provider_type
+                .as_ref()
                 .map_or(true, |pt| instance.provider_type == *pt);
             let active_match = !active_only || instance.active;
             type_match && active_match
@@ -259,20 +272,34 @@ pub fn handle_list_instances(verbose: bool, provider_type: Option<String>, activ
     }
 
     let total_count = filtered_instances.len();
-    
+
     for instance in filtered_instances {
         if verbose {
-            println!("\n{} {}", instance.display_name.cyan().bold(), format!("({})", instance.id).dimmed());
+            println!(
+                "\n{} {}",
+                instance.display_name.cyan().bold(),
+                format!("({})", instance.id).dimmed()
+            );
             println!("  Provider Type: {}", instance.provider_type);
             println!("  Base URL: {}", instance.base_url);
-            println!("  Status: {}", if instance.active { "Active".green() } else { "Inactive".red() });
-            println!("  Keys: {} total, {} valid", instance.key_count(), instance.valid_key_count());
+            println!(
+                "  Status: {}",
+                if instance.active {
+                    "Active".green()
+                } else {
+                    "Inactive".red()
+                }
+            );
+            println!(
+                "  Keys: {} total, {} valid",
+                instance.key_count(),
+                instance.valid_key_count()
+            );
             println!("  Models: {} configured", instance.model_count());
-            
+
             if !instance.models.is_empty() {
-                let model_names: Vec<String> = instance.models.iter()
-                    .map(|m| m.model_id.clone())
-                    .collect();
+                let model_names: Vec<String> =
+                    instance.models.iter().map(|m| m.model_id.clone()).collect();
                 println!("  Available Models: {}", model_names.join(", "));
             }
 
@@ -282,13 +309,24 @@ pub fn handle_list_instances(verbose: bool, provider_type: Option<String>, activ
                 }
             }
 
-            println!("  Created: {}", instance.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
-            println!("  Updated: {}", instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC"));
+            println!(
+                "  Created: {}",
+                instance.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+            );
+            println!(
+                "  Updated: {}",
+                instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
+            );
         } else {
-            let key_status = format!("{} keys ({} valid)", instance.key_count(), instance.valid_key_count());
+            let key_status = format!(
+                "{} keys ({} valid)",
+                instance.key_count(),
+                instance.valid_key_count()
+            );
             let model_status = format!("{} models", instance.model_count());
-            println!("  {} - {} - {} - {}", 
-                instance.display_name.cyan(), 
+            println!(
+                "  {} - {} - {} - {}",
+                instance.display_name.cyan(),
                 instance.provider_type.yellow(),
                 key_status.dimmed(),
                 model_status.dimmed()
@@ -315,7 +353,10 @@ pub fn handle_add_instance(
 
     // Check if instance with this ID already exists
     if instances.get_instance(&id).is_some() {
-        return Err(anyhow::anyhow!("Provider instance with ID '{}' already exists", id));
+        return Err(anyhow::anyhow!(
+            "Provider instance with ID '{}' already exists",
+            id
+        ));
     }
 
     let mut instance = ProviderInstance::new(id.clone(), name, provider_type, base_url);
@@ -340,11 +381,7 @@ pub fn handle_add_instance(
         for model_id in models_str.split(',') {
             let model_id = model_id.trim().to_string();
             if !model_id.is_empty() {
-                let model = Model::new(
-                    model_id.clone(),
-                    instance.id.clone(),
-                    model_id,
-                );
+                let model = Model::new(model_id.clone(), model_id);
                 instance.add_model(model);
             }
         }
@@ -356,16 +393,29 @@ pub fn handle_add_instance(
     }
 
     // Add to collection
-    instances.add_instance(instance.clone()).map_err(|e| anyhow::anyhow!(e))?;
+    instances
+        .add_instance(instance.clone())
+        .map_err(|e| anyhow::anyhow!(e))?;
 
     // Save to disk - create a copy to avoid borrow issues
     let instances_copy = instances.clone();
     save_provider_instances(&instances_copy)?;
 
-    println!("{} Provider instance '{}' added successfully.", "✓".green(), instance.display_name.cyan());
+    println!(
+        "{} Provider instance '{}' added successfully.",
+        "✓".green(),
+        instance.display_name.cyan()
+    );
     println!("  ID: {}", instance.id);
     println!("  Type: {}", instance.provider_type);
-    println!("  Status: {}", if instance.active { "Active" } else { "Inactive" });
+    println!(
+        "  Status: {}",
+        if instance.active {
+            "Active"
+        } else {
+            "Inactive"
+        }
+    );
 
     Ok(())
 }
@@ -376,23 +426,35 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
 
     // Check if instance exists
     if instances.get_instance(&id).is_none() {
-        return Err(anyhow::anyhow!("Provider instance with ID '{}' not found", id));
+        return Err(anyhow::anyhow!(
+            "Provider instance with ID '{}' not found",
+            id
+        ));
     }
 
     // Get instance for confirmation
     let instance = instances.get_instance(&id).unwrap();
-    
+
     if !force {
-        println!("{}", "Warning: This will permanently remove the provider instance.".yellow().bold());
-        println!("Instance: {} ({})", instance.display_name.cyan(), instance.id);
+        println!(
+            "{}",
+            "Warning: This will permanently remove the provider instance."
+                .yellow()
+                .bold()
+        );
+        println!(
+            "Instance: {} ({})",
+            instance.display_name.cyan(),
+            instance.id
+        );
         print!("Are you sure? (y/N): ");
-        
+
         use std::io::{self, Write};
         io::stdout().flush()?;
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        
+
         if !input.trim().eq_ignore_ascii_case("y") {
             println!("{}", "Removal cancelled.".dimmed());
             return Ok(());
@@ -406,7 +468,11 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
     let instances_copy = instances.clone();
     save_provider_instances(&instances_copy)?;
 
-    println!("{} Provider instance '{}' removed successfully.", "✓".green(), id.cyan());
+    println!(
+        "{} Provider instance '{}' removed successfully.",
+        "✓".green(),
+        id.cyan()
+    );
 
     Ok(())
 }
@@ -423,7 +489,8 @@ pub fn handle_update_instance(
     let mut instances = load_provider_instances()?;
 
     // Get mutable reference to the instance
-    let instance = instances.get_instance_mut(&id)
+    let instance = instances
+        .get_instance_mut(&id)
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
 
     // Store original values for later use
@@ -447,7 +514,7 @@ pub fn handle_update_instance(
     if let Some(new_key_value) = api_key {
         // Remove existing default key if it exists
         instance.keys.retain(|key| key.id != "default");
-        
+
         let mut key = ProviderKey::new(
             "default".to_string(),
             "cli".to_string(),
@@ -466,11 +533,7 @@ pub fn handle_update_instance(
         for model_id in models_str.split(',') {
             let model_id = model_id.trim().to_string();
             if !model_id.is_empty() {
-                let model = Model::new(
-                    model_id.clone(),
-                    instance.id.clone(),
-                    model_id,
-                );
+                let model = Model::new(model_id.clone(), model_id);
                 instance.add_model(model);
             }
         }
@@ -487,9 +550,20 @@ pub fn handle_update_instance(
     // Save to disk
     save_provider_instances(&instances)?;
 
-    println!("{} Provider instance '{}' updated successfully.", "✓".green(), instance_name.cyan());
+    println!(
+        "{} Provider instance '{}' updated successfully.",
+        "✓".green(),
+        instance_name.cyan()
+    );
     println!("  ID: {}", instance_id);
-    println!("  Status: {}", if final_active_status { "Active" } else { "Inactive" });
+    println!(
+        "  Status: {}",
+        if final_active_status {
+            "Active"
+        } else {
+            "Inactive"
+        }
+    );
 
     Ok(())
 }
@@ -498,17 +572,35 @@ pub fn handle_update_instance(
 pub fn handle_get_instance(id: String, include_values: bool) -> Result<()> {
     let instances = load_provider_instances()?;
 
-    let instance = instances.get_instance(&id)
+    let instance = instances
+        .get_instance(&id)
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
 
-    println!("\n{} {}", instance.display_name.cyan().bold(), format!("({})", instance.id).dimmed());
+    println!(
+        "\n{} {}",
+        instance.display_name.cyan().bold(),
+        format!("({})", instance.id).dimmed()
+    );
     println!("{}", "─".repeat(50).dimmed());
-    
+
     println!("Provider Type: {}", instance.provider_type.yellow());
     println!("Base URL: {}", instance.base_url);
-    println!("Status: {}", if instance.active { "Active".green() } else { "Inactive".red() });
-    println!("Created: {}", instance.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
-    println!("Updated: {}", instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "Status: {}",
+        if instance.active {
+            "Active".green()
+        } else {
+            "Inactive".red()
+        }
+    );
+    println!(
+        "Created: {}",
+        instance.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+    );
+    println!(
+        "Updated: {}",
+        instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
+    );
 
     // Show keys
     println!("\n{}", "API Keys:".green().bold());
@@ -520,8 +612,11 @@ pub fn handle_get_instance(id: String, include_values: bool) -> Result<()> {
             println!("    Environment: {:?}", key.environment);
             println!("    Confidence: {:?}", key.confidence);
             println!("    Status: {:?}", key.validation_status);
-            println!("    Discovered: {}", key.discovered_at.format("%Y-%m-%d %H:%M:%S UTC"));
-            
+            println!(
+                "    Discovered: {}",
+                key.discovered_at.format("%Y-%m-%d %H:%M:%S UTC")
+            );
+
             if include_values {
                 if let Some(value) = &key.value {
                     println!("    Value: {}", value.red());
@@ -529,7 +624,15 @@ pub fn handle_get_instance(id: String, include_values: bool) -> Result<()> {
                     println!("    Value: {}", "Not available".dimmed());
                 }
             } else {
-                println!("    Value: {}", if key.value.is_some() { "********" } else { "Not available" }.dimmed());
+                println!(
+                    "    Value: {}",
+                    if key.value.is_some() {
+                        "********"
+                    } else {
+                        "Not available"
+                    }
+                    .dimmed()
+                );
             }
             println!();
         }
@@ -544,16 +647,36 @@ pub fn handle_get_instance(id: String, include_values: bool) -> Result<()> {
             println!("  {} - {}", model.model_id.cyan(), model.name);
             if let Some(capabilities) = &model.capabilities {
                 let mut caps = Vec::new();
-                if capabilities.text_generation { caps.push("text_generation"); }
-                if capabilities.image_generation { caps.push("image_generation"); }
-                if capabilities.audio_processing { caps.push("audio_processing"); }
-                if capabilities.video_processing { caps.push("video_processing"); }
-                if capabilities.code_generation { caps.push("code_generation"); }
-                if capabilities.function_calling { caps.push("function_calling"); }
-                if capabilities.fine_tuning { caps.push("fine_tuning"); }
-                if capabilities.streaming { caps.push("streaming"); }
-                if capabilities.multimodal { caps.push("multimodal"); }
-                if capabilities.tool_use { caps.push("tool_use"); }
+                if capabilities.text_generation {
+                    caps.push("text_generation");
+                }
+                if capabilities.image_generation {
+                    caps.push("image_generation");
+                }
+                if capabilities.audio_processing {
+                    caps.push("audio_processing");
+                }
+                if capabilities.video_processing {
+                    caps.push("video_processing");
+                }
+                if capabilities.code_generation {
+                    caps.push("code_generation");
+                }
+                if capabilities.function_calling {
+                    caps.push("function_calling");
+                }
+                if capabilities.fine_tuning {
+                    caps.push("fine_tuning");
+                }
+                if capabilities.streaming {
+                    caps.push("streaming");
+                }
+                if capabilities.multimodal {
+                    caps.push("multimodal");
+                }
+                if capabilities.tool_use {
+                    caps.push("tool_use");
+                }
                 println!("    Capabilities: {}", caps.join(", "));
             }
             if let Some(cost) = &model.cost {
@@ -590,15 +713,24 @@ pub fn handle_validate_instances(id: Option<String>, all_errors: bool) -> Result
 
     if let Some(instance_id) = id {
         // Validate specific instance
-        let instance = instances.get_instance(&instance_id)
-            .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", instance_id))?;
+        let instance = instances.get_instance(&instance_id).ok_or_else(|| {
+            anyhow::anyhow!("Provider instance with ID '{}' not found", instance_id)
+        })?;
 
         match instance.validate() {
             Ok(()) => {
-                println!("{} Instance '{}' is valid.", "✓".green(), instance.display_name.cyan());
+                println!(
+                    "{} Instance '{}' is valid.",
+                    "✓".green(),
+                    instance.display_name.cyan()
+                );
             }
             Err(e) => {
-                println!("{} Instance '{}' has validation errors:", "✗".red(), instance.display_name.cyan());
+                println!(
+                    "{} Instance '{}' has validation errors:",
+                    "✗".red(),
+                    instance.display_name.cyan()
+                );
                 println!("  {}", e);
                 std::process::exit(1);
             }
@@ -607,7 +739,11 @@ pub fn handle_validate_instances(id: Option<String>, all_errors: bool) -> Result
         // Validate all instances
         match instances.validate() {
             Ok(()) => {
-                println!("{} All {} provider instances are valid.", "✓".green(), instances.len());
+                println!(
+                    "{} All {} provider instances are valid.",
+                    "✓".green(),
+                    instances.len()
+                );
             }
             Err(e) => {
                 println!("{} Validation errors found:", "✗".red());

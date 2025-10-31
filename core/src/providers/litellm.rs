@@ -1,21 +1,24 @@
-//! LiteLLM provider plugin for scanning LiteLLM configuration and API keys.
+//! `LiteLLM` provider plugin for scanning `LiteLLM` configuration and API keys.
 
 use crate::error::{Error, Result};
-use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
+use crate::models::{
+    discovered_key::{Confidence, DiscoveredKey, ValueType},
+    ProviderInstance,
+};
 use crate::plugins::ProviderPlugin;
 use std::path::Path;
 
-/// Plugin for scanning LiteLLM configuration files and API keys.
+/// Plugin for scanning `LiteLLM` configuration files and API keys.
 pub struct LiteLLMPlugin;
 
 impl ProviderPlugin for LiteLLMPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "litellm"
     }
 
     fn confidence_score(&self, key: &str) -> f32 {
         // LiteLLM keys are typically longer and more complex
-        if key.len() >= 40 && key.contains('-') && key.chars().any(|c| c.is_uppercase()) {
+        if key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase) {
             0.85 // High confidence for complex keys
         } else if key.len() >= 30 {
             0.85 // Medium-high confidence for longer keys (30+ chars)
@@ -27,24 +30,26 @@ impl ProviderPlugin for LiteLLMPlugin {
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
         self.validate_base_instance(instance)?;
-        
+
         // LiteLLM-specific validation
         if instance.base_url.is_empty() {
-            return Err(Error::PluginError("LiteLLM base URL cannot be empty".to_string()));
+            return Err(Error::PluginError(
+                "LiteLLM base URL cannot be empty".to_string(),
+            ));
         }
-        
+
         // LiteLLM is flexible with base URLs since it can proxy to many providers
         // Just validate it's a valid HTTP(S) URL
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
             return Err(Error::PluginError(
-                "LiteLLM base URL must be a valid HTTP(S) URL".to_string()
+                "LiteLLM base URL must be a valid HTTP(S) URL".to_string(),
             ));
         }
 
         // Validate that at least one key exists if models are configured
         if !instance.models.is_empty() && !instance.has_valid_keys() {
             return Err(Error::PluginError(
-                "LiteLLM instance has models configured but no valid API keys".to_string()
+                "LiteLLM instance has models configured but no valid API keys".to_string(),
             ));
         }
 
@@ -83,26 +88,26 @@ impl ProviderPlugin for LiteLLMPlugin {
 
         // Validate base URL format
         self.validate_instance(instance)?;
-        
+
         Ok(true)
     }
 
     fn initialize_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // LiteLLM-specific initialization logic
         // This could include testing connectivity, validating proxy configurations, etc.
-        
+
         // For now, just validate the instance
         self.validate_instance(instance)?;
-        
+
         // Additional LiteLLM-specific initialization could go here
         // such as testing the proxy endpoint, validating model access, etc.
-        
+
         Ok(())
     }
 }
 
 impl LiteLLMPlugin {
-    /// Extracts LiteLLM key from environment variable content.
+    /// Extracts `LiteLLM` key from environment variable content.
     fn extract_from_env(&self, content: &str) -> Option<DiscoveredKey> {
         // Look for LiteLLM-specific environment variables
         let env_patterns = [
@@ -136,7 +141,7 @@ impl LiteLLMPlugin {
         None
     }
 
-    /// Extracts provider-specific keys that LiteLLM might use.
+    /// Extracts provider-specific keys that `LiteLLM` might use.
     fn extract_provider_keys(&self, path: &Path, content: &str) -> Result<Vec<DiscoveredKey>> {
         let mut keys = Vec::new();
 
@@ -171,7 +176,7 @@ impl LiteLLMPlugin {
 
         for (pattern, provider, prefix) in &provider_patterns {
             let regex = regex::Regex::new(pattern)
-                .map_err(|e| Error::PluginError(format!("Invalid regex pattern: {}", e)))?;
+                .map_err(|e| Error::PluginError(format!("Invalid regex pattern: {e}")))?;
 
             for cap in regex.captures_iter(content) {
                 if let Some(key_match) = cap.get(1) {
@@ -186,7 +191,7 @@ impl LiteLLMPlugin {
                         let confidence_enum = self.float_to_confidence(confidence);
 
                         let discovered_key = DiscoveredKey::new(
-                            provider.to_string(),
+                            (*provider).to_string(),
                             path.display().to_string(),
                             ValueType::ApiKey,
                             confidence_enum,
@@ -202,7 +207,7 @@ impl LiteLLMPlugin {
         Ok(keys)
     }
 
-    /// Checks if a key is a valid LiteLLM API key format.
+    /// Checks if a key is a valid `LiteLLM` API key format.
     fn is_valid_litellm_key(&self, key: &str) -> bool {
         // LiteLLM API keys must be at least 20 characters long
         if key.len() < 20 {
@@ -242,7 +247,9 @@ impl LiteLLMPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{discovered_key::Confidence, ProviderInstance, ProviderKey, Environment, ValidationStatus};
+    use crate::models::{
+        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+    };
 
     #[test]
     fn test_litellm_plugin_name() {
@@ -317,11 +324,8 @@ mod tests {
         instance.add_key(key);
 
         // Add a model
-        let model = crate::models::Model::new(
-            "gpt-3.5-turbo".to_string(),
-            instance.id.clone(),
-            "GPT-3.5 Turbo".to_string(),
-        );
+        let model =
+            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
         instance.add_model(model);
 
         let result = plugin.validate_instance(&instance);
@@ -355,11 +359,8 @@ mod tests {
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "gpt-3.5-turbo".to_string(),
-            instance.id.clone(),
-            "GPT-3.5 Turbo".to_string(),
-        );
+        let model =
+            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
         instance.add_model(model);
 
         let result = plugin.validate_instance(&instance);
@@ -379,23 +380,17 @@ mod tests {
         );
 
         // Add models
-        let model1 = crate::models::Model::new(
-            "gpt-3.5-turbo".to_string(),
-            instance.id.clone(),
-            "GPT-3.5 Turbo".to_string(),
-        );
-        let model2 = crate::models::Model::new(
-            "claude-3-sonnet".to_string(),
-            instance.id.clone(),
-            "Claude 3 Sonnet".to_string(),
-        );
+        let model1 =
+            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
+        let model2 =
+            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
         instance.add_model(model1);
         instance.add_model(model2);
 
-        let models = plugin.get_instance_models(&instance).unwrap();
-        assert_eq!(models.len(), 2);
-        assert!(models.contains(&"gpt-3.5-turbo".to_string()));
-        assert!(models.contains(&"claude-3-sonnet".to_string()));
+        let model_list = plugin.get_instance_models(&instance).unwrap();
+        assert_eq!(model_list.len(), 2);
+        assert!(model_list.contains(&"gpt-3.5-turbo".to_string()));
+        assert!(model_list.contains(&"claude-3-sonnet".to_string()));
     }
 
     #[test]

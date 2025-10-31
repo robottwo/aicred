@@ -8,7 +8,7 @@ use crate::plugins::ProviderPlugin;
 pub struct GroqPlugin;
 
 impl ProviderPlugin for GroqPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "groq"
     }
 
@@ -28,26 +28,28 @@ impl ProviderPlugin for GroqPlugin {
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
         self.validate_base_instance(instance)?;
-        
+
         // Groq-specific validation
         if instance.base_url.is_empty() {
-            return Err(Error::PluginError("Groq base URL cannot be empty".to_string()));
+            return Err(Error::PluginError(
+                "Groq base URL cannot be empty".to_string(),
+            ));
         }
-        
+
         // Check for valid Groq base URL patterns
-        let is_valid_groq_url = instance.base_url.starts_with("https://api.groq.com") ||
-                               instance.base_url.starts_with("https://groq.com");
-        
+        let is_valid_groq_url = instance.base_url.starts_with("https://api.groq.com")
+            || instance.base_url.starts_with("https://groq.com");
+
         if !is_valid_groq_url {
             return Err(Error::PluginError(
-                "Invalid Groq base URL. Expected format: https://api.groq.com".to_string()
+                "Invalid Groq base URL. Expected format: https://api.groq.com".to_string(),
             ));
         }
 
         // Validate that at least one key exists if models are configured
         if !instance.models.is_empty() && !instance.has_valid_keys() {
             return Err(Error::PluginError(
-                "Groq instance has models configured but no valid API keys".to_string()
+                "Groq instance has models configured but no valid API keys".to_string(),
             ));
         }
 
@@ -85,7 +87,7 @@ impl ProviderPlugin for GroqPlugin {
 
         // Validate base URL format
         self.validate_instance(instance)?;
-        
+
         Ok(true)
     }
 }
@@ -97,7 +99,9 @@ impl GroqPlugin {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
-            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+            return Err(Error::PluginError(
+                "Base URL must start with http:// or https://".to_string(),
+            ));
         }
         Ok(())
     }
@@ -106,7 +110,9 @@ impl GroqPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{discovered_key::Confidence, ProviderInstance, ProviderKey, Environment, ValidationStatus};
+    use crate::models::{
+        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+    };
 
     #[test]
     fn test_groq_plugin_name() {
@@ -154,11 +160,8 @@ mod tests {
         instance.add_key(key);
 
         // Add a model
-        let model = crate::models::Model::new(
-            "llama3-8b-8192".to_string(),
-            instance.id.clone(),
-            "Llama 3 8B".to_string(),
-        );
+        let model =
+            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
         instance.add_model(model);
 
         let result = plugin.validate_instance(&instance);
@@ -192,11 +195,8 @@ mod tests {
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "llama3-8b-8192".to_string(),
-            instance.id.clone(),
-            "Llama 3 8B".to_string(),
-        );
+        let model =
+            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
         instance.add_model(model);
 
         let result = plugin.validate_instance(&instance);
@@ -216,23 +216,17 @@ mod tests {
         );
 
         // Add models
-        let model1 = crate::models::Model::new(
-            "llama3-8b-8192".to_string(),
-            instance.id.clone(),
-            "Llama 3 8B".to_string(),
-        );
-        let model2 = crate::models::Model::new(
-            "mixtral-8x7b-32768".to_string(),
-            instance.id.clone(),
-            "Mixtral 8x7B".to_string(),
-        );
+        let model1 =
+            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
+        let model2 =
+            crate::models::Model::new("mixtral-8x7b-32768".to_string(), "Mixtral 8x7B".to_string());
         instance.add_model(model1);
         instance.add_model(model2);
 
-        let models = plugin.get_instance_models(&instance).unwrap();
-        assert_eq!(models.len(), 2);
-        assert!(models.contains(&"llama3-8b-8192".to_string()));
-        assert!(models.contains(&"mixtral-8x7b-32768".to_string()));
+        let model_list = plugin.get_instance_models(&instance).unwrap();
+        assert_eq!(model_list.len(), 2);
+        assert!(model_list.contains(&"llama3-8b-8192".to_string()));
+        assert!(model_list.contains(&"mixtral-8x7b-32768".to_string()));
     }
 
     #[test]

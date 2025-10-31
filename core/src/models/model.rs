@@ -9,11 +9,11 @@ pub struct TokenCost {
     /// Cost per million input tokens in USD.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_cost_per_million: Option<f64>,
-    
+
     /// Cost per million output tokens in USD.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_cost_per_million: Option<f64>,
-    
+
     /// Cached input cost modifier (0.1 = 90% discount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cached_input_cost_modifier: Option<f64>,
@@ -49,11 +49,10 @@ pub struct Capabilities {
 
 /// AI model configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct Model {
     /// Unique identifier for the model.
     pub model_id: String,
-    /// Reference to the provider instance this model belongs to.
-    pub provider_instance_id: String,
     /// Human-readable name for the model.
     pub name: String,
     /// Model quantization information (e.g., "fp16", "int8", "fp32").
@@ -81,10 +80,9 @@ pub struct Model {
 
 impl Model {
     /// Creates a new model with required fields.
-    pub fn new(model_id: String, provider_instance_id: String, name: String) -> Self {
+    #[must_use] pub const fn new(model_id: String, name: String) -> Self {
         Self {
             model_id,
-            provider_instance_id,
             name,
             quantization: None,
             context_window: None,
@@ -97,43 +95,43 @@ impl Model {
     }
 
     /// Sets the quantization for the model.
-    pub fn with_quantization(mut self, quantization: String) -> Self {
+    #[must_use] pub fn with_quantization(mut self, quantization: String) -> Self {
         self.quantization = Some(quantization);
         self
     }
 
     /// Sets the context window size.
-    pub fn with_context_window(mut self, size: u32) -> Self {
+    #[must_use] pub const fn with_context_window(mut self, size: u32) -> Self {
         self.context_window = Some(size);
         self
     }
 
     /// Sets the capabilities for the model.
-    pub fn with_capabilities(mut self, capabilities: Capabilities) -> Self {
+    #[must_use] pub fn with_capabilities(mut self, capabilities: Capabilities) -> Self {
         self.capabilities = Some(capabilities);
         self
     }
 
     /// Sets the temperature parameter.
-    pub fn with_temperature(mut self, temperature: f32) -> Self {
+    #[must_use] pub const fn with_temperature(mut self, temperature: f32) -> Self {
         self.temperature = Some(temperature);
         self
     }
 
     /// Sets the tags for the model.
-    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+    #[must_use] pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = Some(tags);
         self
     }
 
     /// Sets the cost tracking for the model.
-    pub fn with_cost(mut self, cost: TokenCost) -> Self {
+    #[must_use] pub const fn with_cost(mut self, cost: TokenCost) -> Self {
         self.cost = Some(cost);
         self
     }
 
     /// Sets additional metadata for the model.
-    pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
+    #[must_use] pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self
     }
@@ -143,14 +141,11 @@ impl Model {
         if self.model_id.is_empty() {
             return Err("Model ID cannot be empty".to_string());
         }
-        if self.provider_instance_id.is_empty() {
-            return Err("Provider instance ID cannot be empty".to_string());
-        }
         if self.name.is_empty() {
             return Err("Model name cannot be empty".to_string());
         }
         if let Some(temp) = self.temperature {
-            if temp < 0.0 || temp > 2.0 {
+            if !(0.0..=2.0).contains(&temp) {
                 return Err("Temperature must be between 0.0 and 2.0".to_string());
             }
         }
@@ -163,38 +158,20 @@ impl Model {
     }
 
     /// Checks if the model supports text generation.
-    pub fn supports_text_generation(&self) -> bool {
+    #[must_use] pub fn supports_text_generation(&self) -> bool {
         self.capabilities
             .as_ref()
-            .map(|caps| caps.text_generation)
-            .unwrap_or(false)
+            .is_some_and(|caps| caps.text_generation)
     }
 
     /// Checks if the model supports image generation.
-    pub fn supports_image_generation(&self) -> bool {
+    #[must_use] pub fn supports_image_generation(&self) -> bool {
         self.capabilities
             .as_ref()
-            .map(|caps| caps.image_generation)
-            .unwrap_or(false)
+            .is_some_and(|caps| caps.image_generation)
     }
 }
 
-impl Default for Model {
-    fn default() -> Self {
-        Self {
-            model_id: String::new(),
-            provider_instance_id: String::new(),
-            name: String::new(),
-            quantization: None,
-            context_window: None,
-            capabilities: None,
-            temperature: None,
-            tags: None,
-            cost: None,
-            metadata: None,
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -202,14 +179,9 @@ mod tests {
 
     #[test]
     fn test_model_creation() {
-        let model = Model::new(
-            "gpt-4".to_string(),
-            "openai-prod".to_string(),
-            "GPT-4".to_string(),
-        );
+        let model = Model::new("gpt-4".to_string(), "GPT-4".to_string());
 
         assert_eq!(model.model_id, "gpt-4");
-        assert_eq!(model.provider_instance_id, "openai-prod");
         assert_eq!(model.name, "GPT-4");
         assert!(model.quantization.is_none());
         assert!(model.temperature.is_none());
@@ -225,47 +197,34 @@ mod tests {
             ..Default::default()
         };
 
-        let model = Model::new(
-            "claude-3".to_string(),
-            "anthropic-prod".to_string(),
-            "Claude 3".to_string(),
-        )
-        .with_quantization("fp16".to_string())
-        .with_context_window(200000)
-        .with_capabilities(capabilities)
-        .with_temperature(0.7)
-        .with_tags(vec!["text-generation".to_string(), "code".to_string()]);
+        let model = Model::new("claude-3".to_string(), "Claude 3".to_string())
+            .with_quantization("fp16".to_string())
+            .with_context_window(200_000)
+            .with_capabilities(capabilities)
+            .with_temperature(0.7)
+            .with_tags(vec!["text-generation".to_string(), "code".to_string()]);
 
         assert_eq!(model.quantization, Some("fp16".to_string()));
-        assert_eq!(model.context_window, Some(200000));
+        assert_eq!(model.context_window, Some(200_000));
         assert!(model.capabilities.is_some());
         assert_eq!(model.temperature, Some(0.7));
-        assert_eq!(model.tags, Some(vec!["text-generation".to_string(), "code".to_string()]));
+        assert_eq!(
+            model.tags,
+            Some(vec!["text-generation".to_string(), "code".to_string()])
+        );
         assert!(model.supports_text_generation());
     }
 
     #[test]
     fn test_model_validation() {
-        let valid_model = Model::new(
-            "valid".to_string(),
-            "provider-instance".to_string(),
-            "Valid Model".to_string(),
-        );
+        let valid_model = Model::new("valid".to_string(), "Valid Model".to_string());
         assert!(valid_model.validate().is_ok());
 
-        let invalid_model = Model::new(
-            "".to_string(),
-            "provider-instance".to_string(),
-            "Invalid Model".to_string(),
-        );
+        let invalid_model = Model::new(String::new(), "Invalid Model".to_string());
         assert!(invalid_model.validate().is_err());
 
-        let temp_model = Model::new(
-            "temp-test".to_string(),
-            "provider-instance".to_string(),
-            "Temp Model".to_string(),
-        )
-        .with_temperature(3.0);
+        let temp_model =
+            Model::new("temp-test".to_string(), "Temp Model".to_string()).with_temperature(3.0);
         assert!(temp_model.validate().is_err());
     }
 

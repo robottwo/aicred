@@ -42,7 +42,7 @@ impl PyTokenCost {
 
 /// Model capabilities and features.
 #[pyclass]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PyCapabilities {
     #[pyo3(get, set)]
     pub text_generation: bool,
@@ -122,8 +122,7 @@ pub struct PyModel {
     pub quantization: Option<String>,
     #[pyo3(get, set)]
     pub context_window: Option<u32>,
-    // Remove capabilities field for now to avoid Clone issues
-    // pub capabilities: Option<PyCapabilities>,
+    pub capabilities: Option<PyCapabilities>,
     #[pyo3(get, set)]
     pub temperature: Option<f32>,
     #[pyo3(get, set)]
@@ -144,7 +143,7 @@ impl PyModel {
             name,
             quantization: None,
             context_window: None,
-            // capabilities: None,
+            capabilities: None,
             temperature: None,
             tags: None,
             cost: None,
@@ -154,33 +153,49 @@ impl PyModel {
 
     fn validate(&self) -> PyResult<()> {
         if self.model_id.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Model ID cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Model ID cannot be empty",
+            ));
         }
         if self.provider_instance_id.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Provider instance ID cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Provider instance ID cannot be empty",
+            ));
         }
         if self.name.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Model name cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Model name cannot be empty",
+            ));
         }
         if let Some(temp) = self.temperature {
             if temp < 0.0 || temp > 2.0 {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Temperature must be between 0.0 and 2.0"));
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "Temperature must be between 0.0 and 2.0",
+                ));
             }
         }
         if let Some(window) = self.context_window {
             if window == 0 {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Context window cannot be zero"));
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "Context window cannot be zero",
+                ));
             }
         }
         Ok(())
     }
 
     fn supports_text_generation(&self) -> bool {
-        false // Simplified for now
+        self.capabilities
+            .as_ref()
+            .map(|caps| caps.text_generation)
+            .unwrap_or(false)
     }
 
     fn supports_image_generation(&self) -> bool {
-        false // Simplified for now
+        self.capabilities
+            .as_ref()
+            .map(|caps| caps.image_generation)
+            .unwrap_or(false)
     }
 
     fn __repr__(&self) -> String {
@@ -249,6 +264,7 @@ impl PyProviderInstance {
             name: model.name.clone(),
             quantization: model.quantization.clone(),
             context_window: model.context_window,
+            capabilities: model.capabilities.clone(),
             temperature: model.temperature,
             tags: model.tags.clone(),
             cost: None,
@@ -265,7 +281,7 @@ impl PyProviderInstance {
             let placeholder = PyModel::new(
                 "placeholder".to_string(),
                 self.id.clone(),
-                "placeholder".to_string()
+                "placeholder".to_string(),
             );
             self.models.push(placeholder);
         }
@@ -283,16 +299,24 @@ impl PyProviderInstance {
 
     fn validate(&self) -> PyResult<()> {
         if self.id.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Instance ID cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Instance ID cannot be empty",
+            ));
         }
         if self.display_name.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Display name cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Display name cannot be empty",
+            ));
         }
         if self.provider_type.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Provider type cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Provider type cannot be empty",
+            ));
         }
         if self.base_url.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Base URL cannot be empty"));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Base URL cannot be empty",
+            ));
         }
 
         // Validate models
@@ -329,39 +353,46 @@ impl PyProviderInstances {
 
     fn add_instance(&mut self, instance: &PyProviderInstance) -> PyResult<()> {
         if self.instances.contains_key(&instance.id) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Provider instance with ID '{}' already exists", instance.id)
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Provider instance with ID '{}' already exists",
+                instance.id
+            )));
         }
-        
-        self.instances.insert(instance.id.clone(), PyProviderInstance {
-            id: instance.id.clone(),
-            display_name: instance.display_name.clone(),
-            provider_type: instance.provider_type.clone(),
-            base_url: instance.base_url.clone(),
-            keys: None, // Simplified - keys will be added separately
-            models: Vec::new(), // Will be added separately
-            metadata: instance.metadata.clone(),
-            active: instance.active,
-            created_at: instance.created_at.clone(),
-            updated_at: instance.updated_at.clone(),
-        });
+
+        self.instances.insert(
+            instance.id.clone(),
+            PyProviderInstance {
+                id: instance.id.clone(),
+                display_name: instance.display_name.clone(),
+                provider_type: instance.provider_type.clone(),
+                base_url: instance.base_url.clone(),
+                keys: None,         // Simplified - keys will be added separately
+                models: Vec::new(), // Will be added separately
+                metadata: instance.metadata.clone(),
+                active: instance.active,
+                created_at: instance.created_at.clone(),
+                updated_at: instance.updated_at.clone(),
+            },
+        );
         Ok(())
     }
 
     fn add_or_replace_instance(&mut self, instance: &PyProviderInstance) {
-        self.instances.insert(instance.id.clone(), PyProviderInstance {
-            id: instance.id.clone(),
-            display_name: instance.display_name.clone(),
-            provider_type: instance.provider_type.clone(),
-            base_url: instance.base_url.clone(),
-            keys: None, // Simplified - keys will be added separately
-            models: Vec::new(), // Will be added separately
-            metadata: instance.metadata.clone(),
-            active: instance.active,
-            created_at: instance.created_at.clone(),
-            updated_at: instance.updated_at.clone(),
-        });
+        self.instances.insert(
+            instance.id.clone(),
+            PyProviderInstance {
+                id: instance.id.clone(),
+                display_name: instance.display_name.clone(),
+                provider_type: instance.provider_type.clone(),
+                base_url: instance.base_url.clone(),
+                keys: None,         // Simplified - keys will be added separately
+                models: Vec::new(), // Will be added separately
+                metadata: instance.metadata.clone(),
+                active: instance.active,
+                created_at: instance.created_at.clone(),
+                updated_at: instance.updated_at.clone(),
+            },
+        );
     }
 
     fn get_instance(&self, id: &str) -> Option<PyProviderInstance> {
@@ -370,7 +401,7 @@ impl PyProviderInstances {
             display_name: instance.display_name.clone(),
             provider_type: instance.provider_type.clone(),
             base_url: instance.base_url.clone(),
-            keys: None, // Simplified - keys will be added separately
+            keys: None,         // Simplified - keys will be added separately
             models: Vec::new(), // Simplified - models will be added separately
             metadata: instance.metadata.clone(),
             active: instance.active,
@@ -384,18 +415,21 @@ impl PyProviderInstances {
     }
 
     fn all_instances(&self) -> Vec<PyProviderInstance> {
-        self.instances.values().map(|instance| PyProviderInstance {
-            id: instance.id.clone(),
-            display_name: instance.display_name.clone(),
-            provider_type: instance.provider_type.clone(),
-            base_url: instance.base_url.clone(),
-            keys: None, // Simplified - keys will be added separately
-            models: Vec::new(), // Simplified - models will be added separately
-            metadata: instance.metadata.clone(),
-            active: instance.active,
-            created_at: instance.created_at.clone(),
-            updated_at: instance.updated_at.clone(),
-        }).collect()
+        self.instances
+            .values()
+            .map(|instance| PyProviderInstance {
+                id: instance.id.clone(),
+                display_name: instance.display_name.clone(),
+                provider_type: instance.provider_type.clone(),
+                base_url: instance.base_url.clone(),
+                keys: None,         // Simplified - keys will be added separately
+                models: Vec::new(), // Simplified - models will be added separately
+                metadata: instance.metadata.clone(),
+                active: instance.active,
+                created_at: instance.created_at.clone(),
+                updated_at: instance.updated_at.clone(),
+            })
+            .collect()
     }
 
     fn instances_by_type(&self, provider_type: &str) -> Vec<PyProviderInstance> {
@@ -407,7 +441,7 @@ impl PyProviderInstances {
                 display_name: instance.display_name.clone(),
                 provider_type: instance.provider_type.clone(),
                 base_url: instance.base_url.clone(),
-                keys: None, // Simplified - keys will be added separately
+                keys: None,         // Simplified - keys will be added separately
                 models: Vec::new(), // Simplified - models will be added separately
                 metadata: instance.metadata.clone(),
                 active: instance.active,
@@ -426,7 +460,7 @@ impl PyProviderInstances {
                 display_name: instance.display_name.clone(),
                 provider_type: instance.provider_type.clone(),
                 base_url: instance.base_url.clone(),
-                keys: None, // Simplified - keys will be added separately
+                keys: None,         // Simplified - keys will be added separately
                 models: Vec::new(), // Simplified - models will be added separately
                 metadata: instance.metadata.clone(),
                 active: instance.active,
@@ -445,7 +479,7 @@ impl PyProviderInstances {
                 display_name: instance.display_name.clone(),
                 provider_type: instance.provider_type.clone(),
                 base_url: instance.base_url.clone(),
-                keys: None, // Simplified - keys will be added separately
+                keys: None,         // Simplified - keys will be added separately
                 models: Vec::new(), // Simplified - models will be added separately
                 metadata: instance.metadata.clone(),
                 active: instance.active,
@@ -468,7 +502,8 @@ impl PyProviderInstances {
     }
 
     fn provider_types(&self) -> Vec<String> {
-        let mut types: Vec<String> = self.instances
+        let mut types: Vec<String> = self
+            .instances
             .values()
             .map(|instance| instance.provider_type.clone())
             .collect();
@@ -479,17 +514,19 @@ impl PyProviderInstances {
 
     fn validate(&self) -> PyResult<()> {
         let mut errors = Vec::new();
-        
+
         for instance in self.instances.values() {
             if let Err(e) = instance.validate() {
                 errors.push(format!("Instance '{}': {}", instance.id, e));
             }
         }
-        
+
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(errors.join("; ")))
+            Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                errors.join("; "),
+            ))
         }
     }
 
@@ -499,18 +536,21 @@ impl PyProviderInstances {
 
     fn merge(&mut self, other: &PyProviderInstances) {
         for (id, instance) in &other.instances {
-            self.instances.insert(id.clone(), PyProviderInstance {
-                id: instance.id.clone(),
-                display_name: instance.display_name.clone(),
-                provider_type: instance.provider_type.clone(),
-                base_url: instance.base_url.clone(),
-                keys: None, // Simplified - keys will be added separately
-                models: Vec::new(), // Will be added separately
-                metadata: instance.metadata.clone(),
-                active: instance.active,
-                created_at: instance.created_at.clone(),
-                updated_at: instance.updated_at.clone(),
-            });
+            self.instances.insert(
+                id.clone(),
+                PyProviderInstance {
+                    id: instance.id.clone(),
+                    display_name: instance.display_name.clone(),
+                    provider_type: instance.provider_type.clone(),
+                    base_url: instance.base_url.clone(),
+                    keys: None,         // Simplified - keys will be added separately
+                    models: Vec::new(), // Will be added separately
+                    metadata: instance.metadata.clone(),
+                    active: instance.active,
+                    created_at: instance.created_at.clone(),
+                    updated_at: instance.updated_at.clone(),
+                },
+            );
         }
     }
 
@@ -527,11 +567,11 @@ impl PyProviderInstances {
 #[pyfunction]
 fn migrate_provider_configs(configs: Vec<Py<PyAny>>) -> PyResult<ProviderInstances> {
     let mut instances = PyProviderInstances::new();
-    
+
     // This is a placeholder implementation
     // In a real implementation, we would convert legacy ProviderConfig objects
     // to ProviderInstance objects
-    
+
     Python::with_gil(|py| {
         for config in configs {
             // Try to extract basic information from the config object
@@ -548,7 +588,7 @@ fn migrate_provider_configs(configs: Vec<Py<PyAny>>) -> PyResult<ProviderInstanc
             }
         }
     });
-    
+
     Ok(ProviderInstances(instances))
 }
 
@@ -566,17 +606,32 @@ fn scan(
     if let Some(ref home_dir_str) = home_dir {
         let path = PathBuf::from(home_dir_str);
         if !path.exists() {
-            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!("Home directory does not exist: {}", home_dir_str)));
+            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!(
+                "Home directory does not exist: {}",
+                home_dir_str
+            )));
         }
         if !path.is_dir() {
-            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!("Home directory is not a directory: {}", home_dir_str)));
+            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!(
+                "Home directory is not a directory: {}",
+                home_dir_str
+            )));
         }
         if std::fs::read_dir(&path).is_err() {
-            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!("Cannot read home directory: {}", home_dir_str)));
+            return Err(PyErr::new::<pyo3::exceptions::PyException, _>(format!(
+                "Cannot read home directory: {}",
+                home_dir_str
+            )));
         }
     }
-    
-    scan_py(home_dir, include_full_values, max_file_size, only_providers, exclude_providers)
+
+    scan_py(
+        home_dir,
+        include_full_values,
+        max_file_size,
+        only_providers,
+        exclude_providers,
+    )
 }
 
 /// Wrapper class to provide TokenCost with expected name
@@ -599,32 +654,32 @@ impl TokenCost {
             cached_input_cost_modifier,
         ))
     }
-    
+
     #[getter]
     fn input_cost_per_million(&self) -> Option<f64> {
         self.0.input_cost_per_million
     }
-    
+
     #[setter]
     fn set_input_cost_per_million(&mut self, value: Option<f64>) {
         self.0.input_cost_per_million = value;
     }
-    
+
     #[getter]
     fn output_cost_per_million(&self) -> Option<f64> {
         self.0.output_cost_per_million
     }
-    
+
     #[setter]
     fn set_output_cost_per_million(&mut self, value: Option<f64>) {
         self.0.output_cost_per_million = value;
     }
-    
+
     #[getter]
     fn cached_input_cost_modifier(&self) -> Option<f64> {
         self.0.cached_input_cost_modifier
     }
-    
+
     #[setter]
     fn set_cached_input_cost_modifier(&mut self, value: Option<f64>) {
         self.0.cached_input_cost_modifier = value;
@@ -665,102 +720,102 @@ impl Capabilities {
             tool_use,
         ))
     }
-    
+
     #[getter]
     fn text_generation(&self) -> bool {
         self.0.text_generation
     }
-    
+
     #[setter]
     fn set_text_generation(&mut self, value: bool) {
         self.0.text_generation = value;
     }
-    
+
     #[getter]
     fn image_generation(&self) -> bool {
         self.0.image_generation
     }
-    
+
     #[setter]
     fn set_image_generation(&mut self, value: bool) {
         self.0.image_generation = value;
     }
-    
+
     #[getter]
     fn audio_processing(&self) -> bool {
         self.0.audio_processing
     }
-    
+
     #[setter]
     fn set_audio_processing(&mut self, value: bool) {
         self.0.audio_processing = value;
     }
-    
+
     #[getter]
     fn video_processing(&self) -> bool {
         self.0.video_processing
     }
-    
+
     #[setter]
     fn set_video_processing(&mut self, value: bool) {
         self.0.video_processing = value;
     }
-    
+
     #[getter]
     fn code_generation(&self) -> bool {
         self.0.code_generation
     }
-    
+
     #[setter]
     fn set_code_generation(&mut self, value: bool) {
         self.0.code_generation = value;
     }
-    
+
     #[getter]
     fn function_calling(&self) -> bool {
         self.0.function_calling
     }
-    
+
     #[setter]
     fn set_function_calling(&mut self, value: bool) {
         self.0.function_calling = value;
     }
-    
+
     #[getter]
     fn fine_tuning(&self) -> bool {
         self.0.fine_tuning
     }
-    
+
     #[setter]
     fn set_fine_tuning(&mut self, value: bool) {
         self.0.fine_tuning = value;
     }
-    
+
     #[getter]
     fn streaming(&self) -> bool {
         self.0.streaming
     }
-    
+
     #[setter]
     fn set_streaming(&mut self, value: bool) {
         self.0.streaming = value;
     }
-    
+
     #[getter]
     fn multimodal(&self) -> bool {
         self.0.multimodal
     }
-    
+
     #[setter]
     fn set_multimodal(&mut self, value: bool) {
         self.0.multimodal = value;
     }
-    
+
     #[getter]
     fn tool_use(&self) -> bool {
         self.0.tool_use
     }
-    
+
     #[setter]
     fn set_tool_use(&mut self, value: bool) {
         self.0.tool_use = value;
@@ -778,71 +833,71 @@ impl Model {
     fn new(model_id: String, provider_instance_id: String, name: String) -> Self {
         Self(PyModel::new(model_id, provider_instance_id, name))
     }
-    
+
     #[getter]
     fn model_id(&self) -> String {
         self.0.model_id.clone()
     }
-    
+
     #[setter]
     fn set_model_id(&mut self, value: String) {
         self.0.model_id = value;
     }
-    
+
     #[getter]
     fn provider_instance_id(&self) -> String {
         self.0.provider_instance_id.clone()
     }
-    
+
     #[setter]
     fn set_provider_instance_id(&mut self, value: String) {
         self.0.provider_instance_id = value;
     }
-    
+
     #[getter]
     fn name(&self) -> String {
         self.0.name.clone()
     }
-    
+
     #[setter]
     fn set_name(&mut self, value: String) {
         self.0.name = value;
     }
-    
+
     #[getter]
     fn quantization(&self) -> Option<String> {
         self.0.quantization.clone()
     }
-    
+
     #[setter]
     fn set_quantization(&mut self, value: Option<String>) {
         self.0.quantization = value;
     }
-    
+
     #[getter]
     fn context_window(&self) -> Option<u32> {
         self.0.context_window
     }
-    
+
     #[setter]
     fn set_context_window(&mut self, value: Option<u32>) {
         self.0.context_window = value;
     }
-    
+
     #[getter]
     fn temperature(&self) -> Option<f32> {
         self.0.temperature
     }
-    
+
     fn set_temperature(&mut self, temperature: f64) {
         self.0.temperature = Some((temperature * 100.0).round() as f32 / 100.0);
     }
-    
+
     #[getter]
     fn tags(&self) -> Option<Vec<String>> {
         self.0.tags.clone()
     }
-    
+
     fn add_tag(&mut self, tag: String) {
         if self.0.tags.is_none() {
             self.0.tags = Some(Vec::new());
@@ -851,39 +906,39 @@ impl Model {
             tags.push(tag);
         }
     }
-    
+
     fn set_tags(&mut self, tags: Vec<String>) {
         self.0.tags = Some(tags);
     }
-    
+
     #[getter]
     fn cost(&self) -> Option<TokenCost> {
         self.0.cost.as_ref().map(|c| TokenCost(c.clone()))
     }
-    
+
     fn set_cost(&mut self, cost: TokenCost) {
         self.0.cost = Some(cost.0);
     }
-    
+
     #[getter]
     fn metadata(&self) -> Option<HashMap<String, Py<PyAny>>> {
         // Clone is not implemented for HashMap<String, Py<PyAny>>, so we return None for now
         None
     }
-    
+
     #[setter]
     fn set_metadata(&mut self, value: Option<HashMap<String, Py<PyAny>>>) {
         self.0.metadata = value;
     }
-    
+
     fn validate(&self) -> PyResult<()> {
         self.0.validate()
     }
-    
+
     fn supports_text_generation(&self) -> bool {
         self.0.supports_text_generation()
     }
-    
+
     fn supports_image_generation(&self) -> bool {
         self.0.supports_image_generation()
     }
@@ -898,73 +953,85 @@ pub struct ProviderInstance(PyProviderInstance);
 impl ProviderInstance {
     #[new]
     fn new(id: String, display_name: String, provider_type: String, base_url: String) -> Self {
-        Self(PyProviderInstance::new(id, display_name, provider_type, base_url))
+        Self(PyProviderInstance::new(
+            id,
+            display_name,
+            provider_type,
+            base_url,
+        ))
     }
-    
+
     #[getter]
     fn id(&self) -> String {
         self.0.id.clone()
     }
-    
+
     #[setter]
     fn set_id(&mut self, value: String) {
         self.0.id = value;
     }
-    
+
     #[getter]
     fn display_name(&self) -> String {
         self.0.display_name.clone()
     }
-    
+
     #[setter]
     fn set_display_name(&mut self, value: String) {
         self.0.display_name = value;
     }
-    
+
     #[getter]
     fn provider_type(&self) -> String {
         self.0.provider_type.clone()
     }
-    
+
     #[setter]
     fn set_provider_type(&mut self, value: String) {
         self.0.provider_type = value;
     }
-    
+
     #[getter]
     fn base_url(&self) -> String {
         self.0.base_url.clone()
     }
-    
+
     #[setter]
     fn set_base_url(&mut self, value: String) {
         self.0.base_url = value;
     }
-    
+
     #[getter]
     fn active(&self) -> bool {
         self.0.active
     }
-    
+
     fn set_active(&mut self, active: bool) {
         self.0.active = active;
     }
-    
+
     #[getter]
     fn models(&self) -> Vec<Model> {
-        self.0.models.iter().map(|m| Model(PyModel {
-            model_id: m.model_id.clone(),
-            provider_instance_id: m.provider_instance_id.clone(),
-            name: m.name.clone(),
-            quantization: m.quantization.clone(),
-            context_window: m.context_window,
-            temperature: m.temperature,
-            tags: m.tags.clone(),
-            cost: m.cost.clone(),
-            metadata: None, // Simplified - metadata not cloneable
-        })).collect()
+        self.0
+            .models
+            .iter()
+            .map(|m| {
+                Model(PyModel {
+                    model_id: m.model_id.clone(),
+                    provider_instance_id: m.provider_instance_id.clone(),
+                    name: m.name.clone(),
+                    quantization: m.quantization.clone(),
+                    context_window: m.context_window,
+                    capabilities: m.capabilities.clone(),
+                    temperature: m.temperature,
+                    tags: m.tags.clone(),
+                    cost: m.cost.clone(),
+                    metadata: None, // Simplified - metadata not cloneable
+                })
+            })
+            .collect()
     }
-    
+
     #[getter]
     fn keys(&self) -> PyResult<Vec<Py<PyAny>>> {
         Python::with_gil(|py| {
@@ -976,36 +1043,36 @@ impl ProviderInstance {
                         result.push(key.clone_ref(py));
                     }
                     Ok(result)
-                },
+                }
                 None => Ok(Vec::new()),
             }
         })
     }
-    
+
     fn add_key(&mut self, key: Py<PyAny>) {
         self.0.add_key(key)
     }
-    
+
     fn add_keys(&mut self, keys: Vec<Py<PyAny>>) {
         self.0.add_keys(keys)
     }
-    
+
     fn add_model(&mut self, model: &Model) {
         self.0.add_model(&model.0)
     }
-    
+
     fn add_models(&mut self, models: Vec<Py<PyAny>>) -> PyResult<()> {
         self.0.add_models(models)
     }
-    
+
     fn key_count(&self) -> usize {
         self.0.key_count()
     }
-    
+
     fn model_count(&self) -> usize {
         self.0.model_count()
     }
-    
+
     fn validate(&self) -> PyResult<()> {
         self.0.validate()
     }
@@ -1022,71 +1089,87 @@ impl ProviderInstances {
     fn new() -> Self {
         Self(PyProviderInstances::new())
     }
-    
+
     fn add_instance(&mut self, instance: &ProviderInstance) -> PyResult<()> {
         self.0.add_instance(&instance.0)
     }
-    
+
     fn add_or_replace_instance(&mut self, instance: &ProviderInstance) {
         self.0.add_or_replace_instance(&instance.0)
     }
-    
+
     fn get_instance(&self, id: &str) -> Option<ProviderInstance> {
         self.0.get_instance(id).map(ProviderInstance)
     }
-    
+
     fn remove_instance(&mut self, id: &str) -> Option<ProviderInstance> {
         self.0.remove_instance(id).map(ProviderInstance)
     }
-    
+
     fn all_instances(&self) -> Vec<ProviderInstance> {
-        self.0.all_instances().into_iter().map(ProviderInstance).collect()
+        self.0
+            .all_instances()
+            .into_iter()
+            .map(ProviderInstance)
+            .collect()
     }
-    
+
     fn instances_by_type(&self, provider_type: &str) -> Vec<ProviderInstance> {
-        self.0.instances_by_type(provider_type).into_iter().map(ProviderInstance).collect()
+        self.0
+            .instances_by_type(provider_type)
+            .into_iter()
+            .map(ProviderInstance)
+            .collect()
     }
-    
+
     fn active_instances(&self) -> Vec<ProviderInstance> {
-        self.0.active_instances().into_iter().map(ProviderInstance).collect()
+        self.0
+            .active_instances()
+            .into_iter()
+            .map(ProviderInstance)
+            .collect()
     }
-    
+
     fn active_instances_by_type(&self, provider_type: &str) -> Vec<ProviderInstance> {
-        self.0.active_instances_by_type(provider_type).into_iter().map(ProviderInstance).collect()
+        self.0
+            .active_instances_by_type(provider_type)
+            .into_iter()
+            .map(ProviderInstance)
+            .collect()
     }
-    
+
     fn len(&self) -> usize {
         self.0.len()
     }
-    
+
     fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
-    
+
     fn instance_ids(&self) -> Vec<String> {
         self.0.instance_ids()
     }
-    
+
     fn provider_types(&self) -> Vec<String> {
         self.0.provider_types()
     }
-    
+
     fn validate(&self) -> PyResult<()> {
         self.0.validate()
     }
-    
+
     fn clear(&mut self) {
         self.0.clear()
     }
-    
+
     fn merge(&mut self, other: &ProviderInstances) {
         self.0.merge(&other.0)
     }
-    
+
     fn __repr__(&self) -> String {
         self.0.__repr__()
     }
-    
+
     fn __str__(&self) -> String {
         self.0.__repr__()
     }
@@ -1158,8 +1241,8 @@ fn list_providers() -> Vec<&'static str> {
         "anthropic",
         "huggingface",
         "ollama",
-        "langchain",
         "litellm",
+        "groq",
     ]
 }
 
@@ -1180,13 +1263,13 @@ fn genai_keyfinder(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Model>()?;
     m.add_class::<ProviderInstance>()?;
     m.add_class::<ProviderInstances>()?;
-    
+
     // Add functions
     m.add_function(wrap_pyfunction!(scan, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     m.add_function(wrap_pyfunction!(list_providers, m)?)?;
     m.add_function(wrap_pyfunction!(list_scanners, m)?)?;
     m.add_function(wrap_pyfunction!(migrate_provider_configs, m)?)?;
-    
+
     Ok(())
 }

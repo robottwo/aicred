@@ -7,7 +7,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// Supported configuration file formats.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileFormat {
     /// JSON format.
     Json,
@@ -87,7 +87,7 @@ impl ConfigParser {
                     false
                 }
             });
-            
+
             if has_table_array || has_dotted_key {
                 return Ok(FileFormat::Toml);
             }
@@ -100,10 +100,13 @@ impl ConfigParser {
             let has_ini_section = trimmed.lines().any(|line| {
                 let line = line.trim();
                 // Match lines that are exactly [section_name] with optional whitespace
-                line.starts_with('[') && line.ends_with(']') &&
-                line[1..line.len()-1].chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                line.starts_with('[')
+                    && line.ends_with(']')
+                    && line[1..line.len() - 1]
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
             });
-            
+
             if has_ini_section {
                 return Ok(FileFormat::Ini);
             }
@@ -140,7 +143,7 @@ impl ConfigParser {
     fn parse_json(content: &str) -> Result<HashMap<String, String>> {
         let json: JsonValue = serde_json::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("json").to_path_buf(),
-            message: format!("Invalid JSON: {}", e),
+            message: format!("Invalid JSON: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -160,7 +163,7 @@ impl ConfigParser {
                     let new_prefix = if prefix.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", prefix, key)
+                        format!("{prefix}.{key}")
                     };
                     Self::extract_json_values(val, new_prefix, result);
                 }
@@ -168,9 +171,9 @@ impl ConfigParser {
             JsonValue::Array(arr) => {
                 for (idx, val) in arr.iter().enumerate() {
                     let new_prefix = if prefix.is_empty() {
-                        format!("[{}]", idx)
+                        format!("[{idx}]")
                     } else {
-                        format!("{}[{}]", prefix, idx)
+                        format!("{prefix}[{idx}]")
                     };
                     Self::extract_json_values(val, new_prefix, result);
                 }
@@ -198,7 +201,7 @@ impl ConfigParser {
     fn parse_yaml(content: &str) -> Result<HashMap<String, String>> {
         let yaml: JsonValue = serde_yaml::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("yaml").to_path_buf(),
-            message: format!("Invalid YAML: {}", e),
+            message: format!("Invalid YAML: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -210,7 +213,7 @@ impl ConfigParser {
     fn parse_toml(content: &str) -> Result<HashMap<String, String>> {
         let toml: JsonValue = toml::from_str(content).map_err(|e| Error::ParseError {
             path: Path::new("toml").to_path_buf(),
-            message: format!("Invalid TOML: {}", e),
+            message: format!("Invalid TOML: {e}"),
         })?;
 
         let mut result = HashMap::new();
@@ -245,7 +248,7 @@ impl ConfigParser {
                 let full_key = if current_section.is_empty() {
                     key.to_string()
                 } else {
-                    format!("{}.{}", current_section, key)
+                    format!("{current_section}.{key}")
                 };
 
                 result.insert(full_key, value.to_string());
@@ -322,7 +325,7 @@ impl ConfigParser {
     }
 
     /// Merges multiple configuration maps.
-    pub fn merge_configs(configs: Vec<HashMap<String, String>>) -> HashMap<String, String> {
+    #[must_use] pub fn merge_configs(configs: Vec<HashMap<String, String>>) -> HashMap<String, String> {
         let mut result = HashMap::new();
 
         for config in configs {
@@ -463,7 +466,7 @@ mod tests {
     fn test_invalid_json_errors() {
         let bad = "{ not-json";
         let err = ConfigParser::parse_json(bad).unwrap_err();
-        let msg = format!("{:?}", err);
+        let msg = format!("{err:?}");
         assert!(msg.contains("Invalid JSON"));
     }
 }

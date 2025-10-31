@@ -19,7 +19,7 @@ pub trait ProviderPlugin: Send + Sync {
     fn confidence_score(&self, key: &str) -> f32;
 
     /// Validates that this plugin can handle the given file.
-    fn can_handle_file(&self, path: &Path) -> bool {
+    fn can_handle_file(&self, _path: &Path) -> bool {
         // Default implementation - can be overridden
         true
     }
@@ -31,7 +31,7 @@ pub trait ProviderPlugin: Send + Sync {
 
     /// Initializes the provider with instance-specific configuration.
     /// This method is called when a provider instance is created or updated.
-    fn initialize_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn initialize_instance(&self, _instance: &ProviderInstance) -> Result<()> {
         // Default implementation - can be overridden by providers that need initialization
         Ok(())
     }
@@ -44,7 +44,9 @@ pub trait ProviderPlugin: Send + Sync {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
-            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+            return Err(Error::PluginError(
+                "Base URL must start with http:// or https://".to_string(),
+            ));
         }
         Ok(())
     }
@@ -54,6 +56,75 @@ pub trait ProviderPlugin: Send + Sync {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // Default implementation - returns the models configured in the instance
         Ok(instance.models.iter().map(|m| m.model_id.clone()).collect())
+    }
+
+    /// Gets the full model configuration with provider-specific overrides applied.
+    /// This loads the base model from the models directory and merges it with
+    /// provider-specific overrides from the instance metadata.
+    fn get_model_with_overrides(
+        &self,
+        instance: &ProviderInstance,
+        model_id: &str,
+    ) -> Result<Option<crate::models::Model>> {
+        use crate::models::Model;
+
+        // Try to load the base model from the models directory
+        let config_dir = dirs_next::home_dir()
+            .ok_or_else(|| {
+                crate::error::Error::PluginError("Could not determine home directory".to_string())
+            })?
+            .join(".config")
+            .join("aicred")
+            .join("models");
+
+        let model_file_name = format!("{}.yaml", model_id.replace(['/', ':'], "-"));
+        let model_file_path = config_dir.join(&model_file_name);
+
+        if !model_file_path.exists() {
+            return Ok(None);
+        }
+
+        // Load the base model
+        let model_content = std::fs::read_to_string(&model_file_path).map_err(|e| {
+            crate::error::Error::PluginError(format!("Failed to read model file: {e}"))
+        })?;
+
+        let mut model: Model = serde_yaml::from_str(&model_content).map_err(|e| {
+            crate::error::Error::PluginError(format!("Failed to parse model file: {e}"))
+        })?;
+
+        // Apply provider-specific overrides from metadata
+        if let Some(metadata) = &instance.metadata {
+            if let Some(model_overrides_json) = metadata.get("model_overrides") {
+                // Parse the JSON string to get the model overrides
+                if let Ok(model_overrides) =
+                    serde_json::from_str::<serde_json::Value>(model_overrides_json)
+                {
+                    if let Some(model_override) = model_overrides.get(model_id) {
+                        if let Some(temp_value) = model_override.get("temperature") {
+                            if let Some(temp_str) = temp_value.as_str() {
+                                if let Ok(temperature) = temp_str.parse::<f32>() {
+                                    // Create a new temperature field or update existing one
+                                    // This would need to be added to the Model struct
+                                    // For now, we'll store it in the model's metadata
+                                    if model.metadata.is_none() {
+                                        model.metadata = Some(std::collections::HashMap::new());
+                                    }
+                                    if let Some(ref mut metadata) = model.metadata {
+                                        metadata.insert(
+                                            "temperature".to_string(),
+                                            serde_json::Value::String(temperature.to_string()),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(Some(model))
     }
 
     /// Checks if the provider instance has valid configuration for operation.
@@ -83,7 +154,7 @@ impl std::fmt::Debug for PluginRegistry {
 
 impl PluginRegistry {
     /// Creates a new empty plugin registry.
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             plugins: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -98,8 +169,7 @@ impl PluginRegistry {
         let name = plugin.name().to_string();
         if plugins.contains_key(&name) {
             return Err(Error::PluginError(format!(
-                "Plugin '{}' is already registered",
-                name
+                "Plugin '{name}' is already registered"
             )));
         }
 
@@ -108,7 +178,7 @@ impl PluginRegistry {
     }
 
     /// Gets a plugin by name.
-    pub fn get(&self, name: &str) -> Option<Arc<dyn ProviderPlugin>> {
+    #[must_use] pub fn get(&self, name: &str) -> Option<Arc<dyn ProviderPlugin>> {
         self.plugins
             .read()
             .ok()
@@ -116,7 +186,7 @@ impl PluginRegistry {
     }
 
     /// Lists all registered plugin names.
-    pub fn list(&self) -> Vec<String> {
+    #[must_use] pub fn list(&self) -> Vec<String> {
         self.plugins
             .read()
             .ok()
@@ -126,39 +196,37 @@ impl PluginRegistry {
 
     /// Removes a plugin by name.
     pub fn remove(&self, name: &str) -> Result<Option<Arc<dyn ProviderPlugin>>> {
-        let mut plugins = self.plugins.write().map_err(|_| {
-            Error::PluginError("Failed to acquire write lock on plugins".to_string())
-        })?;
-
-        Ok(plugins.remove(name))
+        Ok(self
+            .plugins
+            .write()
+            .map_err(|_| Error::PluginError("Failed to acquire write lock on plugins".to_string()))?
+            .remove(name))
     }
 
     /// Clears all plugins.
     pub fn clear(&self) -> Result<()> {
-        let mut plugins = self.plugins.write().map_err(|_| {
-            Error::PluginError("Failed to acquire write lock on plugins".to_string())
-        })?;
-
-        plugins.clear();
+        self.plugins
+            .write()
+            .map_err(|_| Error::PluginError("Failed to acquire write lock on plugins".to_string()))?
+            .clear();
         Ok(())
     }
 
     /// Gets the number of registered plugins.
-    pub fn len(&self) -> usize {
+    #[must_use] pub fn len(&self) -> usize {
         self.plugins
             .read()
             .ok()
-            .map(|plugins| plugins.len())
-            .unwrap_or(0)
+            .map_or(0, |plugins| plugins.len())
     }
 
     /// Checks if the registry is empty.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Gets all plugins that can handle a specific file.
-    pub fn get_plugins_for_file(&self, path: &Path) -> Vec<Arc<dyn ProviderPlugin>> {
+    #[must_use] pub fn get_plugins_for_file(&self, path: &Path) -> Vec<Arc<dyn ProviderPlugin>> {
         self.plugins
             .read()
             .ok()
@@ -183,7 +251,7 @@ impl Default for PluginRegistry {
 pub struct CommonConfigPlugin;
 
 impl ProviderPlugin for CommonConfigPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "common-config"
     }
 
@@ -200,8 +268,8 @@ impl ProviderPlugin for CommonConfigPlugin {
         }
 
         // Character diversity scoring
-        let has_uppercase = key.chars().any(|c| c.is_uppercase());
-        let has_lowercase = key.chars().any(|c| c.is_lowercase());
+        let has_uppercase = key.chars().any(char::is_uppercase);
+        let has_lowercase = key.chars().any(char::is_lowercase);
         let has_digits = key.chars().any(|c| c.is_ascii_digit());
         let has_special = key.chars().any(|c| !c.is_alphanumeric());
 
@@ -220,12 +288,12 @@ impl ProviderPlugin for CommonConfigPlugin {
             score += 0.1;
         }
 
-        score.min(1.0) as f32
+        score.min(1.0)
     }
 
-    fn can_handle_file(&self, path: &Path) -> bool {
+    fn can_handle_file(&self, _path: &Path) -> bool {
         // Check if this plugin should handle the file
-        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+        let file_name = _path.file_name().unwrap_or_default().to_string_lossy();
 
         file_name.ends_with(".env")
             || file_name.ends_with(".env.local")
@@ -267,7 +335,7 @@ mod tests {
         assert!(registry.is_empty());
         assert_eq!(registry.len(), 0);
 
-        registry.register(plugin.clone()).unwrap();
+        registry.register(plugin).unwrap();
         assert_eq!(registry.len(), 1);
         assert!(!registry.is_empty());
 

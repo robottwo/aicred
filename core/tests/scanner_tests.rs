@@ -64,14 +64,6 @@ impl ScannerPlugin for MockScanner {
             .map(|n| n.contains("mock"))
             .unwrap_or(false)
     }
-
-    fn supports_provider_scanning(&self) -> bool {
-        true
-    }
-
-    fn supported_providers(&self) -> Vec<String> {
-        vec!["openai".to_string(), "anthropic".to_string()]
-    }
 }
 
 #[test]
@@ -121,17 +113,6 @@ fn test_scanner_parse_config() {
 
     assert_eq!(result.keys.len(), 0);
     assert_eq!(result.instances.len(), 1);
-}
-
-#[test]
-fn test_scanner_provider_scanning_support() {
-    let scanner = MockScanner;
-
-    assert!(scanner.supports_provider_scanning());
-    let supported_providers = scanner.supported_providers();
-    assert_eq!(supported_providers.len(), 2);
-    assert!(supported_providers.contains(&"openai".to_string()));
-    assert!(supported_providers.contains(&"anthropic".to_string()));
 }
 
 #[test]

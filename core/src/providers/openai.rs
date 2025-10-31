@@ -1,4 +1,4 @@
-//! OpenAI provider plugin for scanning OpenAI API keys and configuration.
+//! `OpenAI` provider plugin for scanning `OpenAI` API keys and configuration.
 
 use crate::error::{Error, Result};
 use crate::models::{
@@ -8,7 +8,7 @@ use crate::models::{
 use crate::plugins::ProviderPlugin;
 use url::Url;
 
-/// Configuration for OpenAI provider defaults
+/// Configuration for `OpenAI` provider defaults
 #[derive(Debug, Clone)]
 pub struct OpenAIConfig {
     /// Default chat completion models
@@ -33,9 +33,9 @@ impl Default for OpenAIConfig {
 
 impl OpenAIConfig {
     /// Load configuration from environment variables with fallbacks
-    pub fn from_env() -> Self {
+    #[must_use] pub fn from_env() -> Self {
         let mut config = Self::default();
-        
+
         // Override chat models if specified in environment
         if let Ok(chat_models_str) = std::env::var("OPENAI_CHAT_MODELS") {
             if !chat_models_str.is_empty() {
@@ -46,7 +46,7 @@ impl OpenAIConfig {
                     .collect();
             }
         }
-        
+
         // Override embedding models if specified in environment
         if let Ok(embedding_models_str) = std::env::var("OPENAI_EMBEDDING_MODELS") {
             if !embedding_models_str.is_empty() {
@@ -57,23 +57,23 @@ impl OpenAIConfig {
                     .collect();
             }
         }
-        
+
         config
     }
-    
+
     /// Get all models (chat + embedding)
-    pub fn all_models(&self) -> Vec<String> {
+    #[must_use] pub fn all_models(&self) -> Vec<String> {
         let mut all = self.chat_models.clone();
         all.extend(self.embedding_models.clone());
         all
     }
 }
 
-/// Plugin for scanning OpenAI API keys and configuration files.
+/// Plugin for scanning `OpenAI` API keys and configuration files.
 pub struct OpenAIPlugin;
 
 impl ProviderPlugin for OpenAIPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "openai"
     }
 
@@ -93,12 +93,14 @@ impl ProviderPlugin for OpenAIPlugin {
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
         self.validate_base_instance(instance)?;
-        
+
         // OpenAI-specific validation
         if instance.base_url.is_empty() {
-            return Err(Error::PluginError("OpenAI base URL cannot be empty".to_string()));
+            return Err(Error::PluginError(
+                "OpenAI base URL cannot be empty".to_string(),
+            ));
         }
-        
+
         // Check for valid OpenAI base URL patterns by parsing and validating hostname
         let is_valid_openai_url = match Url::parse(&instance.base_url) {
             Ok(parsed_url) => {
@@ -108,17 +110,17 @@ impl ProviderPlugin for OpenAIPlugin {
             }
             Err(_) => false,
         };
-        
+
         if !is_valid_openai_url {
             return Err(Error::PluginError(
-                "Invalid OpenAI base URL. Expected format: https://api.openai.com".to_string()
+                "Invalid OpenAI base URL. Expected format: https://api.openai.com".to_string(),
             ));
         }
 
         // Validate that at least one key exists if models are configured
         if !instance.models.is_empty() && !instance.has_valid_keys() {
             return Err(Error::PluginError(
-                "OpenAI instance has models configured but no valid API keys".to_string()
+                "OpenAI instance has models configured but no valid API keys".to_string(),
             ));
         }
 
@@ -133,7 +135,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
         // Load configuration from environment or use defaults
         let config = OpenAIConfig::from_env();
-        
+
         // Get all models from configuration
         let mut models = config.all_models();
 
@@ -154,26 +156,26 @@ impl ProviderPlugin for OpenAIPlugin {
 
         // Validate base URL format
         self.validate_instance(instance)?;
-        
+
         Ok(true)
     }
 
     fn initialize_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // OpenAI-specific initialization logic
         // This could include testing API connectivity, validating model access, etc.
-        
+
         // For now, just validate the instance
         self.validate_instance(instance)?;
-        
+
         // Additional OpenAI-specific initialization could go here
         // such as testing API endpoints, checking model availability, etc.
-        
+
         Ok(())
     }
 }
 
 impl OpenAIPlugin {
-    /// Extracts OpenAI key from environment variable content.
+    /// Extracts `OpenAI` key from environment variable content.
     fn extract_from_env(&self, content: &str) -> Option<DiscoveredKey> {
         // Look for OPENAI_API_KEY environment variable
         let env_patterns = [
@@ -207,7 +209,7 @@ impl OpenAIPlugin {
         None
     }
 
-    /// Checks if a key is a valid OpenAI key format.
+    /// Checks if a key is a valid `OpenAI` key format.
     fn is_valid_openai_key(&self, key: &str) -> bool {
         // OpenAI keys must be at least 19 characters long (including the sk- prefix)
         if key.len() < 19 {
@@ -242,7 +244,9 @@ impl OpenAIPlugin {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
-            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+            return Err(Error::PluginError(
+                "Base URL must start with http:// or https://".to_string(),
+            ));
         }
         Ok(())
     }
@@ -251,8 +255,10 @@ impl OpenAIPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{
+        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+    };
     use std::path::Path;
-    use crate::models::{discovered_key::Confidence, ProviderInstance, ProviderKey, Environment, ValidationStatus};
 
     #[test]
     fn test_openai_plugin_name() {
@@ -325,7 +331,6 @@ mod tests {
         // Add a model
         let model = crate::models::Model::new(
             "text-embedding-3-small".to_string(),
-            instance.id.clone(),
             "Text Embedding 3 Small".to_string(),
         );
         instance.add_model(model);
@@ -363,7 +368,6 @@ mod tests {
         // Add a model but no keys
         let model = crate::models::Model::new(
             "text-embedding-3-large".to_string(),
-            instance.id.clone(),
             "Text Embedding 3 Large".to_string(),
         );
         instance.add_model(model);
@@ -385,23 +389,19 @@ mod tests {
         );
 
         // Add models
-        let model1 = crate::models::Model::new(
-            "gpt-3.5-turbo".to_string(),
-            instance.id.clone(),
-            "GPT-3.5 Turbo".to_string(),
-        );
+        let model1 =
+            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
         let model2 = crate::models::Model::new(
             "text-embedding-3-small".to_string(),
-            instance.id.clone(),
             "Text Embedding 3 Small".to_string(),
         );
         instance.add_model(model1);
         instance.add_model(model2);
 
-        let models = plugin.get_instance_models(&instance).unwrap();
-        assert_eq!(models.len(), 2);
-        assert!(models.contains(&"gpt-3.5-turbo".to_string()));
-        assert!(models.contains(&"text-embedding-3-small".to_string()));
+        let model_list = plugin.get_instance_models(&instance).unwrap();
+        assert_eq!(model_list.len(), 2);
+        assert!(model_list.contains(&"gpt-3.5-turbo".to_string()));
+        assert!(model_list.contains(&"text-embedding-3-small".to_string()));
     }
 
     #[test]
@@ -476,16 +476,20 @@ mod tests {
     #[test]
     fn test_openai_config_defaults() {
         let config = OpenAIConfig::default();
-        
+
         // Should only have gpt-3.5-turbo as chat model
         assert_eq!(config.chat_models.len(), 1);
         assert_eq!(config.chat_models[0], "gpt-3.5-turbo");
-        
+
         // Should have modern embedding models
         assert_eq!(config.embedding_models.len(), 2);
-        assert!(config.embedding_models.contains(&"text-embedding-3-small".to_string()));
-        assert!(config.embedding_models.contains(&"text-embedding-3-large".to_string()));
-        
+        assert!(config
+            .embedding_models
+            .contains(&"text-embedding-3-small".to_string()));
+        assert!(config
+            .embedding_models
+            .contains(&"text-embedding-3-large".to_string()));
+
         // All models should include both chat and embedding
         let all_models = config.all_models();
         assert_eq!(all_models.len(), 3);
@@ -499,17 +503,17 @@ mod tests {
         // Set environment variables for testing
         std::env::set_var("OPENAI_CHAT_MODELS", "gpt-4o-mini, gpt-4o");
         std::env::set_var("OPENAI_EMBEDDING_MODELS", "text-embedding-3-small");
-        
+
         let config = OpenAIConfig::from_env();
-        
+
         // Should use environment variables
         assert_eq!(config.chat_models.len(), 2);
         assert!(config.chat_models.contains(&"gpt-4o-mini".to_string()));
         assert!(config.chat_models.contains(&"gpt-4o".to_string()));
-        
+
         assert_eq!(config.embedding_models.len(), 1);
         assert_eq!(config.embedding_models[0], "text-embedding-3-small");
-        
+
         // Clean up
         std::env::remove_var("OPENAI_CHAT_MODELS");
         std::env::remove_var("OPENAI_EMBEDDING_MODELS");
@@ -518,7 +522,7 @@ mod tests {
     #[test]
     fn test_hostname_validation_valid_urls() {
         let plugin = OpenAIPlugin;
-        
+
         let valid_urls = vec![
             "https://api.openai.com",
             "https://api.openai.com/v1",
@@ -528,7 +532,7 @@ mod tests {
             "https://api.openai.com:443",
             "https://openai-api-proxy.com:8080",
         ];
-        
+
         for url in valid_urls {
             let instance = ProviderInstance::new(
                 "test-openai".to_string(),
@@ -536,7 +540,7 @@ mod tests {
                 "openai".to_string(),
                 url.to_string(),
             );
-            
+
             let result = plugin.validate_instance(&instance);
             assert!(
                 result.is_ok(),
@@ -550,18 +554,18 @@ mod tests {
     #[test]
     fn test_hostname_validation_invalid_urls() {
         let plugin = OpenAIPlugin;
-        
+
         let invalid_urls = vec![
             "https://malicious-openai.com",
             "https://openai-proxy.com",
             "https://my-openai-api.com",
             "https://openai.evil.com",
             "https://not-openai.com",
-            "https://api.openai.org",  // Wrong TLD
-            "https://api.openai.net",  // Wrong TLD
-            "https://api.openai.com.evil.com",  // Subdomain attack
+            "https://api.openai.org",          // Wrong TLD
+            "https://api.openai.net",          // Wrong TLD
+            "https://api.openai.com.evil.com", // Subdomain attack
         ];
-        
+
         for url in invalid_urls {
             let instance = ProviderInstance::new(
                 "test-openai".to_string(),
@@ -569,9 +573,12 @@ mod tests {
                 "openai".to_string(),
                 url.to_string(),
             );
-            
+
             let result = plugin.validate_instance(&instance);
-            assert!(result.is_err(), "URL '{}' should be invalid but was accepted", url);
+            assert!(
+                result.is_err(),
+                "URL '{url}' should be invalid but was accepted"
+            );
         }
     }
 }

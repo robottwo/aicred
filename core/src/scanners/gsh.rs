@@ -1,10 +1,9 @@
-//! GSH scanner for discovering API keys in GSH configuration files.
+//! `GSH` scanner for discovering API keys in `GSH` configuration files.
 
 use super::{ScanResult, ScannerPlugin};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
-use chrono::Utc;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -12,52 +11,22 @@ use std::path::{Path, PathBuf};
 pub struct GshScanner;
 
 impl ScannerPlugin for GshScanner {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "gsh"
     }
 
-    fn app_name(&self) -> &str {
+    fn app_name(&self) -> &'static str {
         "GSH"
     }
 
     fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
-        let mut paths = Vec::new();
-
-        // Focus only on ~/.gshrc location
-        paths.push(home_dir.join(".gshrc"));
-
-        paths
+        vec![home_dir.join(".gshrc")]
     }
 
     fn can_handle_file(&self, path: &Path) -> bool {
         let file_name = path.file_name().unwrap_or_default().to_string_lossy();
 
         file_name == ".gshrc" || file_name.ends_with("gshrc")
-    }
-
-    fn supports_provider_scanning(&self) -> bool {
-        true
-    }
-
-    fn supported_providers(&self) -> Vec<String> {
-        vec![
-            "openai".to_string(),
-            "anthropic".to_string(),
-            "google".to_string(),
-            "huggingface".to_string(),
-            "groq".to_string(),
-            "openrouter".to_string(),
-        ]
-    }
-
-    fn scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>> {
-        let mut paths = Vec::new();
-
-        // Only check for ~/.gshrc
-        paths.push(home_dir.join(".gshrc"));
-
-        // Filter to only existing paths
-        Ok(paths.into_iter().filter(|p| p.exists()).collect())
     }
 
     fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult> {
@@ -90,12 +59,9 @@ impl ScannerPlugin for GshScanner {
 
         // Create config instances for GSH installations
         let mut instances = Vec::new();
-        if let Some(instance) = self.create_config_instance(path, content).ok() {
-            tracing::debug!("Created config instance");
-            instances.push(instance);
-        } else {
-            tracing::debug!("Failed to create config instance");
-        }
+        let instance = Self::create_config_instance(path, content);
+        tracing::debug!("Created config instance");
+        instances.push(instance);
         result.add_instances(instances);
 
         tracing::debug!(
@@ -114,8 +80,8 @@ impl ScannerPlugin for GshScanner {
         let config_path = home_dir.join(".gshrc");
         if config_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&config_path) {
-                if self.is_valid_gsh_config(&content) {
-                    let instance = self.create_config_instance(&config_path, &content)?;
+                if Self::is_valid_gsh_config(&content) {
+                    let instance = Self::create_config_instance(&config_path, &content);
                     instances.push(instance);
                 }
             }
@@ -147,16 +113,18 @@ impl GshScanner {
         ];
 
         // Parse key/value pairs from the content
-        let key_values = self.parse_key_value_pairs(content);
+        let key_values = Self::parse_key_value_pairs(content);
 
         // Check for fast model keys
         for (key_name, provider) in fast_model_keys {
             if let Some(value) = key_values.get(key_name) {
                 if !value.is_empty() {
+                    // Determine value type based on key name
                     let value_type = if key_name.ends_with("_API_KEY") {
                         ValueType::ApiKey
                     } else if key_name.ends_with("_BASE_URL") {
-                        ValueType::Custom("BaseUrl".to_string())
+                        // Skip BASE_URL - it should be handled by ProviderInstance
+                        continue;
                     } else if key_name.ends_with("_ID") {
                         ValueType::Custom("ModelId".to_string())
                     } else if key_name.ends_with("_TEMPERATURE") {
@@ -168,12 +136,12 @@ impl GshScanner {
                     } else {
                         ValueType::Custom("Config".to_string())
                     };
-                    
+
                     let discovered_key = DiscoveredKey::new(
                         provider.to_string(),
                         path.display().to_string(),
                         value_type,
-                        self.get_confidence(value),
+                        Self::get_confidence(value),
                         value.to_string(),
                     );
                     keys.push(discovered_key);
@@ -185,21 +153,23 @@ impl GshScanner {
         for (key_name, provider) in slow_model_keys {
             if let Some(value) = key_values.get(key_name) {
                 if !value.is_empty() {
+                    // Determine value type based on key name
                     let value_type = if key_name.ends_with("_API_KEY") {
                         ValueType::ApiKey
                     } else if key_name.ends_with("_BASE_URL") {
-                        ValueType::Custom("BaseUrl".to_string())
+                        // Skip BASE_URL - it should be handled by ProviderInstance
+                        continue;
                     } else if key_name.ends_with("_ID") {
                         ValueType::Custom("ModelId".to_string())
                     } else {
                         ValueType::Custom("Config".to_string())
                     };
-                    
+
                     let discovered_key = DiscoveredKey::new(
                         provider.to_string(),
                         path.display().to_string(),
                         value_type,
-                        self.get_confidence(value),
+                        Self::get_confidence(value),
                         value.to_string(),
                     );
                     keys.push(discovered_key);
@@ -211,7 +181,7 @@ impl GshScanner {
     }
 
     /// Parse key/value pairs from shell script content, handling export statements and quoted values.
-    fn parse_key_value_pairs(&self, content: &str) -> std::collections::HashMap<String, String> {
+    fn parse_key_value_pairs(content: &str) -> std::collections::HashMap<String, String> {
         let mut key_values = std::collections::HashMap::new();
 
         for line in content.lines() {
@@ -223,8 +193,8 @@ impl GshScanner {
             }
 
             // Handle export statements (remove export prefix)
-            let line = if line.starts_with("export ") {
-                &line[7..].trim()
+            let line = if let Some(stripped) = line.strip_prefix("export ") {
+                stripped.trim()
             } else {
                 line
             };
@@ -235,12 +205,11 @@ impl GshScanner {
                 let mut value = line[eq_pos + 1..].trim();
 
                 // Remove quotes if present
-                if (value.starts_with('"') && value.ends_with('"'))
-                    || (value.starts_with('\'') && value.ends_with('\''))
+                if ((value.starts_with('"') && value.ends_with('"'))
+                    || (value.starts_with('\'') && value.ends_with('\'')))
+                    && value.len() > 1
                 {
-                    if value.len() > 1 {
-                        value = &value[1..value.len() - 1];
-                    }
+                    value = &value[1..value.len() - 1];
                 }
 
                 // Only add non-empty values
@@ -308,7 +277,7 @@ impl GshScanner {
                         provider.to_string(),
                         path.display().to_string(),
                         ValueType::ApiKey,
-                        self.get_confidence(key_value),
+                        Self::get_confidence(key_value),
                         key_value.to_string(),
                     );
 
@@ -321,7 +290,7 @@ impl GshScanner {
     }
 
     /// Check if this is a valid GSH configuration.
-    fn is_valid_gsh_config(&self, content: &str) -> bool {
+    fn is_valid_gsh_config(content: &str) -> bool {
         // Check for GSH-specific patterns or environment variables
         content.contains("GSH_")
             || content.contains("gsh")
@@ -334,7 +303,7 @@ impl GshScanner {
     }
 
     /// Create a config instance from GSH configuration.
-    fn create_config_instance(&self, path: &Path, _content: &str) -> Result<ConfigInstance> {
+    fn create_config_instance(path: &Path, _content: &str) -> ConfigInstance {
         let mut metadata = HashMap::new();
 
         // Add basic metadata
@@ -342,16 +311,16 @@ impl GshScanner {
         metadata.insert("format".to_string(), "KEY=value".to_string());
 
         let mut instance = ConfigInstance::new(
-            self.generate_instance_id(path),
+            Self::generate_instance_id(path),
             "gsh".to_string(),
             path.to_path_buf(),
         );
         instance.metadata.extend(metadata);
-        Ok(instance)
+        instance
     }
 
     /// Generate a unique instance ID.
-    fn generate_instance_id(&self, path: &Path) -> String {
+    fn generate_instance_id(path: &Path) -> String {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(path.to_string_lossy().as_bytes());
@@ -362,7 +331,7 @@ impl GshScanner {
     }
 
     /// Get confidence score for a key.
-    fn get_confidence(&self, key: &str) -> Confidence {
+    fn get_confidence(key: &str) -> Confidence {
         if key.starts_with("sk-") || key.starts_with("sk-ant-") || key.starts_with("hf_") {
             Confidence::High
         } else if key.len() >= 30 {
@@ -376,8 +345,6 @@ impl GshScanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
 
     #[test]
     fn test_gsh_scanner_name() {
@@ -439,13 +406,13 @@ GOOGLE_API_KEY="AIzaSyTest1234567890abcdef"
 export OPENAI_API_KEY="sk-test1234567890abcdef"
 export GSH_PROMPT="You are a helpful assistant"
 "#;
-        assert!(scanner.is_valid_gsh_config(valid_config));
+        assert!(GshScanner::is_valid_gsh_config(valid_config));
 
         let invalid_config = r#"
 # This is just a regular shell script
 echo "Hello World"
 "#;
-        assert!(!scanner.is_valid_gsh_config(invalid_config));
+        assert!(!GshScanner::is_valid_gsh_config(invalid_config));
     }
 
     #[test]
@@ -455,9 +422,7 @@ echo "Hello World"
 export OPENAI_API_KEY="sk-test1234567890abcdef"
 "#;
 
-        let instance = scanner
-            .create_config_instance(Path::new("/test/.gshrc"), config)
-            .unwrap();
+        let instance = GshScanner::create_config_instance(Path::new("/test/.gshrc"), config);
         assert_eq!(instance.app_name, "gsh");
         assert_eq!(
             instance.metadata.get("type"),
@@ -496,22 +461,22 @@ HF_TOKEN="hf_test1234567890abcdef"
         let scanner = GshScanner;
 
         assert_eq!(
-            scanner.get_confidence("sk-test1234567890abcdef"),
+            GshScanner::get_confidence("sk-test1234567890abcdef"),
             Confidence::High
         );
         assert_eq!(
-            scanner.get_confidence("sk-ant-test1234567890abcdef"),
+            GshScanner::get_confidence("sk-ant-test1234567890abcdef"),
             Confidence::High
         );
         assert_eq!(
-            scanner.get_confidence("hf_test1234567890abcdef"),
+            GshScanner::get_confidence("hf_test1234567890abcdef"),
             Confidence::High
         );
         assert_eq!(
-            scanner.get_confidence("verylongkeywithmorethanthirtycharacters"),
+            GshScanner::get_confidence("verylongkeywithmorethanthirtycharacters"),
             Confidence::Medium
         );
-        assert_eq!(scanner.get_confidence("short"), Confidence::Low);
+        assert_eq!(GshScanner::get_confidence("short"), Confidence::Low);
     }
 
     #[test]
@@ -528,7 +493,7 @@ export GSH_FAST_MODEL_HEADERS="Content-Type: application/json"
 "#;
 
         let keys = scanner.parse_gshrc(content, Path::new(".gshrc"));
-        assert_eq!(keys.len(), 6);
+        assert_eq!(keys.len(), 5); // API_KEY, MODEL_ID, TEMPERATURE, PARALLEL_TOOL_CALLS, HEADERS (BASE_URL is skipped)
 
         // Check that all keys are mapped to groq provider
         for key in &keys {
@@ -547,7 +512,7 @@ export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
 "#;
 
         let keys = scanner.parse_gshrc(content, Path::new(".gshrc"));
-        assert_eq!(keys.len(), 3);
+        assert_eq!(keys.len(), 2); // API_KEY and MODEL_ID (BASE_URL is skipped)
 
         // Check that all keys are mapped to openrouter provider
         for key in &keys {
@@ -567,7 +532,7 @@ export GSH_SLOW_MODEL_BASE_URL="https://openrouter.ai/api/v1"
 "#;
 
         let keys = scanner.parse_gshrc(content, Path::new(".gshrc"));
-        assert_eq!(keys.len(), 4);
+        assert_eq!(keys.len(), 2); // Only API_KEYs (BASE_URLs are skipped, MODEL_IDs not present in this test)
 
         // Check providers
         let providers: Vec<String> = keys.iter().map(|k| k.provider.clone()).collect();
@@ -721,7 +686,7 @@ export HF_TOKEN="hf_duplicate1234567890abcdef"
         for key in &result.keys {
             hash_groups
                 .entry(&key.hash)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(&key.provider);
         }
 
@@ -729,10 +694,7 @@ export HF_TOKEN="hf_duplicate1234567890abcdef"
         for (hash, providers) in &hash_groups {
             if providers.len() > 1 {
                 duplicate_count += providers.len() - 1;
-                println!(
-                    "Duplicate hash {} found in providers: {:?}",
-                    hash, providers
-                );
+                println!("Duplicate hash {hash} found in providers: {providers:?}");
             }
         }
 
@@ -751,7 +713,7 @@ export HF_TOKEN="hf_duplicate1234567890abcdef"
         // But let's check if we have the expected number of unique keys
         // We should have: 1 groq, 1 openrouter, 1 openai, 1 anthropic, 1 huggingface (5 total)
         let providers: Vec<String> = result.keys.iter().map(|k| k.provider.clone()).collect();
-        println!("Providers found: {:?}", providers);
+        println!("Providers found: {providers:?}");
 
         // The exact count depends on what gets detected, but there should be no duplicates
         assert!(
@@ -761,13 +723,73 @@ export HF_TOKEN="hf_duplicate1234567890abcdef"
     }
 
     #[test]
-    fn test_supported_providers_includes_groq_and_openrouter() {
+    fn test_model_id_capture() {
         let scanner = GshScanner;
-        let providers = scanner.supported_providers();
+        let content = r#"
+# GSH Configuration with Model IDs
+export GSH_FAST_MODEL_API_KEY="gsk_test1234567890abcdef"
+export GSH_FAST_MODEL_ID="llama3-70b-8192"
+export GSH_SLOW_MODEL_API_KEY="sk-or-v1_test1234567890abcdef"
+export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
+"#;
 
-        assert!(providers.contains(&"groq".to_string()));
-        assert!(providers.contains(&"openrouter".to_string()));
-        assert!(providers.contains(&"openai".to_string()));
-        assert!(providers.contains(&"anthropic".to_string()));
+        let keys = scanner.parse_gshrc(content, Path::new(".gshrc"));
+        // Should have 4 keys: 2 API keys and 2 Model IDs
+        assert_eq!(keys.len(), 4);
+
+        // Find the Model ID keys
+        let model_id_keys: Vec<&DiscoveredKey> = keys
+            .iter()
+            .filter(|k| matches!(k.value_type, ValueType::Custom(ref s) if s == "ModelId"))
+            .collect();
+
+        assert_eq!(model_id_keys.len(), 2, "Should have 2 ModelId keys");
+
+        // Verify the Model ID values
+        let model_ids: Vec<String> = model_id_keys
+            .iter()
+            .filter_map(|k| k.full_value().map(std::string::ToString::to_string))
+            .collect();
+        assert!(model_ids.contains(&"llama3-70b-8192".to_string()));
+        assert!(model_ids.contains(&"anthropic/claude-3-opus".to_string()));
+
+        // Verify providers
+        let fast_model_id = model_id_keys
+            .iter()
+            .find(|k| k.full_value() == Some("llama3-70b-8192"))
+            .unwrap();
+        assert_eq!(fast_model_id.provider, "groq");
+
+        let slow_model_id = model_id_keys
+            .iter()
+            .find(|k| k.full_value() == Some("anthropic/claude-3-opus"))
+            .unwrap();
+        assert_eq!(slow_model_id.provider, "openrouter");
+    }
+
+    #[test]
+    fn test_base_url_still_skipped() {
+        let scanner = GshScanner;
+        let content = r#"
+# GSH Configuration with BASE_URL fields
+export GSH_FAST_MODEL_API_KEY="gsk_test1234567890abcdef"
+export GSH_FAST_MODEL_BASE_URL="https://api.groq.com/openai/v1"
+export GSH_FAST_MODEL_ID="llama3-70b-8192"
+export GSH_SLOW_MODEL_API_KEY="sk-or-v1_test1234567890abcdef"
+export GSH_SLOW_MODEL_BASE_URL="https://openrouter.ai/api/v1"
+export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
+"#;
+
+        let keys = scanner.parse_gshrc(content, Path::new(".gshrc"));
+
+        // Should have 4 keys: 2 API keys and 2 Model IDs (BASE_URLs should be skipped)
+        assert_eq!(keys.len(), 4);
+
+        // Verify no BASE_URL keys were captured
+        for key in &keys {
+            if let Some(value) = key.full_value() {
+                assert!(!value.contains("http"), "BASE_URL should not be captured");
+            }
+        }
     }
 }

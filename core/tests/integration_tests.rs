@@ -21,12 +21,10 @@ fn test_full_scan_workflow() {
         }
     }"#;
 
-    // Write LangChain config
-    fs::write(
-        temp_home.path().join("langchain_config.json"),
-        langchain_config,
-    )
-    .unwrap();
+    // Write LangChain config - create the .langchain directory first
+    let langchain_dir = temp_home.path().join(".langchain");
+    fs::create_dir_all(&langchain_dir).unwrap();
+    fs::write(langchain_dir.join("config.json"), langchain_config).unwrap();
 
     // Create a .env file with provider keys
     let env_content = r#"

@@ -1,15 +1,14 @@
 //! Hugging Face provider plugin for scanning Hugging Face tokens and configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{discovered_key::{Confidence, DiscoveredKey, ValueType}, ProviderInstance};
+use crate::models::ProviderInstance;
 use crate::plugins::ProviderPlugin;
-use std::path::{Path, PathBuf};
 
 /// Plugin for scanning Hugging Face tokens and configuration files.
 pub struct HuggingFacePlugin;
 
 impl ProviderPlugin for HuggingFacePlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "huggingface"
     }
 
@@ -27,27 +26,32 @@ impl ProviderPlugin for HuggingFacePlugin {
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
         self.validate_base_instance(instance)?;
-        
+
         // Hugging Face-specific validation
         if instance.base_url.is_empty() {
-            return Err(Error::PluginError("Hugging Face base URL cannot be empty".to_string()));
+            return Err(Error::PluginError(
+                "Hugging Face base URL cannot be empty".to_string(),
+            ));
         }
-        
+
         // Check for valid Hugging Face base URL patterns
-        let is_valid_hf_url = instance.base_url.starts_with("https://huggingface.co") ||
-                             instance.base_url.starts_with("https://api-inference.huggingface.co") ||
-                             instance.base_url.starts_with("https://huggingface.co/api");
-        
+        let is_valid_hf_url = instance.base_url.starts_with("https://huggingface.co")
+            || instance
+                .base_url
+                .starts_with("https://api-inference.huggingface.co")
+            || instance.base_url.starts_with("https://huggingface.co/api");
+
         if !is_valid_hf_url {
             return Err(Error::PluginError(
-                "Invalid Hugging Face base URL. Expected format: https://huggingface.co".to_string()
+                "Invalid Hugging Face base URL. Expected format: https://huggingface.co"
+                    .to_string(),
             ));
         }
 
         // Validate that at least one key exists if models are configured
         if !instance.models.is_empty() && !instance.has_valid_keys() {
             return Err(Error::PluginError(
-                "Hugging Face instance has models configured but no valid API tokens".to_string()
+                "Hugging Face instance has models configured but no valid API tokens".to_string(),
             ));
         }
 
@@ -84,7 +88,7 @@ impl ProviderPlugin for HuggingFacePlugin {
 
         // Validate base URL format
         self.validate_instance(instance)?;
-        
+
         Ok(true)
     }
 }
@@ -96,7 +100,9 @@ impl HuggingFacePlugin {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
         if !instance.base_url.starts_with("http://") && !instance.base_url.starts_with("https://") {
-            return Err(Error::PluginError("Base URL must start with http:// or https://".to_string()));
+            return Err(Error::PluginError(
+                "Base URL must start with http:// or https://".to_string(),
+            ));
         }
         Ok(())
     }
@@ -105,7 +111,9 @@ impl HuggingFacePlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{discovered_key::Confidence, ProviderInstance, ProviderKey, Environment, ValidationStatus};
+    use crate::models::{
+        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+    };
 
     #[test]
     fn test_huggingface_plugin_name() {
@@ -152,7 +160,6 @@ mod tests {
         // Add a model
         let model = crate::models::Model::new(
             "microsoft/DialoGPT-medium".to_string(),
-            instance.id.clone(),
             "DialoGPT Medium".to_string(),
         );
         instance.add_model(model);
@@ -190,7 +197,6 @@ mod tests {
         // Add a model but no keys
         let model = crate::models::Model::new(
             "microsoft/DialoGPT-medium".to_string(),
-            instance.id.clone(),
             "DialoGPT Medium".to_string(),
         );
         instance.add_model(model);
@@ -214,21 +220,19 @@ mod tests {
         // Add models
         let model1 = crate::models::Model::new(
             "microsoft/DialoGPT-medium".to_string(),
-            instance.id.clone(),
             "DialoGPT Medium".to_string(),
         );
         let model2 = crate::models::Model::new(
             "facebook/blenderbot-400M-distill".to_string(),
-            instance.id.clone(),
             "BlenderBot 400M".to_string(),
         );
         instance.add_model(model1);
         instance.add_model(model2);
 
-        let models = plugin.get_instance_models(&instance).unwrap();
-        assert_eq!(models.len(), 2);
-        assert!(models.contains(&"microsoft/DialoGPT-medium".to_string()));
-        assert!(models.contains(&"facebook/blenderbot-400M-distill".to_string()));
+        let model_list = plugin.get_instance_models(&instance).unwrap();
+        assert_eq!(model_list.len(), 2);
+        assert!(model_list.contains(&"microsoft/DialoGPT-medium".to_string()));
+        assert!(model_list.contains(&"facebook/blenderbot-400M-distill".to_string()));
     }
 
     #[test]

@@ -7,7 +7,7 @@ use crate::scanners::ScannerRegistry;
 use chrono::Utc;
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Default maximum file size to scan (1MB).
 pub const DEFAULT_MAX_FILE_SIZE: usize = 1024 * 1024;
@@ -54,7 +54,7 @@ pub struct Scanner {
 
 impl Scanner {
     /// Creates a new scanner with the given provider registry.
-    pub fn new(provider_registry: PluginRegistry) -> Self {
+    #[must_use] pub fn new(provider_registry: PluginRegistry) -> Self {
         Self {
             provider_registry,
             scanner_registry: None,
@@ -63,7 +63,7 @@ impl Scanner {
     }
 
     /// Creates a new scanner with custom configuration.
-    pub fn with_config(provider_registry: PluginRegistry, config: ScannerConfig) -> Self {
+    #[must_use] pub const fn with_config(provider_registry: PluginRegistry, config: ScannerConfig) -> Self {
         Self {
             provider_registry,
             scanner_registry: None,
@@ -72,7 +72,7 @@ impl Scanner {
     }
 
     /// Sets the scanner registry for discovering keys and configs.
-    pub fn with_scanner_registry(mut self, scanner_registry: ScannerRegistry) -> Self {
+    #[must_use] pub fn with_scanner_registry(mut self, scanner_registry: ScannerRegistry) -> Self {
         self.scanner_registry = Some(scanner_registry);
         self
     }
@@ -104,7 +104,7 @@ impl Scanner {
 
         let mut result = ScanResult::new(
             home_dir.display().to_string(),
-            providers.clone(),
+            providers,
             scan_started_at,
         );
 
@@ -128,7 +128,7 @@ impl Scanner {
                 match self.scan_file(path, result) {
                     Ok(()) => files_scanned += 1,
                     Err(e) => {
-                        debug!("Error scanning file {}: {}", path.display(), e);
+                        debug!("Error scanning file {}: {e}", path.display());
                     }
                 }
             }
@@ -140,7 +140,7 @@ impl Scanner {
                     directories_scanned += dirs + 1; // +1 for current directory
                 }
                 Err(e) => {
-                    debug!("Error scanning directory {}: {}", path.display(), e);
+                    debug!("Error scanning directory {}: {e}", path.display());
                 }
             }
         }
@@ -156,7 +156,7 @@ impl Scanner {
         let entries = fs::read_dir(dir).map_err(|e| {
             Error::IoError(std::io::Error::new(
                 e.kind(),
-                format!("Failed to read directory {}: {}", dir.display(), e),
+                format!("Failed to read directory {}: {e}", dir.display()),
             ))
         })?;
 
@@ -164,7 +164,7 @@ impl Scanner {
             let entry = entry.map_err(|e| {
                 Error::IoError(std::io::Error::new(
                     e.kind(),
-                    format!("Failed to read directory entry: {}", e),
+                    format!("Failed to read directory entry: {e}"),
                 ))
             })?;
 
@@ -194,7 +194,7 @@ impl Scanner {
                     directories_scanned += dirs;
                 }
                 Err(e) => {
-                    debug!("Error scanning {}: {}", path.display(), e);
+                    debug!("Error scanning {}: {e}", path.display());
                 }
             }
         }
@@ -203,13 +203,13 @@ impl Scanner {
     }
 
     /// Scans a single file for validation purposes.
-    /// Note: Actual key discovery is handled by ScannerPlugin implementations.
+    /// Note: Actual key discovery is handled by [`ScannerPlugin`] implementations.
     fn scan_file(&self, path: &Path, _result: &mut ScanResult) -> Result<()> {
         // Check file size
         let metadata = fs::metadata(path).map_err(|e| {
             Error::IoError(std::io::Error::new(
                 e.kind(),
-                format!("Failed to read metadata for {}: {}", path.display(), e),
+                format!("Failed to read metadata for {}: {e}", path.display()),
             ))
         })?;
 
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn test_scanner_creation() {
         let provider_registry = PluginRegistry::new();
-        let scanner = Scanner::new(provider_registry.clone());
+        let scanner = Scanner::new(provider_registry);
 
         assert_eq!(scanner.config.max_file_size, DEFAULT_MAX_FILE_SIZE);
         assert!(scanner.scanner_registry.is_none());
@@ -293,9 +293,11 @@ mod tests {
         let scanner = Scanner::new(provider_registry);
 
         // Test with include extensions
-        let mut config = ScannerConfig::default();
-        config.include_extensions = Some(vec!["json".to_string(), "env".to_string()]);
-        let scanner = Scanner::with_config(scanner.provider_registry.clone(), config);
+        let config = ScannerConfig {
+            include_extensions: Some(vec!["json".to_string(), "env".to_string()]),
+            ..Default::default()
+        };
+        let scanner = Scanner::with_config(scanner.provider_registry, config);
 
         let test_dir = TempDir::new().unwrap();
         let json_file = test_dir.path().join("test.json");
@@ -358,15 +360,16 @@ mod tests {
 
         let mut result = ScanResult::new(dir.path().display().to_string(), vec![], Utc::now());
 
-        // At limit should scan and find key (or not, depending on plugin matching)
+        // scan_file only validates file size, doesn't extract keys
+        // At limit should pass validation
         scanner.scan_file(&at, &mut result).unwrap();
-        // Temporarily simplified - accept either finding a key or not
-        assert!(result.total_keys() >= 0);
-
-        // Over limit should be skipped (no additional keys)
+        
+        // Over limit should also pass (scan_file just checks size, doesn't fail)
         scanner.scan_file(&over, &mut result).unwrap();
-        // Should not find additional keys due to size limit
-        assert!(result.total_keys() >= 0);
+        
+        // Note: Actual key extraction is handled by ScannerPlugin implementations
+        // This test only verifies file size validation logic
+        assert_eq!(result.total_keys(), 0); // No keys extracted by scan_file itself
     }
 
     #[test]

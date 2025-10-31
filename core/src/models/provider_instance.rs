@@ -1,9 +1,9 @@
 //! Provider instance model for managing individual provider configurations with enhanced metadata.
 
+use crate::models::{Model, ProviderKey};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::models::{Model, ProviderKey};
 
 /// Token cost tracking for model usage.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -11,11 +11,11 @@ pub struct TokenCost {
     /// Cost per million input tokens in USD.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_cost_per_million: Option<f64>,
-    
+
     /// Cost per million output tokens in USD.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_cost_per_million: Option<f64>,
-    
+
     /// Cached input cost modifier (0.1 = 90% discount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cached_input_cost_modifier: Option<f64>,
@@ -26,46 +26,41 @@ pub struct TokenCost {
 pub struct ProviderInstance {
     /// Unique identifier for this instance.
     pub id: String,
-    
+
     /// Human-readable display name.
     pub display_name: String,
-    
+
     /// Provider type (e.g., "openai", "anthropic", "groq").
     pub provider_type: String,
-    
+
     /// Base URL for API requests.
     pub base_url: String,
-    
+
     /// API keys associated with this instance.
     #[serde(default)]
     pub keys: Vec<ProviderKey>,
-    
+
     /// Instance-specific model configurations.
     #[serde(default)]
     pub models: Vec<Model>,
-    
+
     /// Additional metadata for this instance.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, String>>,
-    
+
     /// Whether this instance is active and should be used.
     pub active: bool,
-    
+
     /// When this instance was created.
     pub created_at: DateTime<Utc>,
-    
+
     /// When this instance was last updated.
     pub updated_at: DateTime<Utc>,
 }
 
 impl ProviderInstance {
     /// Creates a new provider instance with required fields.
-    pub fn new(
-        id: String,
-        display_name: String,
-        provider_type: String,
-        base_url: String,
-    ) -> Self {
+    #[must_use] pub fn new(id: String, display_name: String, provider_type: String, base_url: String) -> Self {
         let now = Utc::now();
         Self {
             id,
@@ -80,74 +75,104 @@ impl ProviderInstance {
             updated_at: now,
         }
     }
-    
+
+    /// Creates a new provider instance with cleaned metadata.
+    /// This method ensures that redundant fields like `model_id` and `base_url` are not stored in metadata.
+    #[must_use] pub fn new_with_cleaned_metadata(
+        id: String,
+        display_name: String,
+        provider_type: String,
+        base_url: String,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Self {
+        let mut instance = Self::new(id, display_name, provider_type, base_url);
+
+        // Clean metadata by removing redundant fields
+        if let Some(meta) = metadata {
+            let mut cleaned_meta = HashMap::new();
+            for (key, value) in meta {
+                // Skip redundant fields that should not be in metadata
+                if key != "model_id" && key != "base_url" {
+                    cleaned_meta.insert(key, value);
+                }
+            }
+            if !cleaned_meta.is_empty() {
+                instance.metadata = Some(cleaned_meta);
+            }
+        }
+
+        instance
+    }
+
     /// Adds a key to this instance.
     pub fn add_key(&mut self, key: ProviderKey) {
         self.keys.push(key);
         self.updated_at = Utc::now();
     }
-    
+
     /// Adds multiple keys to this instance.
     pub fn add_keys(&mut self, keys: Vec<ProviderKey>) {
         self.keys.extend(keys);
         self.updated_at = Utc::now();
     }
-    
+
     /// Adds a model to this instance.
     pub fn add_model(&mut self, model: Model) {
         self.models.push(model);
         self.updated_at = Utc::now();
     }
-    
+
     /// Adds multiple models to this instance.
     pub fn add_models(&mut self, models: Vec<Model>) {
         self.models.extend(models);
         self.updated_at = Utc::now();
     }
-    
+
     /// Sets metadata for this instance.
-    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+    #[must_use] pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
         self.metadata = Some(metadata);
         self
     }
-    
+
     /// Sets the active status.
-    pub fn with_active(mut self, active: bool) -> Self {
+    #[must_use] pub const fn with_active(mut self, active: bool) -> Self {
         self.active = active;
         self
     }
-    
+
     /// Gets the number of keys.
-    pub fn key_count(&self) -> usize {
+    #[must_use] pub const fn key_count(&self) -> usize {
         self.keys.len()
     }
-    
+
     /// Gets the number of valid keys.
-    pub fn valid_key_count(&self) -> usize {
+    #[must_use] pub fn valid_key_count(&self) -> usize {
         self.keys.iter().filter(|key| key.is_valid()).count()
     }
-    
+
     /// Gets the number of models.
-    pub fn model_count(&self) -> usize {
+    #[must_use] pub const fn model_count(&self) -> usize {
         self.models.len()
     }
-    
+
     /// Gets a key by ID.
-    pub fn get_key(&self, id: &str) -> Option<&ProviderKey> {
+    #[must_use] pub fn get_key(&self, id: &str) -> Option<&ProviderKey> {
         self.keys.iter().find(|key| key.id == id)
     }
-    
+
     /// Gets the default key (first valid key or first key).
-    pub fn default_key(&self) -> Option<&ProviderKey> {
-        self.keys.iter().find(|key| key.is_valid())
+    #[must_use] pub fn default_key(&self) -> Option<&ProviderKey> {
+        self.keys
+            .iter()
+            .find(|key| key.is_valid())
             .or_else(|| self.keys.first())
     }
-    
+
     /// Gets a model by ID.
-    pub fn get_model(&self, model_id: &str) -> Option<&Model> {
+    #[must_use] pub fn get_model(&self, model_id: &str) -> Option<&Model> {
         self.models.iter().find(|model| model.model_id == model_id)
     }
-    
+
     /// Validates the instance configuration.
     pub fn validate(&self) -> Result<(), String> {
         if self.id.is_empty() {
@@ -162,22 +187,22 @@ impl ProviderInstance {
         if self.base_url.is_empty() {
             return Err("Base URL cannot be empty".to_string());
         }
-        
+
         // Validate models
         for model in &self.models {
             model.validate()?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Checks if this instance has any valid keys.
-    pub fn has_valid_keys(&self) -> bool {
-        self.keys.iter().any(|key| key.is_valid())
+    #[must_use] pub fn has_valid_keys(&self) -> bool {
+        self.keys.iter().any(super::provider_key::ProviderKey::is_valid)
     }
-    
+
     /// Gets active models (from active instance).
-    pub fn active_models(&self) -> Vec<&Model> {
+    #[must_use] pub fn active_models(&self) -> Vec<&Model> {
         if self.active {
             self.models.iter().collect()
         } else {
@@ -188,12 +213,7 @@ impl ProviderInstance {
 
 impl Default for ProviderInstance {
     fn default() -> Self {
-        Self::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        )
+        Self::new(String::new(), String::new(), String::new(), String::new())
     }
 }
 
@@ -206,18 +226,20 @@ impl From<crate::models::ProviderConfig> for ProviderInstance {
             "unknown".to_string(),
             "https://api.example.com".to_string(),
         );
-        
+
         // Migrate keys
         instance.keys = config.keys;
-        
+
         // Convert model strings to Model objects (basic conversion)
-        instance.models = config.models.into_iter()
+        instance.models = config
+            .models
+            .into_iter()
             .map(|model_id| {
                 let model_name = model_id.clone();
-                Model::new(model_id, instance.id.clone(), model_name)
+                Model::new(model_id, model_name)
             })
             .collect();
-        
+
         instance
     }
 }
@@ -225,15 +247,17 @@ impl From<crate::models::ProviderConfig> for ProviderInstance {
 impl From<ProviderInstance> for crate::models::ProviderConfig {
     fn from(instance: ProviderInstance) -> Self {
         let mut config = Self::new("1.0".to_string());
-        
+
         // Migrate keys
         config.keys = instance.keys;
-        
+
         // Convert models back to strings
-        config.models = instance.models.into_iter()
+        config.models = instance
+            .models
+            .into_iter()
             .map(|model| model.model_id)
             .collect();
-        
+
         config
     }
 }
@@ -252,7 +276,7 @@ mod tests {
             "openai".to_string(),
             "https://api.openai.com".to_string(),
         );
-        
+
         assert_eq!(instance.id, "openai-prod");
         assert_eq!(instance.display_name, "OpenAI Production");
         assert_eq!(instance.provider_type, "openai");
@@ -261,7 +285,7 @@ mod tests {
         assert_eq!(instance.key_count(), 0);
         assert_eq!(instance.model_count(), 0);
     }
-    
+
     #[test]
     fn test_provider_instance_with_data() {
         let mut instance = ProviderInstance::new(
@@ -270,7 +294,7 @@ mod tests {
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
         );
-        
+
         let mut key = ProviderKey::new(
             "dev-key".to_string(),
             "/config/anthropic".to_string(),
@@ -278,21 +302,17 @@ mod tests {
             Environment::Development,
         );
         key.set_validation_status(ValidationStatus::Valid);
-        
-        let model = Model::new(
-            "claude-3-sonnet".to_string(),
-            instance.id.clone(),
-            "Claude 3 Sonnet".to_string(),
-        );
-        
+
+        let model = Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
+
         instance.add_key(key);
         instance.add_model(model);
-        
+
         assert_eq!(instance.key_count(), 1);
         assert_eq!(instance.model_count(), 1);
         assert!(instance.has_valid_keys());
     }
-    
+
     #[test]
     fn test_provider_instance_validation() {
         let valid_instance = ProviderInstance::new(
@@ -302,16 +322,16 @@ mod tests {
             "https://api.openai.com".to_string(),
         );
         assert!(valid_instance.validate().is_ok());
-        
+
         let invalid_instance = ProviderInstance::new(
-            "".to_string(),
+            String::new(),
             "Invalid Instance".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
         );
         assert!(invalid_instance.validate().is_err());
     }
-    
+
     #[test]
     fn test_token_cost() {
         let cost = TokenCost {
@@ -319,7 +339,7 @@ mod tests {
             output_cost_per_million: Some(0.002),
             cached_input_cost_modifier: Some(0.1),
         };
-        
+
         assert_eq!(cost.input_cost_per_million, Some(0.001));
         assert_eq!(cost.output_cost_per_million, Some(0.002));
         assert_eq!(cost.cached_input_cost_modifier, Some(0.1));
