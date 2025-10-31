@@ -1,12 +1,8 @@
 //! Ollama provider plugin for scanning Ollama configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{
-    discovered_key::{Confidence, DiscoveredKey, ValueType},
-    ProviderInstance,
-};
+use crate::models::ProviderInstance;
 use crate::plugins::ProviderPlugin;
-use std::path::Path;
 
 /// Plugin for scanning Ollama configuration files.
 pub struct OllamaPlugin;
@@ -109,80 +105,6 @@ impl ProviderPlugin for OllamaPlugin {
 }
 
 impl OllamaPlugin {
-    /// Extracts Ollama configuration from environment variable content.
-    fn extract_from_env(&self, content: &str) -> Option<DiscoveredKey> {
-        // Look for OLLAMA_HOST environment variable
-        let env_patterns = [
-            r"(?i)OLLAMA_HOST[\s]*=[\s]*([a-zA-Z0-9._:/-]+)",
-            r#"(?i)OLLAMA_HOST[\s]*=[\s]*['"]([a-zA-Z0-9._:/-]+)['"]"#,
-        ];
-
-        for pattern in &env_patterns {
-            if let Ok(regex) = regex::Regex::new(pattern) {
-                for cap in regex.captures_iter(content) {
-                    if let Some(host_match) = cap.get(1) {
-                        let host_value = host_match.as_str();
-
-                        let confidence = self.confidence_score(host_value);
-                        let confidence_enum = self.float_to_confidence(confidence);
-
-                        return Some(DiscoveredKey::new(
-                            "ollama".to_string(),
-                            "environment".to_string(),
-                            ValueType::Custom("ServerURL".to_string()),
-                            confidence_enum,
-                            host_value.to_string(),
-                        ));
-                    }
-                }
-            }
-        }
-
-        None
-    }
-
-    /// Extracts Ollama server URL from configuration content.
-    fn extract_server_url(&self, content: &str, path: &Path) -> Option<DiscoveredKey> {
-        let url_patterns = [
-            r#"(?i)server[\s]*[:=][\s]*['"]([a-zA-Z0-9._:/-]+)['"]"#,
-            r#"(?i)host[\s]*[:=][\s]*['"]([a-zA-Z0-9._:/-]+)['"]"#,
-            r#"(?i)url[\s]*[:=][\s]*['"]([a-zA-Z0-9._:/-]+)['"]"#,
-        ];
-
-        for pattern in &url_patterns {
-            if let Ok(regex) = regex::Regex::new(pattern) {
-                for cap in regex.captures_iter(content) {
-                    if let Some(url_match) = cap.get(1) {
-                        let url_value = url_match.as_str();
-
-                        let confidence = self.confidence_score(url_value);
-                        let confidence_enum = self.float_to_confidence(confidence);
-
-                        return Some(DiscoveredKey::new(
-                            "ollama".to_string(),
-                            path.display().to_string(),
-                            ValueType::Custom("ServerURL".to_string()),
-                            confidence_enum,
-                            url_value.to_string(),
-                        ));
-                    }
-                }
-            }
-        }
-
-        None
-    }
-
-    /// Converts float confidence to Confidence enum.
-    fn float_to_confidence(&self, score: f32) -> Confidence {
-        if score >= 0.85 {
-            Confidence::High
-        } else if score >= 0.70 {
-            Confidence::Medium
-        } else {
-            Confidence::Low
-        }
-    }
 
     /// Helper method to perform base instance validation
     fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {

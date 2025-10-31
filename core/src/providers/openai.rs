@@ -1,10 +1,7 @@
 //! `OpenAI` provider plugin for scanning `OpenAI` API keys and configuration.
 
 use crate::error::{Error, Result};
-use crate::models::{
-    discovered_key::{Confidence, DiscoveredKey, ValueType},
-    ProviderInstance,
-};
+use crate::models::ProviderInstance;
 use crate::plugins::ProviderPlugin;
 use url::Url;
 
@@ -175,68 +172,6 @@ impl ProviderPlugin for OpenAIPlugin {
 }
 
 impl OpenAIPlugin {
-    /// Extracts `OpenAI` key from environment variable content.
-    fn extract_from_env(&self, content: &str) -> Option<DiscoveredKey> {
-        // Look for OPENAI_API_KEY environment variable
-        let env_patterns = [
-            r"(?i)OPENAI_API_KEY[\s]*=[\s]*([a-zA-Z0-9_-]+)",
-            r#"(?i)OPENAI_API_KEY[\s]*=[\s]*['"]([a-zA-Z0-9_-]+)['"]"#,
-            r#"(?i)OPENAI_API_KEY[\s]*=[\s]*['"](sk-[a-zA-Z0-9_-]+)['"]"#,
-        ];
-
-        for pattern in &env_patterns {
-            if let Ok(regex) = regex::Regex::new(pattern) {
-                for cap in regex.captures_iter(content) {
-                    if let Some(key_match) = cap.get(1) {
-                        let key_value = key_match.as_str();
-                        if self.is_valid_openai_key(key_value) {
-                            let confidence = self.confidence_score(key_value);
-                            let confidence_enum = self.float_to_confidence(confidence);
-
-                            return Some(DiscoveredKey::new(
-                                "openai".to_string(),
-                                "environment".to_string(),
-                                ValueType::ApiKey,
-                                confidence_enum,
-                                key_value.to_string(),
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-
-        None
-    }
-
-    /// Checks if a key is a valid `OpenAI` key format.
-    fn is_valid_openai_key(&self, key: &str) -> bool {
-        // OpenAI keys must be at least 19 characters long (including the sk- prefix)
-        if key.len() < 19 {
-            return false;
-        }
-
-        // Check for OpenAI key patterns
-        if key.starts_with("sk-") || key.starts_with("sk-proj-") {
-            return true;
-        }
-
-        // Allow keys that look like they could be OpenAI keys (long with alphanumeric and dashes)
-        key.len() >= 40 && key.chars().all(|c| c.is_alphanumeric() || c == '-')
-    }
-
-    /// Converts float confidence to Confidence enum.
-    fn float_to_confidence(&self, score: f32) -> Confidence {
-        if score >= 0.9 {
-            Confidence::VeryHigh
-        } else if score >= 0.7 {
-            Confidence::High
-        } else if score >= 0.5 {
-            Confidence::Medium
-        } else {
-            Confidence::Low
-        }
-    }
 
     /// Helper method to perform base instance validation
     fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
@@ -276,35 +211,6 @@ mod tests {
             plugin.confidence_score("random-key-with-dashes-123456789"),
             0.50
         );
-    }
-
-    #[test]
-    fn test_valid_openai_key_detection() {
-        let plugin = OpenAIPlugin;
-
-        let test_key = "sk-1234567890abcdef";
-        println!("Key: '{}', Length: {}", test_key, test_key.len());
-        println!("Starts with 'sk-': {}", test_key.starts_with("sk-"));
-        println!(
-            "is_valid_openai_key result: {}",
-            plugin.is_valid_openai_key(test_key)
-        );
-
-        assert!(plugin.is_valid_openai_key("sk-1234567890abcdef"));
-        assert!(plugin.is_valid_openai_key("sk-proj-1234567890abcdef"));
-        assert!(plugin.is_valid_openai_key("sk-1234567890abcdef1234567890abcdef"));
-        assert!(!plugin.is_valid_openai_key("short"));
-        assert!(!plugin.is_valid_openai_key("sk-"));
-    }
-
-    #[test]
-    fn test_parse_config_ignores_invalid_key() {
-        let plugin = OpenAIPlugin;
-        // too short to be valid
-        let _content = "api_key: sk-1234";
-        let _path = Path::new("test.yaml");
-        // Test that invalid keys are not considered valid API keys
-        assert!(!plugin.is_valid_openai_key("sk-1234"));
     }
 
     #[test]

@@ -162,7 +162,7 @@ impl ScanOptions {
 /// # Errors
 ///
 /// Returns an error if the scan fails due to IO errors, invalid configuration, etc.
-pub fn scan(options: ScanOptions) -> Result<ScanResult> {
+pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
     // Get the home directory to scan
     let home_dir = options.get_home_dir()?;
 
@@ -178,15 +178,8 @@ pub fn scan(options: ScanOptions) -> Result<ScanResult> {
     // Filter scanners based on options
     let filtered_scanner_registry = filter_scanner_registry(&scanner_registry, &options)?;
 
-    // Create scanner configuration
-    let scanner_config = ScannerConfig {
-        max_file_size: options.max_file_size,
-        ..ScannerConfig::default()
-    };
-
-    // Create scanner with provider registry for key validation only
     // Create scanner with provider registry only for key validation
-    let _scanner = Scanner::with_config(filtered_provider_registry.clone(), scanner_config)
+    let _scanner = Scanner::new(filtered_provider_registry.clone())
         .with_scanner_registry(filtered_scanner_registry.clone());
 
     // Initialize result without scanning entire directory
