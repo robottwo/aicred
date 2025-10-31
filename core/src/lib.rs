@@ -246,6 +246,9 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             .collect();
     }
 
+    // Set completion timestamp before returning
+    result.set_completed();
+
     Ok(result)
 }
 
