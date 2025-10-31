@@ -34,7 +34,7 @@ ANTHROPIC_API_KEY=sk-ant-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
     fs::write(temp_home.path().join(".env"), env_content).unwrap();
 
     // Run scan against the temp home
-    let result = scan(ScanOptions {
+    let result = scan(&ScanOptions {
         home_dir: Some(temp_home.path().to_path_buf()),
         include_full_values: false,
         max_file_size: 1_048_576,
@@ -76,7 +76,7 @@ OPENAI_API_KEY=sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
     fs::write(temp_home.path().join(".env"), env_content).unwrap();
 
     // Run scan with provider filtering
-    let result = scan(ScanOptions {
+    let result = scan(&ScanOptions {
         home_dir: Some(temp_home.path().to_path_buf()),
         include_full_values: false,
         max_file_size: 1_048_576,
@@ -107,7 +107,7 @@ fn test_application_scanner_integration() {
     fs::write(langchain_dir.join("config.json"), langchain_config).unwrap();
 
     // Run scan to discover application instances
-    let result = scan(ScanOptions {
+    let result = scan(&ScanOptions {
         home_dir: Some(temp_home.path().to_path_buf()),
         include_full_values: false,
         max_file_size: 1_048_576,

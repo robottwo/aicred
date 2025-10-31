@@ -160,7 +160,7 @@ pub extern "C" fn keyfinder_scan(
         }
 
         // Run the scan
-        let scan_result = scan(options).map_err(|e| format!("Scan failed: {}", e))?;
+        let scan_result = scan(&options).map_err(|e| format!("Scan failed: {}", e))?;
 
         // Serialize result to JSON
         let json_result = serde_json::to_string(&scan_result)

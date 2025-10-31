@@ -291,9 +291,9 @@ impl ProviderPlugin for CommonConfigPlugin {
         score.min(1.0)
     }
 
-    fn can_handle_file(&self, _path: &Path) -> bool {
+    fn can_handle_file(&self, path: &Path) -> bool {
         // Check if this plugin should handle the file
-        let file_name = _path.file_name().unwrap_or_default().to_string_lossy();
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
 
         file_name.ends_with(".env")
             || file_name.ends_with(".env.local")

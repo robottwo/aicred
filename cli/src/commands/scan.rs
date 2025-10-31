@@ -98,7 +98,7 @@ pub fn handle_scan(
 
     // Perform scan
     println!("{}", "Scanning for GenAI credentials...".cyan().bold());
-    let result = scan(options)?;
+    let result = scan(&options)?;
 
     // Output results based on format
     match format.as_str() {

@@ -1213,7 +1213,7 @@ fn scan_py(
         exclude_providers,
     };
 
-    let result = core_scan(options)
+    let result = core_scan(&options)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
     // Convert to JSON and then to Python dict
