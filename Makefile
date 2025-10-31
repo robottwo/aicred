@@ -200,20 +200,19 @@ package-all: package-linux package-macos package-windows
 package-linux: build-all
 	mkdir -p dist/linux
 	cp target/release/keyfinder dist/linux/
-	cp target/release/libgenai_keyfinder_ffi.$(LIB_EXT) dist/linux/
+	cp target/release/libgenai_keyfinder_ffi.so dist/linux/
 
 .PHONY: package-macos
 package-macos: build-all
 	mkdir -p dist/macos
 	cp target/release/keyfinder dist/macos/
-	cp target/release/libgenai_keyfinder_ffi.$(LIB_EXT) dist/macos/
+	cp target/release/libgenai_keyfinder_ffi.dylib dist/macos/
 
 .PHONY: package-windows
 package-windows: build-all
 	mkdir -p dist/windows
-	cp target/release/keyfinder$(EXE_EXT) dist/windows/
-	cp target/release/genai_keyfinder_ffi.$(LIB_EXT) dist/windows/
-
+	cp target/release/keyfinder.exe dist/windows/
+	cp target/release/genai_keyfinder_ffi.dll dist/windows/
 # Platform-specific targets
 .PHONY: build-platform
 
