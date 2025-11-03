@@ -8,18 +8,18 @@
   },
   "architecture": {
     "64bit": {
-      "url": "https://github.com/robottwo/aicred/releases/download/v0.1.0/keyfinder-windows-x86_64.zip",
+      "url": "https://github.com/robottwo/aicred/releases/download/v0.1.0/aicred-windows-x86_64.zip",
       "hash": "REPLACE_WITH_ACTUAL_SHA"
     }
   },
-  "bin": "keyfinder.exe",
+  "bin": "aicred.exe",
   "checkver": {
     "github": "https://github.com/robottwo/aicred"
   },
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/robottwo/aicred/releases/download/v$version/keyfinder-windows-x86_64.zip"
+        "url": "https://github.com/robottwo/aicred/releases/download/v$version/aicred-windows-x86_64.zip"
       }
     }
   }

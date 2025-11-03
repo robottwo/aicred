@@ -1,86 +1,86 @@
 # User Guide
 
-This guide walks through using GenAI Key Finder via the CLI, Python, Go, Rust library, and the GUI. It also covers common workflows and troubleshooting.
+This guide walks through using AICred via the CLI, Python, Go, Rust library, and the GUI. It also covers common workflows and troubleshooting.
 
 ## CLI Usage
 
-The CLI binary is `keyfinder`.
+The CLI binary is `aicred`.
 
 ### Commands
 
-- `keyfinder scan` — Scan for GenAI credentials and configurations
-- `keyfinder providers` — Show available providers and application scanners
-- `keyfinder instances` — List provider instances with their configurations
-- `keyfinder version` — Show version information
+- `aicred scan` — Scan for GenAI credentials and configurations
+- `aicred providers` — Show available providers and application scanners
+- `aicred instances` — List provider instances with their configurations
+- `aicred version` — Show version information
 
 ### Scan Options
 
 ```bash
 # Basic scan with default table output
-keyfinder scan
+aicred scan
 
 # Output formats: table (default), json, ndjson, summary
-keyfinder scan --format json
-keyfinder scan --format ndjson
-keyfinder scan --format summary
+aicred scan --format json
+aicred scan --format ndjson
+aicred scan --format summary
 
 # Set home directory to scan
-keyfinder scan --home /path/to/home
+aicred scan --home /path/to/home
 
 # Include full secret values (DANGEROUS - use with caution)
-keyfinder scan --include-values
+aicred scan --include-values
 
 # Filter by providers
-keyfinder scan --only openai,anthropic
-keyfinder scan --exclude huggingface
+aicred scan --only openai,anthropic
+aicred scan --exclude huggingface
 
 # Limit file size (bytes)
-keyfinder scan --max-bytes-per-file 2097152
+aicred scan --max-bytes-per-file 2097152
 
 # Dry run (no file reads), print what would be scanned
-keyfinder scan --dry-run
+aicred scan --dry-run
 
 # Write an audit log
-keyfinder scan --audit-log scan-audit.log
+aicred scan --audit-log scan-audit.log
 ```
 
 ### Provider Instance Management
 
-The `keyfinder instances` command allows you to manage provider instances with their configurations:
+The `aicred instances` command allows you to manage provider instances with their configurations:
 
 ```bash
 # List all provider instances (default behavior)
-keyfinder instances
+aicred instances
 
 # Get detailed information about a specific instance using shorthand syntax
-keyfinder instances my-openai
+aicred instances my-openai
 
 # Get instance information with full secret values (DANGEROUS - use with caution)
-keyfinder instances my-openai --include-values
+aicred instances my-openai --include-values
 
 # List instances with detailed information
-keyfinder instances list --verbose
+aicred instances list --verbose
 
 # Filter instances by provider type
-keyfinder instances list --provider-type openai
+aicred instances list --provider-type openai
 
 # Show only active instances
-keyfinder instances list --active-only
+aicred instances list --active-only
 
 # Add a new provider instance
-keyfinder instances add --id my-openai --name "My OpenAI" --provider-type openai --base-url https://api.openai.com/v1 --models gpt-4,gpt-3.5-turbo
+aicred instances add --id my-openai --name "My OpenAI" --provider-type openai --base-url https://api.openai.com/v1 --models gpt-4,gpt-3.5-turbo
 
 # Remove an instance
-keyfinder instances remove --id my-openai
+aicred instances remove --id my-openai
 
 # Update an existing instance
-keyfinder instances update --id my-openai --name "Updated OpenAI" --active false
+aicred instances update --id my-openai --name "Updated OpenAI" --active false
 
 # Get detailed information about a specific instance (alternative syntax)
-keyfinder instances get --id my-openai
+aicred instances get --id my-openai
 
 # Validate instance configurations
-keyfinder instances validate
+aicred instances validate
 ```
 
 ### Output Formats
@@ -123,7 +123,7 @@ Notes:
 
 ## How Key Discovery Works
 
-The GenAI KeyFinder uses a **two-phase approach**:
+The AICred uses a **two-phase approach**:
 
 1. **Discovery Phase**: ScannerPlugin implementations scan for configuration files and extract potential API keys
 2. **Validation Phase**: ProviderPlugin implementations validate discovered keys and assign confidence scores
@@ -142,19 +142,19 @@ Provider plugins validate and score discovered keys:
 
 Install:
 ```bash
-pip install genai-keyfinder
+pip install aicred
 ```
 
 Basic usage:
 ```python
-import genai_keyfinder
+import aicred
 
 # Default scan (user home)
-result = genai_keyfinder.scan()
+result = aicred.scan()
 print(f"Found {len(result['keys'])} keys")
 
 # Filter providers and include full values (dangerous)
-result = genai_keyfinder.scan(
+result = aicred.scan(
     include_full_values=False,
     only_providers=["openai", "anthropic"],
     max_file_size=1_048_576
@@ -167,10 +167,10 @@ for key in result["keys"]:
 ```
 
 Available functions:
-- `genai_keyfinder.scan(home_dir=None, include_full_values=False, max_file_size=1048576, only_providers=None, exclude_providers=None) -> dict`
-- `genai_keyfinder.version() -> str`
-- `genai_keyfinder.list_providers() -> list[str]`
-- `genai_keyfinder.list_scanners() -> list[str]`
+- `aicred.scan(home_dir=None, include_full_values=False, max_file_size=1048576, only_providers=None, exclude_providers=None) -> dict`
+- `aicred.version() -> str`
+- `aicred.list_providers() -> list[str]`
+- `aicred.list_scanners() -> list[str]`
 
 Return schema matches the JSON example in CLI output.
 
@@ -178,7 +178,7 @@ Return schema matches the JSON example in CLI output.
 
 Install:
 ```bash
-go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go
 ```
 
 Example:
@@ -189,11 +189,11 @@ import (
   "fmt"
   "log"
 
-  "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+  "github.com/robottwo/aicred/bindings/go"
 )
 
 func main() {
-  result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{
+  result, err := aicred.Scan(aicred.ScanOptions{
     HomeDir:           "",     // default to user home
     IncludeFullValues: false,  // keep secrets redacted
     MaxFileSize:       1048576,
@@ -223,12 +223,12 @@ Notes:
 Add dependency (from crates.io or path):
 ```toml
 [dependencies]
-genai-keyfinder-core = "0.1.0"
+aicred-core = "0.1.0"
 ```
 
 Basic scan:
 ```rust
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = ScanOptions::default();
@@ -240,7 +240,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Filter providers:
 ```rust
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = ScanOptions::default()
@@ -253,7 +253,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Advanced scanning with custom plugins:
 ```rust
-use genai_keyfinder_core::{
+use aicred_core::{
     scanner::{Scanner, ScannerConfig},
     plugins::{PluginRegistry, ProviderPlugin},
     scanners::{ScannerRegistry, ScannerPlugin},
@@ -333,42 +333,42 @@ npm run dev
 
 ### Security Audit (no values, summary):
 ```bash
-keyfinder scan --format summary --audit-log audit.log
+aicred scan --format summary --audit-log audit.log
 ```
 
 ### Targeted Providers:
 ```bash
-keyfinder scan --only openai,anthropic --format json
+aicred scan --only openai,anthropic --format json
 ```
 
 ### Application-Specific Scanning:
 ```bash
 # Scan for specific applications
-keyfinder scan --only roo-code,claude-desktop
+aicred scan --only roo-code,claude-desktop
 ```
 
 ### Provider Key Discovery:
 ```bash
 # Scan for provider keys in standard locations
-keyfinder scan --only openai,anthropic,huggingface
+aicred scan --only openai,anthropic,huggingface
 ```
 
 ### Dry Run Planning:
 ```bash
-keyfinder scan --dry-run --format json > would-scan.json
+aicred scan --dry-run --format json > would-scan.json
 ```
 
 ### Programmatic Use (Python):
 ```python
-import genai_keyfinder
+import aicred
 
 # Scan for specific applications
-res = genai_keyfinder.scan(only_providers=["roo-code", "claude-desktop"])
+res = aicred.scan(only_providers=["roo-code", "claude-desktop"])
 if not res["keys"]:
     print("No credentials found")
 
 # Scan for provider keys
-res = genai_keyfinder.scan(only_providers=["openai", "anthropic"])
+res = aicred.scan(only_providers=["openai", "anthropic"])
 print(f"Found {len(res['keys'])} provider keys")
 ```
 
@@ -377,9 +377,9 @@ print(f"Found {len(res['keys'])} provider keys")
 ### No output or empty results:
 - Ensure the home directory is correct: `--home /path`
 - Increase file size limit: `--max-bytes-per-file 2097152`
-- Verify provider list: `keyfinder providers`
-- Check if scanners are available: `keyfinder providers --verbose`
-- Try scanning for applications: `keyfinder scan --only roo-code,claude-desktop`
+- Verify provider list: `aicred providers`
+- Check if scanners are available: `aicred providers --verbose`
+- Try scanning for applications: `aicred scan --only roo-code,claude-desktop`
 
 ### Permission errors when reading files:
 - Run with appropriate permissions or exclude problematic paths
@@ -390,7 +390,7 @@ print(f"Found {len(res['keys'])} provider keys")
 - On source builds, ensure `maturin develop` succeeded in `bindings/python`
 
 ### Go linking issues:
-- Make sure the FFI library is built (`cargo build -p genai-keyfinder-ffi --release`)
+- Make sure the FFI library is built (`cargo build -p aicred-ffi --release`)
 - Ensure runtime library path is resolvable (see `bindings/go/README.md`)
 
 ### GUI build issues:
@@ -418,7 +418,7 @@ print(f"Found {len(res['keys'])} provider keys")
 
 ## Configuration Validation and Rewrite
 
-The GenAI Key Finder uses a validation-and-rewrite approach for configuration files. When invalid configurations are encountered, they are automatically replaced with default settings rather than attempting complex migrations.
+The AICred uses a validation-and-rewrite approach for configuration files. When invalid configurations are encountered, they are automatically replaced with default settings rather than attempting complex migrations.
 
 ### Automatic Configuration Handling
 When loading configuration files, the system validates them against current requirements:

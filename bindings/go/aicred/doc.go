@@ -1,16 +1,21 @@
 /*
-Package genai_keyfinder provides Go bindings for the genai-keyfinder library.
+Package aicred provides Go bindings for the aicred library.
 
 This package allows Go applications to scan for GenAI API keys and configurations
 across various providers and applications.
 
 Basic Usage:
 
-	import "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+	import (
+		"fmt"
+		"log"
+
+		aicred "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+	)
 
 	func main() {
 		// Scan with default options
-		result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{})
+		result, err := aicred.Scan(aicred.ScanOptions{})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,4 +46,4 @@ Supported Applications:
   - Ragit
   - LangChain applications
 */
-package genai_keyfinder
+package aicred

@@ -1,11 +1,11 @@
-use anyhow::Result;
-use colored::*;
-use genai_keyfinder_core::models::{
+use aicred_core::models::{
     Confidence, Environment, Model, ProviderInstance, ProviderKey, ValidationStatus,
 };
-use genai_keyfinder_core::plugins::PluginRegistry;
-use genai_keyfinder_core::providers::anthropic::AnthropicPlugin;
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::plugins::PluginRegistry;
+use aicred_core::providers::anthropic::AnthropicPlugin;
+use aicred_core::{scan, ScanOptions};
+use anyhow::Result;
+use colored::*;
 use sha2::{Digest, Sha256};
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -147,7 +147,7 @@ fn create_full_model(model_id: &str) -> Model {
     let model = Model::new(model_id.to_string(), model_id.to_string());
 
     // Set default capabilities based on common model patterns
-    let mut capabilities = genai_keyfinder_core::models::Capabilities::default();
+    let mut capabilities = aicred_core::models::Capabilities::default();
 
     // Enable text generation for most models
     capabilities.text_generation = true;
@@ -223,10 +223,7 @@ fn hash_value(value: &str) -> String {
 
 /// Updates or creates the YAML configuration files with discovered providers and keys
 /// NEW APPROACH: One instance per API key, using API key as instance ID
-fn update_yaml_config(
-    result: &genai_keyfinder_core::ScanResult,
-    home_dir: &std::path::Path,
-) -> Result<()> {
+fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Path) -> Result<()> {
     let config_dir = home_dir
         .join(".config")
         .join("aicred")
@@ -248,7 +245,7 @@ fn update_yaml_config(
     // Create a map to track configuration context by source file
     let mut source_context: std::collections::HashMap<
         String,
-        std::collections::HashMap<String, Vec<genai_keyfinder_core::models::DiscoveredKey>>,
+        std::collections::HashMap<String, Vec<aicred_core::models::DiscoveredKey>>,
     > = std::collections::HashMap::new();
 
     // Step 1: We're no longer tracking existing instances to ensure consistent SHA-256 based IDs
@@ -313,25 +310,25 @@ fn update_yaml_config(
             );
 
             // Find API keys in this group
-            let api_keys: Vec<&genai_keyfinder_core::models::DiscoveredKey> = keys
+            let api_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
                         k.value_type,
-                        genai_keyfinder_core::models::discovered_key::ValueType::ApiKey
+                        aicred_core::models::discovered_key::ValueType::ApiKey
                     )
                 })
                 .collect();
 
             // Also check for other key types that can serve as primary keys
-            let other_keys: Vec<&genai_keyfinder_core::models::DiscoveredKey> = keys
+            let other_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
                         k.value_type,
-                        genai_keyfinder_core::models::discovered_key::ValueType::AccessToken
-                            | genai_keyfinder_core::models::discovered_key::ValueType::SecretKey
-                            | genai_keyfinder_core::models::discovered_key::ValueType::BearerToken
+                        aicred_core::models::discovered_key::ValueType::AccessToken
+                            | aicred_core::models::discovered_key::ValueType::SecretKey
+                            | aicred_core::models::discovered_key::ValueType::BearerToken
                     )
                 })
                 .collect();
@@ -420,7 +417,7 @@ fn update_yaml_config(
 
                     for key in &keys {
                         match &key.value_type {
-                            genai_keyfinder_core::models::discovered_key::ValueType::ModelId => {
+                            aicred_core::models::discovered_key::ValueType::ModelId => {
                                 if let Some(full_value) = key.full_value() {
                                     tracing::debug!("Found ModelId: {}", full_value);
                                     models_found.push(full_value.to_string());
@@ -431,7 +428,7 @@ fn update_yaml_config(
                                     );
                                 }
                             }
-                            genai_keyfinder_core::models::discovered_key::ValueType::Custom(
+                            aicred_core::models::discovered_key::ValueType::Custom(
                                 ref custom_type,
                             ) => {
                                 let custom_type_lower = custom_type.to_lowercase();
@@ -597,7 +594,7 @@ fn update_yaml_config(
                     metadata_map.remove("modelid");
 
                     for key in &keys {
-                        if let genai_keyfinder_core::models::discovered_key::ValueType::Custom(
+                        if let aicred_core::models::discovered_key::ValueType::Custom(
                             ref custom_type,
                         ) = key.value_type
                         {
@@ -670,7 +667,7 @@ fn update_yaml_config(
     Ok(())
 }
 
-fn write_audit_log(log_path: &str, result: &genai_keyfinder_core::ScanResult) -> Result<()> {
+fn write_audit_log(log_path: &str, result: &aicred_core::ScanResult) -> Result<()> {
     #[cfg(unix)]
     let mut file = OpenOptions::new()
         .write(true)
@@ -684,8 +681,8 @@ fn write_audit_log(log_path: &str, result: &genai_keyfinder_core::ScanResult) ->
         .create(true)
         .truncate(true)
         .open(log_path)?;
-    writeln!(file, "GenAI Key Finder Audit Log")?;
-    writeln!(file, "=========================")?;
+    writeln!(file, "AICred Audit Log")?;
+    writeln!(file, "==================")?;
     writeln!(file, "Scan Date: {}", result.scan_completed_at)?;
     writeln!(file, "Home Directory: {}", result.home_directory)?;
     writeln!(

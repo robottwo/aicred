@@ -13,7 +13,7 @@
 ### From Crates.io
 
 ```bash
-cargo install genai-keyfinder
+cargo install aicred
 ```
 
 ### From Source
@@ -21,7 +21,7 @@ cargo install genai-keyfinder
 ```bash
 git clone https://github.com/robottwo/aicred
 cd aicred
-cargo build --release -p genai-keyfinder
+cargo build --release -p aicred
 ```
 
 ### Platform-Specific
@@ -30,23 +30,23 @@ cargo build --release -p genai-keyfinder
 
 ```bash
 brew tap robottwo/aicred
-brew install genai-keyfinder
+brew install aicred
 ```
 
 #### Linux
 
 ```bash
 # Download latest release
-curl -LO https://github.com/robottwo/aicred/releases/latest/download/keyfinder-linux-x86_64.tar.gz
-tar xzf keyfinder-linux-x86_64.tar.gz
-sudo mv keyfinder /usr/local/bin/
+curl -LO https://github.com/robottwo/aicred/releases/latest/download/aicred-linux-x86_64.tar.gz
+tar xzf aicred-linux-x86_64.tar.gz
+sudo mv aicred /usr/local/bin/
 ```
 
 #### Windows (Scoop)
 
 ```powershell
-scoop bucket add genai-keyfinder https://github.com/robottwo/scoop-aicred
-scoop install genai-keyfinder
+scoop bucket add aicred https://github.com/robottwo/scoop-aicred
+scoop install aicred
 ```
 
 ## Python Bindings
@@ -54,7 +54,7 @@ scoop install genai-keyfinder
 ### From PyPI
 
 ```bash
-pip install genai-keyfinder
+pip install aicred
 ```
 
 ### From Source
@@ -70,7 +70,7 @@ PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop
 ## Go Bindings
 
 ```bash
-go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go
 ```
 
 ## GUI Application
@@ -97,7 +97,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-genai-keyfinder-core = "0.1.0"
+aicred-core = "0.1.0"
 ```
 
 ## Verification
@@ -106,10 +106,10 @@ Verify installation:
 
 ```bash
 # CLI
-keyfinder version
+aicred version
 
 # Python
-python -c "import genai_keyfinder; print(genai_keyfinder.version())"
+python -c "import aicred; print(aicred.version())"
 
 # Go (run the provided example)
 cd bindings/go/examples/basic_usage && go run .

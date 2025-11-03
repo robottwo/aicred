@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 // Import the FFI functions from the library
-use genai_keyfinder_ffi::*;
+use aicred_ffi::*;
 
 fn main() {
     unsafe {
@@ -12,10 +12,10 @@ fn main() {
         let home = CString::new(home_path).unwrap();
         let options = CString::new(r#"{"include_full_values": false}"#).unwrap();
         
-        let result = keyfinder_scan(home.as_ptr(), options.as_ptr());
+        let result = aicred_scan(home.as_ptr(), options.as_ptr());
         
         if result.is_null() {
-            let error = keyfinder_last_error();
+            let error = aicred_last_error();
             if !error.is_null() {
                 let error_str = CStr::from_ptr(error).to_str().unwrap();
                 println!("Scan failed with error: {}", error_str);
@@ -25,7 +25,7 @@ fn main() {
         } else {
             let result_str = CStr::from_ptr(result).to_str().unwrap();
             println!("Scan result: {}", result_str);
-            keyfinder_free(result);
+            aicred_free(result);
         }
     }
 }

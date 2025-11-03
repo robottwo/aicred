@@ -1,9 +1,9 @@
-use anyhow::Result;
-use colored::*;
-use genai_keyfinder_core::models::{
+use aicred_core::models::{
     Confidence, Environment, Model, ProviderInstance, ProviderInstances, ProviderKey,
     ValidationStatus,
 };
+use anyhow::Result;
+use colored::*;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -44,7 +44,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
                         let _ = instances.add_instance(instance);
                         continue;
                     } else if content.contains("keys:") {
-                        match genai_keyfinder_core::models::ProviderConfig::from_yaml(&content) {
+                        match aicred_core::models::ProviderConfig::from_yaml(&content) {
                             Ok(config) => {
                                 let instance: ProviderInstance = config.into();
                                 let _ = instances.add_instance(instance);
@@ -69,7 +69,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 
                 // If direct deserialization failed (or the file uses legacy 'keys' shape),
                 // attempt to parse as a ProviderConfig (legacy multi-key format) and convert.
-                match genai_keyfinder_core::models::ProviderConfig::from_yaml(&content) {
+                match aicred_core::models::ProviderConfig::from_yaml(&content) {
                     Ok(config) => {
                         let instance: ProviderInstance = config.into();
                         let _ = instances.add_instance(instance);
@@ -217,7 +217,7 @@ fn load_instances_from_providers(
     providers_dir: &PathBuf,
     instances: &mut ProviderInstances,
 ) -> Result<()> {
-    use genai_keyfinder_core::models::ProviderConfig;
+    use aicred_core::models::ProviderConfig;
 
     if !providers_dir.exists() {
         return Ok(());
@@ -403,7 +403,7 @@ pub fn handle_list_instances(
         println!("{}", "No provider instances configured.".yellow());
         println!(
             "{}",
-            "Use 'keyfinder instances add' to create a new instance.".dimmed()
+            "Use 'aicred instances add' to create a new instance.".dimmed()
         );
         return Ok(());
     }
@@ -951,7 +951,7 @@ pub fn handle_providers(verbose: bool) -> Result<()> {
     }
 
     println!("\n{}", "Provider Instance Management:".green().bold());
-    println!("  Use 'keyfinder instances --help' for instance management commands");
+    println!("  Use 'aicred instances --help' for instance management commands");
 
     Ok(())
 }

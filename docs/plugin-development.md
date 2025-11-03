@@ -4,7 +4,7 @@ Learn how to create custom provider plugins and application scanners.
 
 ## Architecture Overview
 
-The GenAI KeyFinder architecture separates concerns between **discovery** and **validation**:
+The AICred architecture separates concerns between **discovery** and **validation**:
 
 - **ScannerPlugin**: Discovers API keys and configuration files across applications and providers
 - **ProviderPlugin**: Validates and scores discovered keys, providing confidence metrics
@@ -16,9 +16,9 @@ ScannerPlugin implementations handle the discovery of API keys and configuration
 ### Required Methods
 
 ```rust
-use genai_keyfinder_core::scanners::{ScannerPlugin, ScanResult};
-use genai_keyfinder_core::models::{DiscoveredKey, ConfigInstance};
-use genai_keyfinder_core::error::Result;
+use aicred_core::scanners::{ScannerPlugin, ScanResult};
+use aicred_core::models::{DiscoveredKey, ConfigInstance};
+use aicred_core::error::Result;
 use std::path::{Path, PathBuf};
 
 pub struct MyScannerPlugin;
@@ -56,8 +56,8 @@ impl ScannerPlugin for MyScannerPlugin {
                 let key = DiscoveredKey::new(
                     "my-provider".to_string(),
                     path.display().to_string(),
-                    genai_keyfinder_core::models::ValueType::ApiKey,
-                    genai_keyfinder_core::models::Confidence::High,
+                    aicred_core::models::ValueType::ApiKey,
+                    aicred_core::models::Confidence::High,
                     api_key.to_string(),
                 );
                 result.add_key(key);
@@ -154,8 +154,8 @@ ProviderPlugin implementations now focus on validating and scoring discovered ke
 ### Basic Implementation
 
 ```rust
-use genai_keyfinder_core::plugins::ProviderPlugin;
-use genai_keyfinder_core::error::Result;
+use aicred_core::plugins::ProviderPlugin;
+use aicred_core::error::Result;
 use std::path::Path;
 
 pub struct MyProviderPlugin;
@@ -240,7 +240,7 @@ impl ProviderPlugin for MyProviderPlugin {
 The `CommonConfigPlugin` provides basic confidence scoring for common configuration patterns:
 
 ```rust
-use genai_keyfinder_core::plugins::CommonConfigPlugin;
+use aicred_core::plugins::CommonConfigPlugin;
 
 let plugin = CommonConfigPlugin;
 let score = plugin.confidence_score("sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef");
@@ -252,7 +252,7 @@ let score = plugin.confidence_score("sk-EXAMPLE_FAKE_TOKEN_1234567890abcdef");
 ### Scanner Registration
 
 ```rust
-use genai_keyfinder_core::scanners::{ScannerRegistry, register_builtin_scanners};
+use aicred_core::scanners::{ScannerRegistry, register_builtin_scanners};
 use std::sync::Arc;
 
 let scanner_registry = ScannerRegistry::new();
@@ -267,7 +267,7 @@ scanner_registry.register(Arc::new(MyScannerPlugin))?;
 ### Provider Registration
 
 ```rust
-use genai_keyfinder_core::plugins::{PluginRegistry, register_builtin_plugins};
+use aicred_core::plugins::{PluginRegistry, register_builtin_plugins};
 use std::sync::Arc;
 
 let provider_registry = PluginRegistry::new();
@@ -338,7 +338,7 @@ mod tests {
 Here's how to use both plugins together in the main scanning process:
 
 ```rust
-use genai_keyfinder_core::{
+use aicred_core::{
     scan, ScanOptions, PluginRegistry, ScannerRegistry,
     register_builtin_plugins, register_builtin_scanners
 };
@@ -413,7 +413,7 @@ impl ProviderPlugin for MyProviderPlugin {
 
 - Run unit tests in your crate:
   ```bash
-  cargo test -p genai-keyfinder-core
+  cargo test -p aicred-core
   ```
 - Log parsing paths and hits with `tracing` at debug level if you need deeper insight
 - Use the `--dry-run` flag to see what would be scanned without actually reading files

@@ -7,9 +7,7 @@
 //! - Correctly maps settings (temperature, base_url, etc.)
 //! - Handles edge cases (missing keys, invalid configs, mixed providers)
 
-use genai_keyfinder_core::scanners::{
-    ClaudeDesktopScanner, GshScanner, RooCodeScanner, ScannerPlugin,
-};
+use aicred_core::scanners::{ClaudeDesktopScanner, GshScanner, RooCodeScanner, ScannerPlugin};
 use std::path::Path;
 
 #[test]
@@ -155,7 +153,7 @@ fn test_claude_desktop_scanner_architecture() {
         .filter(|k| {
             matches!(
                 k.value_type,
-                genai_keyfinder_core::models::discovered_key::ValueType::ApiKey
+                aicred_core::models::discovered_key::ValueType::ApiKey
             )
         })
         .collect();
@@ -172,7 +170,7 @@ fn test_claude_desktop_scanner_architecture() {
         .filter(|k| {
             matches!(
                 k.value_type,
-                genai_keyfinder_core::models::discovered_key::ValueType::ModelId
+                aicred_core::models::discovered_key::ValueType::ModelId
             )
         })
         .collect();
@@ -185,7 +183,7 @@ fn test_claude_desktop_scanner_architecture() {
         .filter(|k| {
             matches!(
                 k.value_type,
-                genai_keyfinder_core::models::discovered_key::ValueType::Temperature
+                aicred_core::models::discovered_key::ValueType::Temperature
             )
         })
         .collect();
@@ -558,7 +556,7 @@ fn test_provider_instance_counts() {
     for key in &gsh_result.keys {
         if matches!(
             key.value_type,
-            genai_keyfinder_core::models::discovered_key::ValueType::ApiKey
+            aicred_core::models::discovered_key::ValueType::ApiKey
         ) {
             *provider_api_key_counts.entry(&key.provider).or_insert(0) += 1;
         }

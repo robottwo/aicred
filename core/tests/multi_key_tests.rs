@@ -3,10 +3,8 @@
 // Allow clippy lints for multi-key tests
 #![allow(unused_imports)]
 
+use aicred_core::models::{Confidence, Environment, ProviderConfig, ProviderKey, ValidationStatus};
 use chrono::{DateTime, Utc};
-use genai_keyfinder_core::models::{
-    Confidence, Environment, ProviderConfig, ProviderKey, ValidationStatus,
-};
 
 #[test]
 fn test_provider_key_creation() {

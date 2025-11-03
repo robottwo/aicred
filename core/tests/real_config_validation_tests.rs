@@ -3,9 +3,7 @@
 //! This test suite validates the scanner architecture against real-world configuration files
 //! to ensure accurate provider detection, model counting, and output formatting.
 
-use genai_keyfinder_core::scanners::{
-    ClaudeDesktopScanner, GshScanner, RooCodeScanner, ScannerPlugin,
-};
+use aicred_core::scanners::{ClaudeDesktopScanner, GshScanner, RooCodeScanner, ScannerPlugin};
 use std::path::Path;
 
 /// Helper function to get fixture path

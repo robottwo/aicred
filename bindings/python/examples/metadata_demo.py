@@ -4,13 +4,13 @@ Demonstration of the fixed PyModel.metadata getter functionality.
 This shows that metadata is now properly returned instead of always being None.
 """
 
-import genai_keyfinder
+import aicred
 
 def main():
     print("=== PyModel Metadata Getter Fix Demo ===\n")
     
     # Create a model
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="gpt-4-demo",
         provider_instance_id="openai-demo",
         name="GPT-4 Demo Model"

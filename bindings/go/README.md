@@ -1,6 +1,6 @@
-# GenAI Key Finder - Go Bindings
+# AICred - Go Bindings
 
-Go bindings for the genai-keyfinder library using CGo.
+Go bindings for the aicred library using CGo.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Go bindings for the genai-keyfinder library using CGo.
 ## Installation
 
 ```bash
-go get github.com/robottwo/aicred/bindings/go/genai_keyfinder
+go get github.com/robottwo/aicred/bindings/go/aicred
 ```
 
 ## Building from Source
@@ -23,7 +23,7 @@ cargo build --release
 
 # Build Go bindings
 cd ../bindings/go
-go build ./genai_keyfinder
+go build ./aicred
 ```
 
 ## Usage
@@ -35,12 +35,12 @@ import (
     "fmt"
     "log"
     
-    "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+    aicred "github.com/robottwo/aicred/bindings/go/aicred"
 )
 
 func main() {
     // Scan for credentials
-    result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{})
+    result, err := aicred.Scan(aicred.ScanOptions{})
     if err != nil {
         log.Fatal(err)
     }

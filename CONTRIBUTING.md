@@ -1,4 +1,4 @@
-# Contributing to GenAI Key Finder
+# Contributing to AICred
 
 Thank you for your interest in contributing!
 
@@ -7,7 +7,7 @@ Thank you for your interest in contributing!
 ```bash
 # Clone repository
 git clone https://github.com/robottwo/aicred
-cd genai-keyfinder
+cd aicred
 
 # Build all components
 cargo build --all
@@ -16,7 +16,7 @@ cargo build --all
 cargo test --all
 
 # Build CLI
-cargo build --release -p genai-keyfinder
+cargo build --release -p aicred
 ```
 
 ## Code Style
@@ -53,7 +53,7 @@ cargo test
 cargo test --test '*'
 
 # Specific component
-cargo test -p genai-keyfinder-core
+cargo test -p aicred-core
 ```
 
 ## Documentation

@@ -1,18 +1,18 @@
-# GenAI KeyFinder FFI (Foreign Function Interface)
+# AICred FFI (Foreign Function Interface)
 
-This crate provides a C-compatible API for the genai-keyfinder core library, enabling bindings for Python, Go, and other languages through a stable C ABI.
+This crate provides a C-compatible API for the aicred core library, enabling bindings for Python, Go, and other languages through a stable C ABI.
 
 ## Overview
 
-The FFI layer exposes the core functionality of genai-keyfinder through a stable C API that can be used to create language bindings. All functions are designed to be safe to call from C code and handle memory management correctly.
+The FFI layer exposes the core functionality of aicred through a stable C API that can be used to create language bindings. All functions are designed to be safe to call from C code and handle memory management correctly.
 
 ## API Functions
 
 ### Core Functions
 
-#### `keyfinder_scan`
+#### `aicred_scan`
 ```c
-char* keyfinder_scan(const char* home_path, const char* options_json);
+char* aicred_scan(const char* home_path, const char* options_json);
 ```
 
 Scan for GenAI credentials and configurations in the specified home directory.
@@ -22,7 +22,7 @@ Scan for GenAI credentials and configurations in the specified home directory.
 - `options_json`: UTF-8 encoded JSON options (null-terminated C string)
 
 **Returns:**
-- UTF-8 encoded JSON string containing scan results. Caller must free with `keyfinder_free()`.
+- UTF-8 encoded JSON string containing scan results. Caller must free with `aicred_free()`.
 - Returns `NULL` on error.
 
 **Example options JSON:**
@@ -35,19 +35,19 @@ Scan for GenAI credentials and configurations in the specified home directory.
 }
 ```
 
-#### `keyfinder_free`
+#### `aicred_free`
 ```c
-void keyfinder_free(char* ptr);
+void aicred_free(char* ptr);
 ```
 
-Free a string returned by `keyfinder_scan`.
+Free a string returned by `aicred_scan`.
 
 **Parameters:**
 - `ptr`: Pointer to string allocated by the library (can be `NULL`)
 
-#### `keyfinder_version`
+#### `aicred_version`
 ```c
-const char* keyfinder_version();
+const char* aicred_version();
 ```
 
 Get the library version string.
@@ -55,23 +55,23 @@ Get the library version string.
 **Returns:**
 - Static version string that does not need to be freed.
 
-#### `keyfinder_last_error`
+#### `aicred_last_error`
 ```c
-const char* keyfinder_last_error();
+const char* aicred_last_error();
 ```
 
 Get the last error message (thread-local).
 
 **Returns:**
 - Pointer to the last error message, or `NULL` if no error occurred.
-- The returned pointer is valid until the next call to any keyfinder function.
+- The returned pointer is valid until the next call to any aicred function.
 
 ## Usage Example
 
 ### C Example
 
 ```c
-#include "genai_keyfinder.h"
+#include "aicred.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -79,15 +79,15 @@ int main() {
     const char* home = "/Users/username";
     const char* options = "{\"include_full_values\": false}";
     
-    char* result = keyfinder_scan(home, options);
+    char* result = aicred_scan(home, options);
     if (result == NULL) {
-        const char* error = keyfinder_last_error();
+        const char* error = aicred_last_error();
         fprintf(stderr, "Error: %s\n", error ? error : "Unknown error");
         return 1;
     }
     
     printf("Result: %s\n", result);
-    keyfinder_free(result);
+    aicred_free(result);
     
     return 0;
 }
@@ -97,17 +97,17 @@ int main() {
 
 #### Linux/macOS
 ```bash
-gcc -o myapp myapp.c -L/path/to/lib -lgenai_keyfinder_ffi -lpthread -ldl
+gcc -o myapp myapp.c -L/path/to/lib -laicred_ffi -lpthread -ldl
 ```
 
 #### Windows
 ```cmd
-cl /I"path\to\include" myapp.c /link path\to\genai_keyfinder_ffi.dll.lib
+cl /I"path\to\include" myapp.c /link path\to\aicred_ffi.dll.lib
 ```
 
 ## Memory Management
 
-- **Caller Responsibility**: Strings returned by `keyfinder_scan` must be freed by the caller using `keyfinder_free`.
+- **Caller Responsibility**: Strings returned by `aicred_scan` must be freed by the caller using `aicred_free`.
 - **Thread Safety**: Error messages are stored in thread-local storage.
 - **Null Safety**: All functions handle null pointers gracefully.
 
@@ -116,7 +116,7 @@ cl /I"path\to\include" myapp.c /link path\to\genai_keyfinder_ffi.dll.lib
 The library uses thread-local storage for error messages. If a function fails:
 
 1. The function returns `NULL` or an appropriate error value
-2. The error message can be retrieved using `keyfinder_last_error()`
+2. The error message can be retrieved using `aicred_last_error()`
 3. The error message remains available until the next API call
 
 ## Platform Support
@@ -142,7 +142,7 @@ The FFI layer supports the following platforms:
 cargo build --release
 
 # Generate C header (automatically done during build)
-# Header will be in ffi/include/genai_keyfinder.h
+# Header will be in ffi/include/aicred.h
 
 # Run tests
 cargo test
@@ -165,7 +165,7 @@ cargo build --target x86_64-pc-windows-msvc --release
 
 ## JSON Output Format
 
-The `keyfinder_scan` function returns a JSON string with the following structure:
+The `aicred_scan` function returns a JSON string with the following structure:
 
 ```json
 {
@@ -216,4 +216,4 @@ The library is thread-safe:
 
 ## License
 
-This project is licensed under the same terms as the main genai-keyfinder project (MIT OR Apache-2.0).
+This project is licensed under the same terms as the main aicred project (MIT OR Apache-2.0).

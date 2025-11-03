@@ -126,7 +126,7 @@ def scan(
     exclude_providers: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Scan for GenAI credentials and configurations.
+    Scan for AI credentials and configurations.
     
     Args:
         home_dir: Home directory to scan. Defaults to user's home directory.

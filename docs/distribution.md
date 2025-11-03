@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document covers how to package and distribute genai-keyfinder across different platforms.
+This document covers how to package and distribute aicred across different platforms.
 
 ## Homebrew (macOS/Linux)
 
@@ -10,7 +10,7 @@ This document covers how to package and distribute genai-keyfinder across differ
 
 ```bash
 brew tap robottwo/aicred
-brew install genai-keyfinder
+brew install aicred
 ```
 
 ### Formula Maintenance
@@ -18,7 +18,7 @@ brew install genai-keyfinder
 Update the formula when releasing new versions:
 
 ```bash
-brew bump-formula-pr --version=X.X.X genai-keyfinder
+brew bump-formula-pr --version=X.X.X aicred
 ```
 
 ## Scoop (Windows)
@@ -26,14 +26,14 @@ brew bump-formula-pr --version=X.X.X genai-keyfinder
 ### Bucket Setup
 
 ```powershell
-scoop bucket add genai-keyfinder https://github.com/robottwo/scoop-aicred
-scoop install genai-keyfinder
+scoop bucket add aicred https://github.com/robottwo/scoop-aicred
+scoop install aicred
 ```
 
 ### Update Process
 
 ```powershell
-scoop update genai-keyfinder
+scoop update aicred
 ```
 
 ## Chocolatey (Windows)
@@ -41,8 +41,8 @@ scoop update genai-keyfinder
 ### Publishing
 
 ```powershell
-choco pack packaging/chocolatey/genai-keyfinder.nuspec
-choco push genai-keyfinder.0.1.0.nupkg --source https://push.chocolatey.org/
+choco pack packaging/chocolatey/aicred.nuspec
+choco push aicred.0.1.0.nupkg --source https://push.chocolatey.org/
 ```
 
 ## Linux Packages
@@ -52,7 +52,7 @@ choco push genai-keyfinder.0.1.0.nupkg --source https://push.chocolatey.org/
 Create `packaging/linux/deb/control`:
 
 ```
-Package: genai-keyfinder
+Package: aicred
 Version: 0.1.0
 Section: utils
 Priority: optional
@@ -68,14 +68,14 @@ Description: Cross-platform GenAI key discovery tool
 Create `packaging/linux/rpm/spec`:
 
 ```spec
-Name:           genai-keyfinder
+Name:           aicred
 Version:        0.1.0
 Release:        1%{?dist}
 Summary:        Cross-platform GenAI key discovery tool
 
 License:        MIT
 URL:            https://github.com/robottwo/aicred
-Source0:        https://github.com/robottwo/aicred/releases/download/v%{version}/keyfinder-linux-x86_64.tar.gz
+Source0:        https://github.com/robottwo/aicred/releases/download/v%{version}/aicred-linux-x86_64.tar.gz
 
 BuildArch:      x86_64
 BuildRequires:  gcc
@@ -91,10 +91,10 @@ Cross-platform tool for discovering GenAI API keys and configurations
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-install -m 755 keyfinder %{buildroot}%{_bindir}/
+install -m 755 aicred %{buildroot}%{_bindir}/
 
 %files
-%{_bindir}/keyfinder
+%{_bindir}/aicred
 
 %changelog
 * Mon Oct 20 2024 Your Name <your.email@example.com> - 0.1.0-1

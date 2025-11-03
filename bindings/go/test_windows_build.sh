@@ -26,7 +26,7 @@ cd ../bindings/go
 # Check what was built
 echo
 echo "FFI library build output:"
-ls -la ../../target/release/ | grep genai_keyfinder || echo "No FFI library found in release directory"
+ls -la ../../target/release/ | grep aicred_ffi || echo "No FFI library found in release directory"
 
 echo
 echo "Checking Go environment:"
@@ -36,7 +36,7 @@ go env GOOS GOARCH CGO_ENABLED
 echo
 echo "Testing Go bindings compilation:"
 # We're already in bindings/go directory
-cd genai_keyfinder
+cd aicred
 
 # Try to build the package
 if go build -v .; then

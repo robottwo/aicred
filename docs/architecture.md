@@ -1,8 +1,8 @@
-# GenAI KeyFinder Architecture
+# AICred Architecture
 
 ## Overview and Design Philosophy
 
-The GenAI KeyFinder is a cross-platform library designed to discover and extract GenAI API keys and provider configurations from user home directories. The architecture emphasizes extensibility, security, and cross-platform compatibility through a plugin-based design.
+The AICred is a cross-platform library designed to discover and extract GenAI API keys and provider configurations from user home directories. The architecture emphasizes extensibility, security, and cross-platform compatibility through a plugin-based design.
 
 ### Core Design Principles
 
@@ -375,7 +375,7 @@ impl PluginDiscovery {
 ## Module Structure
 
 ```
-genai-keyfinder/
+aicred/
 ├── core/                    # Core library (Rust)
 │   ├── src/
 │   │   ├── lib.rs          # Main library entry point
@@ -419,7 +419,7 @@ genai-keyfinder/
 │   └── build.rs
 ├── ffi/                   # C-API layer
 │   ├── include/
-│   │   └── genai_keyfinder.h
+│   │   └── aicred.h
 │   ├── src/
 │   │   ├── lib.rs
 │   │   └── c_api.rs
@@ -459,7 +459,7 @@ genai-keyfinder/
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum KeyFinderError {
+pub enum AICredError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     
@@ -503,13 +503,13 @@ pub enum PluginError {
 
 ```rust
 // Core synchronous API
-pub fn scan_keys(config: &ScanConfig) -> Result<ScanResult, KeyFinderError> {
+pub fn scan_keys(config: &ScanConfig) -> Result<ScanResult, AICredError> {
     // Implementation
 }
 
 // Optional async wrapper
 #[cfg(feature = "async")]
-pub async fn scan_keys_async(config: &ScanConfig) -> Result<ScanResult, KeyFinderError> {
+pub async fn scan_keys_async(config: &ScanConfig) -> Result<ScanResult, AICredError> {
     tokio::task::spawn_blocking(|| scan_keys(config)).await?
 }
 ```
@@ -611,7 +611,7 @@ pub struct FilePermissions {
 }
 
 impl FilePermissions {
-    pub fn from_path(path: &Path) -> Result<Self, KeyFinderError> {
+    pub fn from_path(path: &Path) -> Result<Self, AICredError> {
         let metadata = fs::metadata(path)?;
         #[cfg(unix)]
         {
@@ -744,7 +744,7 @@ mod integration_tests {
         let temp_dir = TempDir::new().unwrap();
         let config = create_test_config(temp_dir.path());
         
-        let finder = KeyFinder::new(config).unwrap();
+        let finder = AICred::new(config).unwrap();
         let result = finder.scan().unwrap();
         
         assert!(!result.keys.is_empty());
@@ -812,9 +812,9 @@ impl ScanCache {
         &self,
         key: &str,
         scan_fn: F,
-    ) -> Result<ScanResult, KeyFinderError>
+    ) -> Result<ScanResult, AICredError>
     where
-        F: FnOnce() -> Result<ScanResult, KeyFinderError>,
+        F: FnOnce() -> Result<ScanResult, AICredError>,
     {
         if let Some(cached) = self.get_cached(key)? {
             if !self.is_expired(&cached) {

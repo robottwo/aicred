@@ -3,13 +3,13 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "genai-keyfinder"
+name = "aicred"
 version = "0.1.0"
-description = "Discover GenAI API keys and configurations"
+description = "Discover AI API keys and configurations"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT OR Apache-2.0"}
-keywords = ["genai", "api-keys", "credentials", "security"]
+keywords = ["aicred", "api-keys", "credentials", "security"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

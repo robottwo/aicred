@@ -57,7 +57,7 @@ jobs:
           targets: ${{ matrix.target }}
       
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} -p genai-keyfinder
+        run: cargo build --release --target ${{ matrix.target }} -p aicred
       
       - name: Package (Unix)
         if: runner.os != 'Windows'

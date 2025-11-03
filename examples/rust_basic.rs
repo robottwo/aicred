@@ -1,6 +1,6 @@
 // Basic example: scan with default options and print results
 
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = ScanOptions::default();

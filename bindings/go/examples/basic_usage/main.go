@@ -6,33 +6,33 @@ import (
 	"log"
 	"os"
 
-	"github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+	aicred "github.com/robottwo/aicred/bindings/go/aicred"
 )
 
 func main() {
-	fmt.Println("GenAI Key Finder - Go Example")
-	fmt.Printf("Version: %s\n\n", genai_keyfinder.Version())
+	fmt.Println("AICred - Go Example")
+	fmt.Printf("Version: %s\n\n", aicred.Version())
 
 	// List available providers
 	fmt.Println("Available Providers:")
-	for _, provider := range genai_keyfinder.ListProviders() {
+	for _, provider := range aicred.ListProviders() {
 		fmt.Printf("  - %s\n", provider)
 	}
 
 	fmt.Println("\nAvailable Scanners:")
-	for _, scanner := range genai_keyfinder.ListScanners() {
+	for _, scanner := range aicred.ListScanners() {
 		fmt.Printf("  - %s\n", scanner)
 	}
 
 	// Perform scan
 	fmt.Println("\nScanning for credentials...")
-	options := genai_keyfinder.ScanOptions{
+	options := aicred.ScanOptions{
 		HomeDir:           ".",   // Use current directory
 		IncludeFullValues: false, // Keep secrets redacted
 		OnlyProviders:     []string{"openai", "anthropic"},
 	}
 
-	result, err := genai_keyfinder.Scan(options)
+	result, err := aicred.Scan(options)
 	if err != nil {
 		log.Fatalf("Scan failed: %v", err)
 	}

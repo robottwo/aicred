@@ -1,25 +1,25 @@
 import pytest
-import genai_keyfinder
+import aicred
 import tempfile
 import os
 import json
 
 def test_version():
     """Test version function"""
-    version = genai_keyfinder.version()
+    version = aicred.version()
     assert isinstance(version, str)
     assert len(version) > 0
 
 def test_list_providers():
     """Test list_providers function"""
-    providers = genai_keyfinder.list_providers()
+    providers = aicred.list_providers()
     assert isinstance(providers, list)
     assert "openai" in providers
     assert "anthropic" in providers
 
 def test_list_scanners():
     """Test list_scanners function"""
-    scanners = genai_keyfinder.list_scanners()
+    scanners = aicred.list_scanners()
     assert isinstance(scanners, list)
     assert "roo-code" in scanners
     assert "claude-desktop" in scanners
@@ -27,7 +27,7 @@ def test_list_scanners():
 def test_scan_basic():
     """Test basic scan functionality"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir)
+        result = aicred.scan(home_dir=tmpdir)
         assert isinstance(result, dict)
         assert "keys" in result
         assert "config_instances" in result
@@ -38,7 +38,7 @@ def test_scan_basic():
 def test_scan_with_options():
     """Test scan with various options"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(
+        result = aicred.scan(
             home_dir=tmpdir,
             include_full_values=False,
             max_file_size=512000,
@@ -50,7 +50,7 @@ def test_scan_with_options():
 def test_scan_with_exclude():
     """Test scan with exclude_providers"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(
+        result = aicred.scan(
             home_dir=tmpdir,
             exclude_providers=["ollama"]
         )
@@ -59,12 +59,12 @@ def test_scan_with_exclude():
 def test_scan_invalid_home():
     """Test scan with invalid home directory"""
     with pytest.raises(Exception):
-        genai_keyfinder.scan(home_dir="/nonexistent/path/that/does/not/exist")
+        aicred.scan(home_dir="/nonexistent/path/that/does/not/exist")
 
 def test_result_structure():
     """Test that result has expected structure"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir)
+        result = aicred.scan(home_dir=tmpdir)
         # Check keys structure
         assert isinstance(result["keys"], list)
         # Check config_instances structure
@@ -77,32 +77,32 @@ def test_result_structure():
 def test_scan_with_full_values():
     """Test scanning with full values enabled."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir, include_full_values=True)
+        result = aicred.scan(home_dir=tmpdir, include_full_values=True)
         assert isinstance(result, dict)
 
 def test_scan_with_max_file_size():
     """Test scanning with custom max file size."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir, max_file_size=512000)
+        result = aicred.scan(home_dir=tmpdir, max_file_size=512000)
         assert isinstance(result, dict)
 
 def test_scan_with_provider_filter():
     """Test scanning with provider filtering."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir, only_providers=["openai", "anthropic"])
+        result = aicred.scan(home_dir=tmpdir, only_providers=["openai", "anthropic"])
         assert isinstance(result, dict)
 
 def test_scan_with_exclude_filter():
     """Test scanning with provider exclusion."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir, exclude_providers=["ollama"])
+        result = aicred.scan(home_dir=tmpdir, exclude_providers=["ollama"])
         assert isinstance(result, dict)
 
 # New tests for enhanced model and provider instance structures
 
 def test_token_cost_creation():
     """Test TokenCost class creation"""
-    cost = genai_keyfinder.TokenCost(
+    cost = aicred.TokenCost(
         input_cost_per_million=0.001,
         output_cost_per_million=0.002,
         cached_input_cost_modifier=0.1
@@ -113,7 +113,7 @@ def test_token_cost_creation():
 
 def test_capabilities_creation():
     """Test Capabilities class creation"""
-    caps = genai_keyfinder.Capabilities(
+    caps = aicred.Capabilities(
         text_generation=True,
         code_generation=True,
         streaming=True
@@ -125,7 +125,7 @@ def test_capabilities_creation():
 
 def test_model_creation():
     """Test Model class creation"""
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="gpt-4",
         provider_instance_id="openai-prod",
         name="GPT-4"
@@ -138,12 +138,12 @@ def test_model_creation():
 
 def test_model_with_enhanced_features():
     """Test Model with temperature, tags, and cost"""
-    cost = genai_keyfinder.TokenCost(
+    cost = aicred.TokenCost(
         input_cost_per_million=0.001,
         output_cost_per_million=0.002
     )
     
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="claude-3",
         provider_instance_id="anthropic-prod",
         name="Claude 3"
@@ -159,7 +159,7 @@ def test_model_with_enhanced_features():
 def test_model_validation():
     """Test Model validation"""
     # Valid model
-    valid_model = genai_keyfinder.Model(
+    valid_model = aicred.Model(
         model_id="valid-model",
         provider_instance_id="provider-instance",
         name="Valid Model"
@@ -167,7 +167,7 @@ def test_model_validation():
     valid_model.validate()  # Should not raise
     
     # Invalid model
-    invalid_model = genai_keyfinder.Model(
+    invalid_model = aicred.Model(
         model_id="",
         provider_instance_id="provider-instance",
         name="Invalid Model"
@@ -177,7 +177,7 @@ def test_model_validation():
 
 def test_provider_instance_creation():
     """Test ProviderInstance creation"""
-    instance = genai_keyfinder.ProviderInstance(
+    instance = aicred.ProviderInstance(
         id="openai-prod",
         display_name="OpenAI Production",
         provider_type="openai",
@@ -193,20 +193,20 @@ def test_provider_instance_creation():
 
 def test_provider_instance_with_models():
     """Test ProviderInstance with models"""
-    instance = genai_keyfinder.ProviderInstance(
+    instance = aicred.ProviderInstance(
         id="anthropic-dev",
         display_name="Anthropic Development",
         provider_type="anthropic",
         base_url="https://api.anthropic.com"
     )
     
-    model1 = genai_keyfinder.Model(
+    model1 = aicred.Model(
         model_id="claude-3-sonnet",
         provider_instance_id="anthropic-dev",
         name="Claude 3 Sonnet"
     )
     
-    model2 = genai_keyfinder.Model(
+    model2 = aicred.Model(
         model_id="claude-3-opus",
         provider_instance_id="anthropic-dev",
         name="Claude 3 Opus"
@@ -220,18 +220,18 @@ def test_provider_instance_with_models():
 
 def test_provider_instances_collection():
     """Test ProviderInstances collection"""
-    instances = genai_keyfinder.ProviderInstances()
+    instances = aicred.ProviderInstances()
     assert instances.is_empty() is True
     assert instances.len() == 0
     
-    instance1 = genai_keyfinder.ProviderInstance(
+    instance1 = aicred.ProviderInstance(
         id="openai-1",
         display_name="OpenAI Instance 1",
         provider_type="openai",
         base_url="https://api.openai.com"
     )
     
-    instance2 = genai_keyfinder.ProviderInstance(
+    instance2 = aicred.ProviderInstance(
         id="anthropic-1",
         display_name="Anthropic Instance 1",
         provider_type="anthropic",
@@ -248,9 +248,9 @@ def test_provider_instances_collection():
 
 def test_provider_instances_filtering():
     """Test ProviderInstances filtering methods"""
-    instances = genai_keyfinder.ProviderInstances()
+    instances = aicred.ProviderInstances()
     
-    active_instance = genai_keyfinder.ProviderInstance(
+    active_instance = aicred.ProviderInstance(
         id="openai-active",
         display_name="OpenAI Active",
         provider_type="openai",
@@ -258,7 +258,7 @@ def test_provider_instances_filtering():
     )
     active_instance.set_active(True)
     
-    inactive_instance = genai_keyfinder.ProviderInstance(
+    inactive_instance = aicred.ProviderInstance(
         id="openai-inactive",
         display_name="OpenAI Inactive",
         provider_type="openai",
@@ -266,7 +266,7 @@ def test_provider_instances_filtering():
     )
     inactive_instance.set_active(False)
     
-    anthropic_instance = genai_keyfinder.ProviderInstance(
+    anthropic_instance = aicred.ProviderInstance(
         id="anthropic-1",
         display_name="Anthropic Instance",
         provider_type="anthropic",
@@ -291,7 +291,7 @@ def test_provider_instances_filtering():
 
 def test_model_metadata_getter():
     """Test Model metadata getter functionality"""
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="test-model",
         provider_instance_id="test-provider",
         name="Test Model"
@@ -322,7 +322,7 @@ def test_model_metadata_getter():
 
 def test_model_metadata_empty():
     """Test Model metadata with empty dict"""
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="test-model",
         provider_instance_id="test-provider",
         name="Test Model"
@@ -336,7 +336,7 @@ def test_model_metadata_empty():
 
 def test_model_metadata_none():
     """Test Model metadata when set to None"""
-    model = genai_keyfinder.Model(
+    model = aicred.Model(
         model_id="test-model",
         provider_instance_id="test-provider",
         name="Test Model"
@@ -355,7 +355,7 @@ def test_backward_compatibility():
     """Test that existing functionality still works"""
     # Ensure the main scan function still returns expected structure
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = genai_keyfinder.scan(home_dir=tmpdir)
+        result = aicred.scan(home_dir=tmpdir)
         
         # Check that all expected keys are present
         expected_keys = ["keys", "config_instances", "home_directory", "scan_started_at", "providers_scanned"]

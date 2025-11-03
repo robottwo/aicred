@@ -1,23 +1,23 @@
 [Setup]
-AppName=GenAI Key Finder
+AppName=AICred
 AppVersion=0.1.0
-DefaultDirName={pf}\GenAI Key Finder
-DefaultGroupName=GenAI Key Finder
+DefaultDirName={pf}\AICred
+DefaultGroupName=AICred
 OutputDir=userdocs:Inno Setup Examples Output
-OutputBaseFilename=genai-keyfinder-setup
+OutputBaseFilename=aicred-setup
 Compression=lzma2
 SolidCompression=yes
 PrivilegesRequired=admin
 
 [Files]
-Source: "target\x86_64-pc-windows-msvc\release\keyfinder.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "target\x86_64-pc-windows-msvc\release\aicred.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\GenAI Key Finder"; Filename: "{app}\keyfinder.exe"
-Name: "{commondesktop}\GenAI Key Finder"; Filename: "{app}\keyfinder.exe"; Tasks: desktopicon
+Name: "{group}\AICred"; Filename: "{app}\aicred.exe"
+Name: "{commondesktop}\AICred"; Filename: "{app}\aicred.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\keyfinder.exe"; Description: "Launch GenAI Key Finder"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\aicred.exe"; Description: "Launch AICred"; Flags: nowait postinstall skipifsilent
 
 [Code]
 procedure InitializeWizard;

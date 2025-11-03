@@ -1,6 +1,6 @@
 // Example: filter by providers and include options
 
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure provider filters

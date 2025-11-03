@@ -19,16 +19,16 @@ fn set_test_home_envs(cmd: &mut Command, home: &std::path::Path) {
 
 #[test]
 fn test_version_command() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("version");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("genai-keyfinder"));
+        .stdout(predicate::str::contains("aicred"));
 }
 
 #[test]
 fn test_scan_help() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan").arg("--help");
     cmd.assert()
         .success()
@@ -37,7 +37,7 @@ fn test_scan_help() {
 
 #[test]
 fn test_scan_dry_run() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan").arg("--dry-run");
     cmd.assert()
         .success()
@@ -46,14 +46,14 @@ fn test_scan_dry_run() {
 
 #[test]
 fn test_invalid_command() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("invalid-command");
     cmd.assert().failure();
 }
 
 #[test]
 fn test_scan_with_format() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan").arg("--format").arg("json").arg("--dry-run");
     cmd.assert().success();
 }
@@ -61,7 +61,7 @@ fn test_scan_with_format() {
 #[test]
 fn test_all_output_formats() {
     for format in ["json", "ndjson", "table", "summary"].iter() {
-        let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+        let mut cmd = Command::cargo_bin("aicred").unwrap();
         cmd.args(&["scan", "--format", format, "--dry-run"]);
         cmd.assert().success();
     }
@@ -69,14 +69,14 @@ fn test_all_output_formats() {
 
 #[test]
 fn test_provider_filtering() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&["scan", "--only", "openai,anthropic", "--dry-run"]);
     cmd.assert().success();
 }
 
 #[test]
 fn test_provider_exclusion() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&["scan", "--exclude", "ollama", "--dry-run"]);
     cmd.assert().success();
 }
@@ -94,11 +94,11 @@ fn test_audit_logging() {
         .unwrap()
         .as_secs();
     let log_path =
-        std::env::temp_dir().join(format!("keyfinder_audit_{}_{}.log", std::process::id(), ts));
+        std::env::temp_dir().join(format!("aicred_audit_{}_{}.log", std::process::id(), ts));
     let log_str = log_path.to_str().unwrap();
 
     // Execute without asserting success: exit code is 0 when keys are found, 1 when none found.
-    let bin = assert_cmd::cargo::cargo_bin("keyfinder");
+    let bin = assert_cmd::cargo::cargo_bin("aicred");
     let status = std::process::Command::new(bin)
         .args(&[
             "scan",
@@ -110,7 +110,7 @@ fn test_audit_logging() {
             log_str,
         ])
         .status()
-        .expect("failed to execute keyfinder");
+        .expect("failed to execute aicred");
     assert!(status.code() == Some(0) || status.code() == Some(1));
 
     // Audit log should be written regardless of whether any keys were found.
@@ -118,7 +118,7 @@ fn test_audit_logging() {
 
     // Basic content sanity check
     let contents = std::fs::read_to_string(&log_path).expect("read audit log");
-    assert!(contents.contains("GenAI Key Finder Audit Log"));
+    assert!(contents.contains("AICred Audit Log"));
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn test_invalid_format() {
     let home = std::env::temp_dir().join(format!("kf_cli_invalid_fmt_{}", std::process::id()));
     let _ = std::fs::create_dir_all(&home);
 
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -140,7 +140,7 @@ fn test_invalid_format() {
 
 #[test]
 fn test_version_contains_pkg_version() {
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("version");
     cmd.assert()
         .success()
@@ -179,7 +179,7 @@ updated_at: "2023-01-01T00:00:00Z"
 "#;
     fs::write(providers_dir.join("openrouter-open.yaml"), test_config).unwrap();
 
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("list")
@@ -245,8 +245,8 @@ updated_at: "2023-01-01T00:00:00Z"
 "#;
     fs::write(providers_dir.join("anthropic.yaml"), anthropic_config).unwrap();
 
-    // Test that `keyfinder instances` (without subcommand) defaults to list behavior
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    // Test that `aicred instances` (without subcommand) defaults to list behavior
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances").arg("--home").arg(temp_home.path());
     cmd.assert()
@@ -254,8 +254,8 @@ updated_at: "2023-01-01T00:00:00Z"
         .stdout(predicate::str::contains("OpenAI Instance"))
         .stdout(predicate::str::contains("Anthropic Instance"));
 
-    // Verify it produces the same output as `keyfinder instances list`
-    let mut cmd_list = Command::cargo_bin("keyfinder").unwrap();
+    // Verify it produces the same output as `aicred instances list`
+    let mut cmd_list = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd_list, temp_home.path());
     cmd_list
         .arg("instances")
@@ -319,7 +319,7 @@ chain:
     .unwrap();
 
     // Run scan with update flag
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -397,7 +397,7 @@ OPENAI_TEMPERATURE=0.8"#;
     std::fs::write(&env_file, env_content).unwrap();
 
     // Run first scan
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan")
         .arg("--home")
         .arg(temp_dir.path())
@@ -461,7 +461,7 @@ OPENAI_TEMPERATURE=0.8"#;
     let groq_content1 = std::fs::read_to_string(&groq_yaml).unwrap();
 
     // Run second scan (same command)
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan")
         .arg("--home")
         .arg(temp_dir.path())
@@ -587,7 +587,7 @@ OPENROUTER_TEMPERATURE=0.5"#;
     std::fs::write(&env_file, env_content).unwrap();
 
     // Run scan
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan")
         .arg("--home")
         .arg(temp_dir.path())
@@ -720,7 +720,7 @@ fn test_api_key_field_name_serialization() {
     std::fs::write(&env_file, env_content).unwrap();
 
     // Run scan
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("scan")
         .arg("--home")
         .arg(temp_dir.path())
@@ -891,7 +891,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(providers_dir.join("anthropic.yaml"), anthropic_config).unwrap();
 
     // Run instances list command with HOME environment variable set
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("list")
@@ -924,7 +924,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(providers_dir.join("invalid.yaml"), invalid_config).unwrap();
 
     // Run instances list command - should handle invalid config gracefully
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("list")
@@ -968,8 +968,8 @@ updated_at: "2023-01-01T00:00:00Z"
 "#;
     fs::write(providers_dir.join("test-direct-open.yaml"), test_config).unwrap();
 
-    // Test direct ID lookup using shorthand syntax: keyfinder instances <id>
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    // Test direct ID lookup using shorthand syntax: aicred instances <id>
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("test-direct-id")
@@ -1014,7 +1014,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(providers_dir.join("test-direct-anth.yaml"), test_config).unwrap();
 
     // Test that direct ID lookup still works with --include-values flag
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("test-direct-values")
@@ -1035,7 +1035,7 @@ fn test_instances_direct_id_lookup_nonexistent() {
     fs::create_dir_all(&providers_dir).unwrap();
 
     // Test direct ID lookup with non-existent ID
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances").arg("nonexistent-id");
     cmd.assert().failure().stderr(predicate::str::contains(
@@ -1063,7 +1063,7 @@ base_url: "https://api.openai.com"
     fs::write(providers_dir.join("malformed.yaml"), malformed_config).unwrap();
 
     // Run instances list command - should handle malformed YAML gracefully
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("list")
@@ -1100,7 +1100,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(providers_dir.join("empty_id.yaml"), empty_id_config).unwrap();
 
     // Run instances list command - should handle validation failure gracefully
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances")
         .arg("list")
@@ -1158,7 +1158,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(&test_env, "OPENAI_API_KEY=sk-new-key-from-scan\n").unwrap();
 
     // Run scan with update
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -1191,7 +1191,7 @@ fn test_graceful_handling_missing_providers_directory() {
     fs::create_dir_all(&config_dir).unwrap();
 
     // Run instances list command with HOME environment variable
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances").arg("list");
     cmd.assert()
@@ -1208,7 +1208,7 @@ fn test_scan_update_with_no_providers_found() {
     fs::create_dir_all(&config_dir).unwrap();
 
     // Run scan with update but no keys found - should exit with code 1
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -1242,7 +1242,7 @@ fn test_providers_integrity_after_scan_update() {
     .unwrap();
 
     // First scan with update
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -1264,7 +1264,7 @@ fn test_providers_integrity_after_scan_update() {
             .collect();
 
         // Run scan again to ensure provider integrity is preserved
-        let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+        let mut cmd = Command::cargo_bin("aicred").unwrap();
         cmd.args(&[
             "scan",
             "--home",
@@ -1321,7 +1321,7 @@ OPENROUTER_MODEL=deepseek/deepseek-v3
     .unwrap();
 
     // Run scan with update flag to create configuration files (include values to test metadata collection)
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -1471,7 +1471,7 @@ keys:
     fs::write(providers_dir.join("testprovider.yaml"), invalid_config).unwrap();
 
     // Instances list command with HOME environment variable should handle schema validation gracefully
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     set_test_home_envs(&mut cmd, temp_home.path());
     cmd.arg("instances").arg("list");
     // Should not crash, might show error message
@@ -1495,7 +1495,7 @@ fn test_concurrent_scan_update_operations() {
     for i in 0..3 {
         let home = temp_home.path().to_path_buf();
         let handle = std::thread::spawn(move || {
-            let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+            let mut cmd = Command::cargo_bin("aicred").unwrap();
             cmd.args(&[
                 "scan",
                 "--home",
@@ -1540,7 +1540,7 @@ fn test_atomic_file_operations() {
     fs::write(&test_env, "OPENAI_API_KEY=sk-test123\n").unwrap();
 
     // Run scan with update to test atomic operations
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.args(&[
         "scan",
         "--home",
@@ -1604,7 +1604,7 @@ updated_at: "2023-01-01T00:00:00Z"
     fs::write(providers_dir.join("custom.yaml"), test_config).unwrap();
 
     // Run the instances list command with the --home argument
-    let mut cmd = Command::cargo_bin("keyfinder").unwrap();
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
     cmd.arg("instances")
         .arg("list")
         .arg("--home")

@@ -15,24 +15,24 @@ This directory contains packaging configurations for various platforms.
 
 ### Homebrew
 ```bash
-brew install --build-from-source robottwo/aicred/genai-keyfinder
+brew install --build-from-source robottwo/aicred/aicred
 ```
 
 ### Scoop
 ```powershell
-scoop install genai-keyfinder
+scoop install aicred
 ```
 
 ### Chocolatey
 ```powershell
 choco pack
-choco install genai-keyfinder --source="'PATH_TO_NUPKG'"
+choco install aicred --source="'PATH_TO_NUPKG'"
 ```
 
 ### Linux .deb
 ```bash
 dpkg-deb --build deb/
-sudo dpkg -i genai-keyfinder.deb
+sudo dpkg -i aicred.deb
 ```
 
 ### Windows Installer

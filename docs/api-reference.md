@@ -1,6 +1,6 @@
 # API Reference
 
-Authoritative reference for all public surfaces of GenAI Key Finder across Core (Rust), FFI/C-API, Python, Go, and the Tauri GUI interface types.
+Authoritative reference for all public surfaces of AICred across Core (Rust), FFI/C-API, Python, Go, and the Tauri GUI interface types.
 
 This reference aligns with the source tree:
 - Core library: [core/src/lib.rs](core/src/lib.rs)
@@ -8,18 +8,18 @@ This reference aligns with the source tree:
 - Plugins: [core/src/plugins/mod.rs](core/src/plugins/mod.rs)
 - Scanners: [core/src/scanners/mod.rs](core/src/scanners/mod.rs)
 - Scanner engine: [core/src/scanner/mod.rs](core/src/scanner/mod.rs)
-- FFI: [ffi/include/genai_keyfinder.h](ffi/include/genai_keyfinder.h), [ffi/src/lib.rs](ffi/src/lib.rs)
-- Python bindings: [bindings/python/src/lib.rs](bindings/python/src/lib.rs), [bindings/python/genai_keyfinder.pyi](bindings/python/genai_keyfinder.pyi)
-- Go bindings: [bindings/go/genai_keyfinder/genai_keyfinder.go](bindings/go/genai_keyfinder/genai_keyfinder.go)
+- FFI: [ffi/include/aicred.h](ffi/include/aicred.h), [ffi/src/lib.rs](ffi/src/lib.rs)
+- Python bindings: [bindings/python/src/lib.rs](bindings/python/src/lib.rs), [bindings/python/aicred.pyi](bindings/python/aicred.pyi)
+- Go bindings: [bindings/go/aicred/aicred.go](bindings/go/aicred/aicred.go)
 
 ## Core (Rust)
 
-Crate name: `genai-keyfinder-core`.
+Crate name: `aicred-core`.
 
 ### Quick Start
 
 ```rust
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 let result = scan(ScanOptions::default())?;
 ```
@@ -307,13 +307,13 @@ Scanner plugins handle discovery of keys and configurations:
 
 ## FFI / C-API
 
-Header: [ffi/include/genai_keyfinder.h](ffi/include/genai_keyfinder.h)
+Header: [ffi/include/aicred.h](ffi/include/aicred.h)
 
 Functions:
-- `char* keyfinder_scan(const char* home_path, const char* options_json);` ([decl](ffi/include/genai_keyfinder.h:34), [impl](ffi/src/lib.rs:101))
-- `void keyfinder_free(char* ptr);` ([decl](ffi/include/genai_keyfinder.h:43), [impl](ffi/src/lib.rs:179))
-- `const char* keyfinder_version(void);` ([decl](ffi/include/genai_keyfinder.h:50), [impl](ffi/src/lib.rs:192))
-- `const char* keyfinder_last_error(void);` ([decl](ffi/include/genai_keyfinder.h:58), [impl](ffi/src/lib.rs:206))
+- `char* aicred_scan(const char* home_path, const char* options_json);` ([decl](ffi/include/aicred.h:34), [impl](ffi/src/lib.rs:101))
+- `void aicred_free(char* ptr);` ([decl](ffi/include/aicred.h:43), [impl](ffi/src/lib.rs:179))
+- `const char* aicred_version(void);` ([decl](ffi/include/aicred.h:50), [impl](ffi/src/lib.rs:192))
+- `const char* aicred_last_error(void);` ([decl](ffi/include/aicred.h:58), [impl](ffi/src/lib.rs:206))
 
 Options JSON example (UTF-8 C string):
 ```json
@@ -326,66 +326,67 @@ Options JSON example (UTF-8 C string):
 ```
 
 Return:
-- On success: UTF-8 JSON string of Core [ScanResult](core/src/models/scan_result.rs:11) (caller must free with `keyfinder_free`)
-- On failure: `NULL`, and `keyfinder_last_error()` returns the message (thread-local)
+- On success: UTF-8 JSON string of Core [ScanResult](core/src/models/scan_result.rs:11) (caller must free with `aicred_free`)
+- On failure: `NULL`, and `aicred_last_error()` returns the message (thread-local)
 
 Memory:
-- Caller must free any pointer returned by `keyfinder_scan` using `keyfinder_free`
-- `keyfinder_version` and `keyfinder_last_error` return pointers valid until the next FFI call
+- Caller must free any pointer returned by `aicred_scan` using `aicred_free`
+- `aicred_version` and `aicred_last_error` return pointers valid until the next FFI call
 
 ## Python API
 
-Module name: `genai_keyfinder`.
+Module name: `aicred`.
 
 Definitions:
-- [scan(...)](bindings/python/genai_keyfinder.pyi:3)
+- [scan(...)](bindings/python/aicred.pyi:3)
   - `home_dir: Optional[str] = None`
   - `include_full_values: bool = False`
   - `max_file_size: int = 1048576`
   - `only_providers: Optional[List[str]] = None`
   - `exclude_providers: Optional[List[str]] = None`
   - Returns: `Dict[str, Any]` matching Core JSON of [ScanResult](core/src/models/scan_result.rs:11)
-- [version() -> str](bindings/python/genai_keyfinder.pyi:36)
-- [list_providers() -> List[str]](bindings/python/genai_keyfinder.pyi:40) - **UPDATED**: Lists provider plugins
-- [list_scanners() -> List[str]](bindings/python/genai_keyfinder.pyi:44) - **NEW**: Lists scanner plugins
+- [version() -> str](bindings/python/aicred.pyi:36)
+- [list_providers() -> List[str]](bindings/python/aicred.pyi:40) - **UPDATED**: Lists provider plugins
+- [list_scanners() -> List[str]](bindings/python/aicred.pyi:44) - **NEW**: Lists scanner plugins
 
 Implementation detail: Python uses Core [scan(ScanOptions)](bindings/python/src/lib.rs:23) and `serde_json` round-trip to construct a Python dict.
 
 ## Go API
 
-Package: `github.com/robottwo/aicred/bindings/go/genai_keyfinder`.
+Package: `github.com/robottwo/aicred/bindings/go`.
 
 Types:
-- [type ScanOptions struct](bindings/go/genai_keyfinder/genai_keyfinder.go:18)
+- [type ScanOptions struct](bindings/go/aicred/aicred.go:18)
   - `HomeDir string`
   - `IncludeFullValues bool`
   - `MaxFileSize int`
   - `OnlyProviders []string`
   - `ExcludeProviders []string`
-- [type DiscoveredKey struct](bindings/go/genai_keyfinder/genai_keyfinder.go:27)
+- [type DiscoveredKey struct](bindings/go/aicred/aicred.go:27)
   - `Provider, Source, ValueType, Hash string`
   - `Confidence string` (enum values: "Low", "Medium", "High", "VeryHigh")
   - `Redacted string` (may be empty; not populated by core unless post-processed)
   - `Locked bool` (not set by core; reserved)
-- [type ConfigInstance struct](bindings/go/genai_keyfinder/genai_keyfinder.go:39)
-- [type ScanResult struct](bindings/go/genai_keyfinder/genai_keyfinder.go:48)
+- [type ConfigInstance struct](bindings/go/aicred/aicred.go:39)
+- [type ScanResult struct](bindings/go/aicred/aicred.go:48)
 
 Functions:
-- [func Scan(options ScanOptions) (*ScanResult, error)](bindings/go/genai_keyfinder/genai_keyfinder.go:57)
-- [func Version() string](bindings/go/genai_keyfinder/genai_keyfinder.go:101)
-- [func ListProviders() []string](bindings/go/genai_keyfinder/genai_keyfinder.go:107) - **UPDATED**: Lists provider plugins
-- [func ListScanners() []string](bindings/go/genai_keyfinder/genai_keyfinder.go:119) - **NEW**: Lists scanner plugins
+- [func Scan(options ScanOptions) (*ScanResult, error)](bindings/go/aicred/aicred.go:57)
+- [func Version() string](bindings/go/aicred/aicred.go:101)
+- [func ListProviders() []string](bindings/go/aicred/aicred.go:107) - **UPDATED**: Lists provider plugins
+- [func ListScanners() []string](bindings/go/aicred/aicred.go:119) - **NEW**: Lists scanner plugins
 
 Note: Go uses the FFI; JSON shape mirrors Core. Optional fields like `Redacted` may be blank unless your application computes redaction strings.
 
 ## CLI
 
-Binary: `keyfinder`.
+Binary: `aicred`.
 
 Commands:
 - [scan](cli/src/main.rs:22) — see handler [handle_scan(...)](cli/src/commands/scan.rs:8)
-- [list](cli/src/main.rs:57) — see [handle_list(verbose)](cli/src/commands/list.rs:4) - **UPDATED**: Lists both providers and scanners
-- [version](cli/src/main.rs:64)
+- [providers](cli/src/main.rs:57) — see [handle_providers(...)](cli/src/commands/providers.rs:4) - **UPDATED**: Lists both providers and scanners
+- [instances](cli/src/main.rs:64) — see [handle_instances(...)](cli/src/commands/instances.rs:4) - **NEW**: Manages provider instances
+- [version](cli/src/main.rs:71)
 
 Output formats:
 - JSON: [output_json(&ScanResult)](cli/src/output/json.rs:4)
@@ -450,7 +451,7 @@ Informal JSON shapes (actual serialization driven by `serde`):
 
 ## Error Handling
 
-The core uses a unified error type `genai_keyfinder_core::error::Error` (variants used across modules):
+The core uses a unified error type `aicred_core::error::Error` (variants used across modules):
 - `ConfigError(String)` — e.g., cannot determine home dir ([usage](core/src/lib.rs:127))
 - `PluginError(String)` — plugin registration/operation ([usage](core/src/plugins/mod.rs:56))
 - `NotFound(String)` — invalid paths ([usage](core/src/scanner/mod.rs:83))
@@ -458,7 +459,7 @@ The core uses a unified error type `genai_keyfinder_core::error::Error` (variant
 - `IoError(std::io::Error)` — filesystem operations ([usage](core/src/scanner/mod.rs:177))
 
 FFI:
-- Functions return `NULL` on error; the message is provided by [keyfinder_last_error()](ffi/include/genai_keyfinder.h:58).
+- Functions return `NULL` on error; the message is provided by [aicred_last_error()](ffi/include/aicred.h:58).
 
 CLI:
 - Exit codes:
@@ -515,5 +516,5 @@ This change provides:
 
 ## Versioning
 
-- Library versions: [ffi/src/lib.rs](ffi/src/lib.rs:27) exposes `keyfinder_version()`
-- CLI `version` subcommand prints package version and core version ([handler](cli/src/main.rs:96))
+- Library versions: [ffi/src/lib.rs](ffi/src/lib.rs:27) exposes `aicred_version()`
+- CLI `version` subcommand prints package version and core version ([handler](cli/src/main.rs:103))

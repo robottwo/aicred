@@ -104,8 +104,8 @@ jobs:
       - name: Verify installation
         shell: bash
         run: |
-          echo "Verifying genai_keyfinder installation..."
-          "$PYTHON_BIN" -c "import genai_keyfinder; print(f'genai_keyfinder version: {genai_keyfinder.version()}')"
+          echo "Verifying aicred installation..."
+          "$PYTHON_BIN" -c "import aicred; print(f'aicred version: {aicred.version()}')"
           echo "Installation verified"
       
       - name: Run Python tests

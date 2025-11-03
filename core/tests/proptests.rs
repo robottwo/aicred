@@ -5,7 +5,7 @@
 
 //! Property-based tests for core library invariants.
 
-use genai_keyfinder_core::{
+use aicred_core::{
     models::{discovered_key::Confidence, DiscoveredKey, ValueType},
     providers::openai::OpenAIPlugin,
     ProviderPlugin,

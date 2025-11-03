@@ -1,5 +1,5 @@
+use aicred_core::ScanResult;
 use colored::*;
-use genai_keyfinder_core::ScanResult;
 use tracing::debug;
 
 pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Error> {

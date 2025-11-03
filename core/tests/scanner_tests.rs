@@ -3,9 +3,9 @@
 // Allow clippy lints for scanner tests
 #![allow(unused_imports)]
 
-use genai_keyfinder_core::models::discovered_key::{Confidence, ValueType};
-use genai_keyfinder_core::models::{ConfigInstance, DiscoveredKey};
-use genai_keyfinder_core::scanners::{ScanResult, ScannerPlugin, ScannerRegistry};
+use aicred_core::models::discovered_key::{Confidence, ValueType};
+use aicred_core::models::{ConfigInstance, DiscoveredKey};
+use aicred_core::scanners::{ScanResult, ScannerPlugin, ScannerRegistry};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
@@ -33,8 +33,8 @@ impl ScannerPlugin for MockScanner {
         &self,
         path: &Path,
         content: &str,
-    ) -> Result<ScanResult, genai_keyfinder_core::error::Error> {
-        use genai_keyfinder_core::scanners::ScannerPluginExt;
+    ) -> Result<ScanResult, aicred_core::error::Error> {
+        use aicred_core::scanners::ScannerPluginExt;
 
         let mut result = ScanResult::new();
         let mut keys = Vec::new();
@@ -67,7 +67,7 @@ impl ScannerPlugin for MockScanner {
                 for provider_instance in provider_instances {
                     instance
                         .add_provider_instance(provider_instance)
-                        .map_err(genai_keyfinder_core::error::Error::ConfigError)?;
+                        .map_err(aicred_core::error::Error::ConfigError)?;
                 }
             }
 
@@ -264,7 +264,7 @@ fn test_scanner_get_scanners_for_file() {
 
 #[test]
 fn test_scanner_filtering_ignores_provider_filters() {
-    use genai_keyfinder_core::ScanOptions;
+    use aicred_core::ScanOptions;
 
     // Create a scanner registry with multiple scanners
     let registry = ScannerRegistry::new();
@@ -290,7 +290,7 @@ fn test_scanner_filtering_ignores_provider_filters() {
             &self,
             _path: &Path,
             _content: &str,
-        ) -> Result<ScanResult, genai_keyfinder_core::error::Error> {
+        ) -> Result<ScanResult, aicred_core::error::Error> {
             Ok(ScanResult::new())
         }
 
@@ -330,7 +330,7 @@ fn test_scanner_filtering_ignores_provider_filters() {
         exclude_providers: None,
     };
 
-    let result = genai_keyfinder_core::scan(&scan_options);
+    let result = aicred_core::scan(&scan_options);
     // This will succeed because:
     // 1. Scanners are not filtered by provider names (our fix)
     // 2. Provider filtering happens separately and finds openai/anthropic providers
@@ -349,7 +349,7 @@ fn test_scanner_filtering_ignores_provider_filters() {
         exclude_providers: Some(vec!["mock".to_string(), "another_mock".to_string()]),
     };
 
-    let result = genai_keyfinder_core::scan(&scan_options_exclude);
+    let result = aicred_core::scan(&scan_options_exclude);
     // This should succeed because scanners are not filtered by exclude_providers
     // The exclude_providers only affects provider/plugin filtering, not scanner selection
     assert!(
@@ -368,7 +368,7 @@ fn test_scanner_filtering_ignores_provider_filters() {
         exclude_providers: None,
     };
 
-    let result = genai_keyfinder_core::scan(&scan_options_no_providers);
+    let result = aicred_core::scan(&scan_options_no_providers);
     assert!(
         result.is_ok(),
         "Scan should succeed with no provider filters"
@@ -377,7 +377,7 @@ fn test_scanner_filtering_ignores_provider_filters() {
 
 #[test]
 fn test_scanner_plugin_ext_group_keys_by_provider() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -414,7 +414,7 @@ fn test_scanner_plugin_ext_group_keys_by_provider() {
 
 #[test]
 fn test_scanner_plugin_ext_build_provider_instances() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -454,7 +454,7 @@ fn test_scanner_plugin_ext_build_provider_instances() {
 
 #[test]
 fn test_scanner_plugin_ext_build_instances_from_keys() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -486,7 +486,7 @@ fn test_scanner_plugin_ext_build_instances_from_keys() {
 
 #[test]
 fn test_scanner_plugin_ext_with_metadata() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -535,7 +535,7 @@ fn test_scanner_plugin_ext_with_metadata() {
 
 #[test]
 fn test_scanner_plugin_ext_no_api_keys() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -571,7 +571,7 @@ fn test_scanner_plugin_ext_no_api_keys() {
 
 #[test]
 fn test_scanner_plugin_ext_multiple_keys_different_confidence() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -612,7 +612,7 @@ fn test_scanner_plugin_ext_multiple_keys_different_confidence() {
 
 #[test]
 fn test_scanner_plugin_ext_custom_value_types() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -664,7 +664,7 @@ fn test_scanner_plugin_ext_custom_value_types() {
 
 #[test]
 fn test_scanner_plugin_ext_with_line_numbers() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -692,7 +692,7 @@ fn test_scanner_plugin_ext_with_line_numbers() {
 
 #[test]
 fn test_scanner_plugin_ext_invalid_temperature() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -737,7 +737,7 @@ fn test_scanner_plugin_ext_invalid_temperature() {
 
 #[test]
 fn test_scanner_plugin_ext_multiple_providers() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -818,7 +818,7 @@ fn test_scanner_plugin_ext_multiple_providers() {
 
 #[test]
 fn test_scanner_plugin_ext_all_value_types() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -909,7 +909,7 @@ fn test_scanner_plugin_ext_all_value_types() {
 
 #[test]
 fn test_scanner_plugin_ext_access_token_type() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -939,7 +939,7 @@ fn test_scanner_plugin_ext_access_token_type() {
 
 #[test]
 fn test_scanner_plugin_ext_secret_key_type() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -968,7 +968,7 @@ fn test_scanner_plugin_ext_secret_key_type() {
 
 #[test]
 fn test_scanner_plugin_ext_bearer_token_type() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -997,7 +997,7 @@ fn test_scanner_plugin_ext_bearer_token_type() {
 
 #[test]
 fn test_scanner_plugin_ext_missing_api_key_edge_case() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1038,7 +1038,7 @@ fn test_scanner_plugin_ext_missing_api_key_edge_case() {
 
 #[test]
 fn test_scanner_plugin_ext_multiple_models() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1101,8 +1101,8 @@ fn test_scanner_plugin_ext_multiple_models() {
 
 #[test]
 fn test_scanner_plugin_ext_confidence_to_environment_mapping() {
-    use genai_keyfinder_core::models::provider_key::Environment;
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::models::provider_key::Environment;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1149,7 +1149,7 @@ fn test_scanner_plugin_ext_confidence_to_environment_mapping() {
 
 #[test]
 fn test_complete_flow_with_provider_instances() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
     let temp_dir = TempDir::new().unwrap();
@@ -1186,7 +1186,7 @@ fn test_complete_flow_with_provider_instances() {
 
 #[test]
 fn test_provider_instances_with_multiple_value_types() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1269,7 +1269,7 @@ fn test_provider_instances_with_multiple_value_types() {
 
 #[test]
 fn test_provider_instances_deduplication() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1311,7 +1311,7 @@ fn test_provider_instances_deduplication() {
 
 #[test]
 fn test_provider_instances_validation() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1346,7 +1346,7 @@ fn test_provider_instances_validation() {
 
 #[test]
 fn test_empty_keys_no_provider_instances() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
     let empty_keys: Vec<DiscoveredKey> = vec![];
@@ -1364,7 +1364,7 @@ fn test_empty_keys_no_provider_instances() {
 
 #[test]
 fn test_mixed_providers_separate_instances() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1417,7 +1417,7 @@ fn test_mixed_providers_separate_instances() {
 
 #[test]
 fn test_edge_case_empty_api_key_value() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1460,7 +1460,7 @@ fn test_edge_case_empty_api_key_value() {
 
 #[test]
 fn test_edge_case_only_metadata_no_keys() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1502,7 +1502,7 @@ fn test_edge_case_only_metadata_no_keys() {
 
 #[test]
 fn test_edge_case_invalid_temperature_value() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1547,7 +1547,7 @@ fn test_edge_case_invalid_temperature_value() {
 
 #[test]
 fn test_multiple_configs_same_provider() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1585,7 +1585,7 @@ fn test_multiple_configs_same_provider() {
 
 #[test]
 fn test_all_key_types_comprehensive() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1706,8 +1706,8 @@ fn test_all_key_types_comprehensive() {
 
 #[test]
 fn test_confidence_levels_all_environments() {
-    use genai_keyfinder_core::models::provider_key::Environment;
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::models::provider_key::Environment;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1764,8 +1764,8 @@ fn test_confidence_levels_all_environments() {
 
 #[test]
 fn test_provider_instance_validation_status() {
-    use genai_keyfinder_core::models::provider_key::ValidationStatus;
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::models::provider_key::ValidationStatus;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1803,7 +1803,7 @@ fn test_provider_instance_validation_status() {
 
 #[test]
 fn test_line_numbers_preserved() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1831,7 +1831,7 @@ fn test_line_numbers_preserved() {
 
 #[test]
 fn test_default_base_url_generation() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;
@@ -1861,7 +1861,7 @@ fn test_default_base_url_generation() {
 
 #[test]
 fn test_instance_id_generation() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
 
@@ -1887,7 +1887,7 @@ fn test_instance_id_generation() {
 
 #[test]
 fn test_multiple_models_same_provider() {
-    use genai_keyfinder_core::scanners::ScannerPluginExt;
+    use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
     let scanner = MockScanner;

@@ -1,4 +1,4 @@
-use genai_keyfinder_core::{scan, ScanOptions as CoreScanOptions};
+use aicred_core::{scan, ScanOptions as CoreScanOptions};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,19 +1,19 @@
-package genai_keyfinder
+package aicred
 
 /*
-#cgo LDFLAGS: -L../../../target/release -lgenai_keyfinder_ffi
+#cgo LDFLAGS: -L../../../target/release -laicred_ffi
 #cgo darwin LDFLAGS: -Wl,-rpath,../../../target/release
 #cgo linux LDFLAGS: -Wl,-rpath,../../../target/release
 #cgo windows LDFLAGS: -lws2_32 -luserenv -ladvapi32 -lbcrypt -lntdll -lkernel32 -luser32
 #include <stdlib.h>
 
 // Declare the FFI functions that might not be in the header yet
-extern char* keyfinder_list_providers();
-extern char* keyfinder_list_scanners();
-extern char* keyfinder_scan(const char* home_path, const char* options_json);
-extern void keyfinder_free(char* ptr);
-extern const char* keyfinder_version(void);
-extern const char* keyfinder_last_error(void);
+extern char* aicred_list_providers();
+extern char* aicred_list_scanners();
+extern char* aicred_scan(const char* home_path, const char* options_json);
+extern void aicred_free(char* ptr);
+extern const char* aicred_version(void);
+extern const char* aicred_last_error(void);
 
 // Include the header for existing functions
 #include "../../../ffi/include/genai_keyfinder.h"
@@ -97,17 +97,17 @@ func Scan(options ScanOptions) (*ScanResult, error) {
 	defer C.free(unsafe.Pointer(optionsStr))
 
 	// Call C function with error handling
-	resultPtr := C.keyfinder_scan(homeDir, optionsStr)
+	resultPtr := C.aicred_scan(homeDir, optionsStr)
 	if resultPtr == nil {
 		// Get error message
-		errPtr := C.keyfinder_last_error()
+		errPtr := C.aicred_last_error()
 		if errPtr != nil {
 			errMsg := C.GoString(errPtr)
 			return nil, fmt.Errorf("FFI scan failed: %s", errMsg)
 		}
 		return nil, errors.New("scan failed with unknown error (FFI returned null)")
 	}
-	defer C.keyfinder_free(resultPtr)
+	defer C.aicred_free(resultPtr)
 
 	// Convert result to Go string
 	resultJSON := C.GoString(resultPtr)
@@ -126,19 +126,19 @@ func Scan(options ScanOptions) (*ScanResult, error) {
 
 // Version returns the library version
 func Version() string {
-	versionPtr := C.keyfinder_version()
+	versionPtr := C.aicred_version()
 	return C.GoString(versionPtr)
 }
 
 // ListProviders returns a list of available provider plugins
 func ListProviders() []string {
 	// Call the FFI function to get the list of providers
-	providersPtr := C.keyfinder_list_providers()
+	providersPtr := C.aicred_list_providers()
 	if providersPtr == nil {
 		// If FFI is not available, return empty slice to avoid misleading consumers
 		return []string{}
 	}
-	defer C.keyfinder_free(providersPtr)
+	defer C.aicred_free(providersPtr)
 
 	// Convert C string to Go string
 	providersJSON := C.GoString(providersPtr)
@@ -156,12 +156,12 @@ func ListProviders() []string {
 // ListScanners returns a list of available application scanners
 func ListScanners() []string {
 	// Call the FFI function to get the list of scanners
-	scannersPtr := C.keyfinder_list_scanners()
+	scannersPtr := C.aicred_list_scanners()
 	if scannersPtr == nil {
 		// If FFI is not available, return empty slice to avoid misleading consumers
 		return []string{}
 	}
-	defer C.keyfinder_free(scannersPtr)
+	defer C.aicred_free(scannersPtr)
 
 	// Convert C string to Go string
 	scannersJSON := C.GoString(scannersPtr)

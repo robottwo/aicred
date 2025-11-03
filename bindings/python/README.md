@@ -1,11 +1,11 @@
-# GenAI Key Finder - Python Bindings
+# AICred - Python Bindings
 
-Python bindings for the genai-keyfinder library with enhanced provider instance and model management.
+Python bindings for the aicred library with enhanced provider instance and model management.
 
 ## Installation
 
 ```bash
-pip install genai-keyfinder
+pip install aicred
 ```
 
 Or build from source:
@@ -23,10 +23,10 @@ PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 maturin develop
 ### Basic Scanning
 
 ```python
-import genai_keyfinder
+import aicred
 
 # Scan for credentials
-result = genai_keyfinder.scan()
+result = aicred.scan()
 
 # Print results
 print(f"Found {len(result['keys'])} keys")
@@ -37,10 +37,10 @@ for key in result['keys']:
 ### Enhanced Provider Instance Management
 
 ```python
-import genai_keyfinder
+import aicred
 
 # Create a provider instance
-provider = genai_keyfinder.ProviderInstance(
+provider = aicred.ProviderInstance(
     id="openai-prod",
     display_name="OpenAI Production",
     provider_type="openai",
@@ -48,7 +48,7 @@ provider = genai_keyfinder.ProviderInstance(
 )
 
 # Add models to the provider
-model = genai_keyfinder.Model(
+model = aicred.Model(
     model_id="gpt-4",
     provider_instance_id="openai-prod",
     name="GPT-4"
@@ -59,7 +59,7 @@ model.set_tags(["text-generation", "code"])
 provider.add_model(model)
 
 # Create a collection of provider instances
-instances = genai_keyfinder.ProviderInstances()
+instances = aicred.ProviderInstances()
 instances.add_instance(provider)
 
 # Filter instances
@@ -69,17 +69,17 @@ active_openai_instances = instances.active_instances_by_type("openai")
 ### Token Cost Tracking
 
 ```python
-import genai_keyfinder
+import aicred
 
 # Create token cost tracking
-cost = genai_keyfinder.TokenCost(
+cost = aicred.TokenCost(
     input_cost_per_million=0.001,
     output_cost_per_million=0.002,
     cached_input_cost_modifier=0.1
 )
 
 # Apply cost to model
-model = genai_keyfinder.Model(
+model = aicred.Model(
     model_id="gpt-4",
     provider_instance_id="openai-prod",
     name="GPT-4"
@@ -90,10 +90,10 @@ model.set_cost(cost)
 ### Model Capabilities
 
 ```python
-import genai_keyfinder
+import aicred
 
 # Define model capabilities
-capabilities = genai_keyfinder.Capabilities(
+capabilities = aicred.Capabilities(
     text_generation=True,
     code_generation=True,
     streaming=True,
@@ -101,7 +101,7 @@ capabilities = genai_keyfinder.Capabilities(
 )
 
 # Create model with capabilities
-model = genai_keyfinder.Model(
+model = aicred.Model(
     model_id="claude-3",
     provider_instance_id="anthropic-prod",
     name="Claude 3"
@@ -113,13 +113,13 @@ model.set_context_window(200000)
 ### Migration from Legacy Configurations
 
 ```python
-import genai_keyfinder
+import aicred
 
 # Migrate legacy provider configurations to new instance-based architecture
 # (Placeholder - replace with actual legacy config objects)
 legacy_configs = []  # List of legacy ProviderConfig objects
 
-migrated_instances = genai_keyfinder.migrate_provider_configs(legacy_configs)
+migrated_instances = aicred.migrate_provider_configs(legacy_configs)
 ```
 
 ## API Reference

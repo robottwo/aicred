@@ -1,4 +1,4 @@
-//! Error types for the genai-keyfinder core library.
+//! Error types for the aicred core library.
 
 use std::path::PathBuf;
 use thiserror::Error;

@@ -3,7 +3,7 @@
 #![allow(clippy::absurd_extreme_comparisons)]
 #![allow(unused_comparisons)]
 
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 use std::fs;
 use tempfile::TempDir;
 
@@ -324,7 +324,7 @@ fn test_anthropic_model_detection_without_api_key() {
         .filter(|k| {
             matches!(
                 k.value_type,
-                genai_keyfinder_core::models::discovered_key::ValueType::ModelId
+                aicred_core::models::discovered_key::ValueType::ModelId
             )
         })
         .collect();

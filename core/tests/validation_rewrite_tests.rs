@@ -3,7 +3,7 @@
 //! This module tests the validation functions in config_validator.rs and the
 //! automatic rewrite behavior in ConfigInstance::load_or_create().
 
-use genai_keyfinder_core::models::{
+use aicred_core::models::{
     config_validator::{validate_provider_instance_yaml, validate_provider_instances_yaml},
     ConfigInstance,
 };

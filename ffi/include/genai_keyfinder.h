@@ -14,7 +14,7 @@
  * - `options_json`: UTF-8 encoded JSON options (null-terminated C string)
  *
  * # Returns
- * UTF-8 encoded JSON string containing scan results. Caller must free with [`keyfinder_free`].
+ * UTF-8 encoded JSON string containing scan results. Caller must free with [`aicred_free`].
  * Returns NULL on error.
  *
  * # Example options_json:
@@ -31,37 +31,37 @@
  *
  * Both pointers must be either null or point to valid null-terminated C strings.
  */
-char *keyfinder_scan(const char *home_path, const char *options_json);
+char *aicred_scan(const char *home_path, const char *options_json);
 
 /**
- * Free a string returned by keyfinder_scan
+ * Free a string returned by aicred_scan
  *
  * # Safety
  *
  * The pointer must be either null or point to a string allocated by this library.
  */
-void keyfinder_free(char *ptr);
+void aicred_free(char *ptr);
 
 /**
  * Get library version string
  *
  * Returns a static version string that does not need to be freed.
  */
-const char *keyfinder_version(void);
+const char *aicred_version(void);
 
 /**
  * Get last error message (thread-local)
  *
  * Returns a pointer to the last error message, or null if no error occurred.
- * The returned pointer is valid until the next call to any keyfinder function.
+ * The returned pointer is valid until the next call to any aicred function.
  */
-const char *keyfinder_last_error(void);
+const char *aicred_last_error(void);
 
 /**
  * Get list of available provider plugins
  *
  * Returns a JSON array of provider names as a UTF-8 encoded string.
- * Caller must free the returned string with [`keyfinder_free`].
+ * Caller must free the returned string with [`aicred_free`].
  * Returns NULL on error.
  *
  * # Example return value:
@@ -71,15 +71,15 @@ const char *keyfinder_last_error(void);
  *
  * # Safety
  *
- * The returned pointer must be freed by the caller using [`keyfinder_free`].
+ * The returned pointer must be freed by the caller using [`aicred_free`].
  */
-char *keyfinder_list_providers(void);
+char *aicred_list_providers(void);
 
 /**
  * Get list of available scanner plugins
  *
  * Returns a JSON array of scanner names as a UTF-8 encoded string.
- * Caller must free the returned string with [`keyfinder_free`].
+ * Caller must free the returned string with [`aicred_free`].
  * Returns NULL on error.
  *
  * # Example return value:
@@ -89,8 +89,8 @@ char *keyfinder_list_providers(void);
  *
  * # Safety
  *
- * The returned pointer must be freed by the caller using [`keyfinder_free`].
+ * The returned pointer must be freed by the caller using [`aicred_free`].
  */
-char *keyfinder_list_scanners(void);
+char *aicred_list_scanners(void);
 
 #endif /* GENAI_KEYFINDER_H */

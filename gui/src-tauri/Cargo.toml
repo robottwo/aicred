@@ -1,11 +1,11 @@
 [package]
-name = "genai-keyfinder-gui"
+name = "aicred-gui"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
 [lib]
-name = "genai_keyfinder_gui_lib"
+name = "aicred_gui_lib"
 path = "src/lib.rs"
 
 [build-dependencies]
@@ -16,4 +16,4 @@ tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-genai-keyfinder-core = { path = "../../core" }
+aicred-core = { path = "../../core" }

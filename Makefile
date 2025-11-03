@@ -1,4 +1,4 @@
-# GenAI KeyFinder - Comprehensive Build System
+# AICred - Comprehensive Build System
 # This Makefile provides logical top-level build targets for the multi-component project
 
 # Platform detection
@@ -31,19 +31,19 @@ build-core-only: build-core build-cli build-ffi build-gui build-go
 
 .PHONY: build-core
 build-core:
-	cargo build --release -p genai-keyfinder-core
+	cargo build --release -p aicred-core
 
 .PHONY: build-cli
 build-cli: build-core
-	cargo build --release -p genai-keyfinder
+	cargo build --release -p aicred
 
 .PHONY: build-ffi
 build-ffi: build-core
-	cargo build --release -p genai-keyfinder-ffi
+	cargo build --release -p aicred-ffi
 
 .PHONY: build-gui
 build-gui: build-core build-gui-frontend
-	cargo build --release -p genai-keyfinder-gui
+	cargo build --release -p aicred-gui
 
 .PHONY: build-python
 build-python: build-core
@@ -149,7 +149,7 @@ test-unit:
 test-integration:
 ifeq ($(PLATFORM),macos)
 	@echo "Running integration tests (excluding FFI on macOS due to SIGTRAP issue)..."
-	cargo test --workspace --exclude genai-keyfinder-ffi --test '*'
+	cargo test --workspace --exclude aicred-ffi --test '*'
 else
 	cargo test --test '*'
 endif
@@ -158,7 +158,7 @@ endif
 test-python: build-python
 	@command -v pytest >/dev/null 2>&1 || { echo "Error: pytest not found. Run 'make dev-setup' to install it."; exit 1; }
 	@echo "Installing Python wheel..."
-	@WHEEL=$$(ls target/wheels/genai_keyfinder-*.whl 2>/dev/null | head -1); \
+	@WHEEL=$$(ls target/wheels/aicred-*.whl 2>/dev/null | head -1); \
 	if [ -z "$$WHEEL" ]; then echo "Error: Python wheel not found. Run 'make build-python' first."; exit 1; fi; \
 	echo "Installing $$WHEEL..."; \
 	python3 -m pip install --break-system-packages --user --force-reinstall "$$WHEEL" || { \
@@ -199,20 +199,20 @@ package-all: package-linux package-macos package-windows
 .PHONY: package-linux
 package-linux: build-all
 	mkdir -p dist/linux
-	cp target/release/keyfinder dist/linux/
-	cp target/release/libgenai_keyfinder_ffi.so dist/linux/
+	cp target/release/aicred dist/linux/
+	cp target/release/libaicred_ffi.so dist/linux/
 
 .PHONY: package-macos
 package-macos: build-all
 	mkdir -p dist/macos
-	cp target/release/keyfinder dist/macos/
-	cp target/release/libgenai_keyfinder_ffi.dylib dist/macos/
+	cp target/release/aicred dist/macos/
+	cp target/release/libaicred_ffi.dylib dist/macos/
 
 .PHONY: package-windows
 package-windows: build-all
 	mkdir -p dist/windows
-	cp target/release/keyfinder.exe dist/windows/
-	cp target/release/genai_keyfinder_ffi.dll dist/windows/
+	cp target/release/aicred.exe dist/windows/
+	cp target/release/aicred_ffi.dll dist/windows/
 # Platform-specific targets
 .PHONY: build-platform
 
@@ -237,7 +237,7 @@ install-platform: package-platform
 ifeq ($(PLATFORM),windows)
 	@echo "Manual installation required on Windows"
 else
-	cp dist/$(PLATFORM)/keyfinder /usr/local/bin/
+	cp dist/$(PLATFORM)/aicred /usr/local/bin/
 endif
 
 # Package manager targets
@@ -281,7 +281,7 @@ release-major:
 # Utility targets
 .PHONY: version
 version:
-	@echo "GenAI KeyFinder Build System"
+	@echo "AICred Build System"
 	@echo "Platform: $(PLATFORM)"
 	@echo "Library Extension: $(LIB_EXT)"
 	@echo "Executable Extension: $(EXE_EXT)"
@@ -300,7 +300,7 @@ info:
 # Help system
 .PHONY: help
 help:
-	@echo "GenAI KeyFinder Build System"
+	@echo "AICred Build System"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

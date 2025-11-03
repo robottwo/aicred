@@ -19,7 +19,7 @@ use crate::models::{ProviderInstance, ProviderInstances};
 ///
 /// # Examples
 /// ```
-/// use genai_keyfinder_core::models::config_validator::validate_provider_instance_yaml;
+/// use aicred_core::models::config_validator::validate_provider_instance_yaml;
 ///
 /// let yaml = r#"
 /// id: openai-prod
@@ -66,7 +66,7 @@ pub fn validate_provider_instance_yaml(content: &str) -> Result<(), String> {
 ///
 /// # Examples
 /// ```
-/// use genai_keyfinder_core::models::config_validator::validate_provider_instances_yaml;
+/// use aicred_core::models::config_validator::validate_provider_instances_yaml;
 ///
 /// let yaml = r#"
 /// openai-prod:

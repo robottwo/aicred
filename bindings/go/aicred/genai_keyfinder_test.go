@@ -1,4 +1,4 @@
-package genai_keyfinder
+package aicred
 
 import (
 	"os"
@@ -67,7 +67,7 @@ func TestListScanners(t *testing.T) {
 
 func TestScanBasic(t *testing.T) {
 	// Create temporary directory for testing
-	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-test-*")
+	tmpDir, err := os.MkdirTemp("", "aicred-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestScanBasic(t *testing.T) {
 }
 
 func TestScanWithOptions(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-test-*")
+	tmpDir, err := os.MkdirTemp("", "aicred-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestScanWithOptions(t *testing.T) {
 }
 
 func TestScanWithExclude(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-test-*")
+	tmpDir, err := os.MkdirTemp("", "aicred-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestScanInvalidHome(t *testing.T) {
 }
 
 func TestScanWithFullValues(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-test-*")
+	tmpDir, err := os.MkdirTemp("", "aicred-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestScanWithFullValues(t *testing.T) {
 
 func TestConcurrentScans(t *testing.T) {
 	// Create temporary directory for concurrent testing
-	tmpDir, err := os.MkdirTemp("", "genai-keyfinder-concurrent-test-*")
+	tmpDir, err := os.MkdirTemp("", "aicred-concurrent-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,9 +30,9 @@ use commands::{
     scan::handle_scan,
 };
 
-/// GenAI Key Finder - Discover GenAI API keys and configurations
+/// AICred - Discover AI API keys and configurations
 #[derive(Parser)]
-#[command(name = "keyfinder")]
+#[command(name = "aicred")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Home directory to use (defaults to current user's home)

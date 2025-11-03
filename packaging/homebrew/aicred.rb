@@ -1,4 +1,4 @@
-class GenaiKeyfinder < Formula
+class Aicred < Formula
   desc "Cross-platform GenAI key discovery tool"
   homepage "https://github.com/robottwo/aicred"
   url "https://github.com/robottwo/aicred/archive/v0.1.0.tar.gz"
@@ -15,6 +15,6 @@ class GenaiKeyfinder < Formula
   end
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/keyfinder --version")
+    assert_match version.to_s, shell_output("#{bin}/aicred --version")
   end
 end

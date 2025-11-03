@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Removing genai-keyfinder from /usr/local/bin..."
-sudo rm -f /usr/local/bin/keyfinder
+echo "Removing aicred from /usr/local/bin..."
+sudo rm -f /usr/local/bin/aicred
 
 echo "Uninstallation complete!"

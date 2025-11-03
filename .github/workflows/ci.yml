@@ -63,10 +63,10 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Run tests
-        run: cargo test --workspace --exclude genai-keyfinder-gui --verbose
+        run: cargo test --workspace --exclude aicred-gui --verbose
       
       - name: Run doc tests
-        run: cargo test --doc --workspace --exclude genai-keyfinder-gui
+        run: cargo test --doc --workspace --exclude aicred-gui
   
   fmt:
     name: Rustfmt
@@ -86,7 +86,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: cargo clippy --workspace --exclude genai-keyfinder-gui --all-targets --all-features -- -D warnings
+      - run: cargo clippy --workspace --exclude aicred-gui --all-targets --all-features -- -D warnings
   
   build-cli:
     name: Build CLI
@@ -149,7 +149,7 @@ jobs:
       - name: Build CLI
         run: |
           echo "Starting build for target: ${{ matrix.target }}"
-          cargo build --release --target ${{ matrix.target }} -p genai-keyfinder
+          cargo build --release --target ${{ matrix.target }} -p aicred
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4

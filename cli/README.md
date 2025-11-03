@@ -1,6 +1,6 @@
-# GenAI Key Finder CLI
+# AICred CLI
 
-A command-line interface for discovering GenAI API keys and configurations across your system.
+A command-line interface for discovering AI API keys and configurations across your system.
 
 ## Installation
 
@@ -14,7 +14,7 @@ Or build from source:
 cargo build --release
 ```
 
-The binary will be available at `target/release/keyfinder`.
+The binary will be available at `target/release/aicred`.
 
 ## Usage
 
@@ -22,17 +22,17 @@ The binary will be available at `target/release/keyfinder`.
 
 #### Scan for credentials
 ```bash
-keyfinder scan
+aicred scan
 ```
 
 #### List available providers and scanners
 ```bash
-keyfinder providers
+aicred providers
 ```
 
 #### Show version information
 ```bash
-keyfinder version
+aicred version
 ```
 
 ### Scan Options
@@ -42,48 +42,48 @@ Choose from multiple output formats:
 
 ```bash
 # Table format (default)
-keyfinder scan
+aicred scan
 
 # JSON format
-keyfinder scan --format json
+aicred scan --format json
 
 # NDJSON format (one JSON object per line)
-keyfinder scan --format ndjson
+aicred scan --format ndjson
 
 # Summary format
-keyfinder scan --format summary
+aicred scan --format summary
 ```
 
 #### Custom Home Directory
 ```bash
-keyfinder scan --home /path/to/directory
+aicred scan --home /path/to/directory
 ```
 
 #### Provider Filtering
 ```bash
 # Only scan specific providers
-keyfinder scan --only openai,anthropic
+aicred scan --only openai,anthropic
 
 # Exclude specific providers
-keyfinder scan --exclude huggingface
+aicred scan --exclude huggingface
 ```
 
 #### Security Options
 ```bash
 # Include full secret values (DANGEROUS - use with caution)
-keyfinder scan --include-values
+aicred scan --include-values
 
 # Dry run - show what would be scanned
-keyfinder scan --dry-run
+aicred scan --dry-run
 
 # Write audit log
-keyfinder scan --audit-log scan.log
+aicred scan --audit-log scan.log
 ```
 
 #### File Size Limits
 ```bash
 # Maximum file size to read (default: 1MB)
-keyfinder scan --max-bytes-per-file 2097152
+aicred scan --max-bytes-per-file 2097152
 ```
 
 ## Output Formats
@@ -174,23 +174,23 @@ By Provider:
 
 ### Comprehensive Scan
 ```bash
-keyfinder scan --format table --audit-log comprehensive-scan.log
+aicred scan --format table --audit-log comprehensive-scan.log
 ```
 
 ### Targeted Scan
 ```bash
-keyfinder scan --only openai,anthropic --format summary
+aicred scan --only openai,anthropic --format summary
 ```
 
 ### Security Audit
 ```bash
-keyfinder scan --dry-run --format json > potential-targets.json
+aicred scan --dry-run --format json > potential-targets.json
 ```
 
 ### CI/CD Integration
 ```bash
 # Fail if any credentials are found (exit code 0 means found)
-if keyfinder scan --format summary; then
+if aicred scan --format summary; then
     echo "Credentials found - review required"
     exit 1
 fi

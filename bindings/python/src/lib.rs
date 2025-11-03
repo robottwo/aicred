@@ -3,7 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::manual_range_contains)]
 
-use genai_keyfinder_core::{scan as core_scan, ScanOptions};
+use aicred_core::{scan as core_scan, ScanOptions};
 // TODO: Core types will be mapped to Py* wrapper types when implementing full functionality
 // Currently only scan and ScanOptions are used directly
 
@@ -1275,8 +1275,8 @@ impl ProviderInstances {
 ///     dict: Scan results with keys and config_instances
 ///
 /// Example:
-///     >>> import genai_keyfinder
-///     >>> result = genai_keyfinder.scan()
+///     >>> import aicred
+///     >>> result = aicred.scan()
 ///     >>> print(f"Found {len(result['keys'])} keys")
 #[pyfunction]
 #[pyo3(signature = (home_dir=None, include_full_values=false, max_file_size=1048576, only_providers=None, exclude_providers=None))]
@@ -1339,11 +1339,11 @@ fn list_scanners() -> Vec<&'static str> {
     vec!["roo-code", "claude-desktop", "ragit", "langchain", "gsh"]
 }
 
-/// GenAI Key Finder - Python bindings
+/// AICred - Python bindings
 ///
-/// A library for discovering GenAI API keys and configurations
+/// A library for discovering AI API keys and configurations
 #[pymodule]
-fn genai_keyfinder(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn aicred(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the wrapper classes with expected names (these are what tests expect)
     m.add_class::<TokenCost>()?;
     m.add_class::<Capabilities>()?;

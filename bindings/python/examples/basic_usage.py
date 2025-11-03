@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-Basic usage example for genai-keyfinder Python bindings
+Basic usage example for aicred Python bindings
 """
 
-import genai_keyfinder
+import aicred
 import json
 import os
 
 def main():
-    print("GenAI Key Finder - Python Example")
-    print(f"Version: {genai_keyfinder.version()}\n")
+    print("AICred - Python Example")
+    print(f"Version: {aicred.version()}\n")
     
     # List available providers
     print("Available Providers:")
-    for provider in genai_keyfinder.list_providers():
+    for provider in aicred.list_providers():
         print(f"  - {provider}")
     
     print("\nAvailable Scanners:")
-    for scanner in genai_keyfinder.list_scanners():
+    for scanner in aicred.list_scanners():
         print(f"  - {scanner}")
     
     # Perform scan
     print("\nScanning for credentials...")
-    result = genai_keyfinder.scan(
+    result = aicred.scan(
         include_full_values=False,  # Keep secrets redacted
         only_providers=["openai", "anthropic"]  # Only scan these
     )

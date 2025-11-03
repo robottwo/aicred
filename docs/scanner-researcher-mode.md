@@ -1,6 +1,6 @@
 # 🔍 Scanner Researcher Mode
 
-The Scanner Researcher mode is a specialized Roo Code mode designed to research AI applications and create comprehensive scanner specifications for the GenAI Keyfinder project.
+The Scanner Researcher mode is a specialized Roo Code mode designed to research AI applications and create comprehensive scanner specifications for the AICred project.
 
 ## Overview
 
@@ -14,7 +14,7 @@ This mode automates the process of:
 ## When to Use
 
 Use the Scanner Researcher mode when you need to:
-- Add support for a new AI application to GenAI Keyfinder
+- Add support for a new AI application to AICred
 - Research an application's configuration patterns
 - Create scanner implementation specifications
 - Generate test cases for scanner validation
@@ -97,9 +97,9 @@ The mode generates a comprehensive specification document with:
 - Invalid configuration examples
 - Expected results for each test case
 
-## Integration with GenAI Keyfinder
+## Integration with AICred
 
-The specifications created by this mode are designed to be directly implementable in the GenAI Keyfinder project. Each specification includes:
+The specifications created by this mode are designed to be directly implementable in the AICred project. Each specification includes:
 
 1. **Rust Implementation Code**: Ready-to-use scanner implementation
 2. **Test Configurations**: JSON/YAML examples for unit tests
@@ -147,7 +147,7 @@ To improve the Scanner Researcher mode:
 
 ## References
 
-- [GenAI Keyfinder Project](https://github.com/your-org/genai-keyfinder)
+- [AICred Project](https://github.com/your-org/aicred)
 - [Scanner Plugin Interface](core/src/scanners/mod.rs)
 - [Example Scanner Implementations](core/src/scanners/)
 

@@ -1,6 +1,6 @@
 // Example: implement and register a custom provider plugin
 
-use genai_keyfinder_core::{
+use aicred_core::{
     error::Result,
     models::{DiscoveredKey, ValueType, Confidence},
     plugins::{PluginRegistry, ProviderPlugin},
@@ -49,7 +49,7 @@ impl ProviderPlugin for MyProviderPlugin {
 fn main() -> Result<()> {
     // Create a registry and register built-ins plus our custom plugin
     let registry = PluginRegistry::new();
-    genai_keyfinder_core::register_builtin_plugins(&registry)?;
+    aicred_core::register_builtin_plugins(&registry)?;
     registry.register(Arc::new(MyProviderPlugin))?;
 
     // Create a scanner with default config

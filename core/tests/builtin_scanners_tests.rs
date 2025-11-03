@@ -1,6 +1,6 @@
 //! Tests for built-in scanner plugins
 
-use genai_keyfinder_core::scanners::{
+use aicred_core::scanners::{
     register_builtin_scanners, ClaudeDesktopScanner, GshScanner, LangChainScanner, RagitScanner,
     RooCodeScanner, ScannerPlugin, ScannerRegistry,
 };
@@ -353,11 +353,11 @@ GOOGLE_API_KEY=AIzaSyTest1234567890abcdef
     assert_eq!(result.keys[0].provider, "openai");
     assert_eq!(
         result.keys[0].value_type,
-        genai_keyfinder_core::models::discovered_key::ValueType::ApiKey
+        aicred_core::models::discovered_key::ValueType::ApiKey
     );
     assert_eq!(
         result.keys[0].confidence,
-        genai_keyfinder_core::models::discovered_key::Confidence::High
+        aicred_core::models::discovered_key::Confidence::High
     );
 
     // Check instance
@@ -483,9 +483,9 @@ export COHERE_API_KEY="sk-cohere1234567890abcdef"
     for key in &result.keys {
         assert!(matches!(
             key.confidence,
-            genai_keyfinder_core::models::discovered_key::Confidence::High
-                | genai_keyfinder_core::models::discovered_key::Confidence::Medium
-                | genai_keyfinder_core::models::discovered_key::Confidence::Low
+            aicred_core::models::discovered_key::Confidence::High
+                | aicred_core::models::discovered_key::Confidence::Medium
+                | aicred_core::models::discovered_key::Confidence::Low
         ));
     }
 }

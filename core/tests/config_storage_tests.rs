@@ -3,8 +3,8 @@
 //! This module tests the configuration storage system that manages provider
 //! configurations across multiple YAML files with a manifest-based approach.
 
+use aicred_core::models::{Confidence, Environment, ProviderKey, ValidationStatus};
 use chrono::{DateTime, Utc};
-use genai_keyfinder_core::models::{Confidence, Environment, ProviderKey, ValidationStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -18,7 +18,7 @@ fn default_schema_version() -> String {
 
 /// Mirror of the CLI's ProviderConfig structure for testing
 ///
-/// This structure mirrors the production [`ProviderConfig`](genai_keyfinder_core::models::ProviderConfig)
+/// This structure mirrors the production [`ProviderConfig`](aicred_core::models::ProviderConfig)
 /// with identical serde attributes to ensure test behavior matches production deserialization.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProviderConfig {

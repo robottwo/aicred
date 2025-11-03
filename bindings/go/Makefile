@@ -6,11 +6,11 @@ build-ffi:
 
 # Build Go bindings
 build: build-ffi
-	go build ./genai_keyfinder
+	go build ./aicred
 
 # Run tests
 test: build-ffi
-	go test -v ./genai_keyfinder
+	go test -v ./aicred
 
 # Run example
 example: build-ffi
@@ -28,4 +28,4 @@ deps:
 
 # Run benchmarks
 bench: build-ffi
-	go test -bench=. ./genai_keyfinder
+	go test -bench=. ./aicred

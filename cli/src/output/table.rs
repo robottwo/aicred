@@ -1,5 +1,5 @@
+use aicred_core::ScanResult;
 use colored::*;
-use genai_keyfinder_core::ScanResult;
 use tracing::debug;
 
 pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Error> {
@@ -135,7 +135,7 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     providers.insert(key.provider.clone());
 
                     // Count models (ModelId value type)
-                    if matches!(key.value_type, genai_keyfinder_core::ValueType::ModelId) {
+                    if matches!(key.value_type, aicred_core::ValueType::ModelId) {
                         if let Some(model_id) = key.full_value() {
                             models.insert(model_id.to_string());
                         }

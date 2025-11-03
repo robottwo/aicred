@@ -17,7 +17,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-//! Core library for genai-keyfinder - discovers AI API keys in configuration files.
+//! Core library for aicred - discovers AI API keys in configuration files.
 //!
 //! This library provides functionality to scan home directories and configuration
 //! files for AI service API keys from various providers like `OpenAI`, `Anthropic`, Google, etc.
@@ -25,7 +25,7 @@
 //! # Example
 //!
 //! ```rust
-//! use genai_keyfinder_core::{scan, ScanOptions, PluginRegistry};
+//! use aicred_core::{scan, ScanOptions, PluginRegistry};
 //! use std::path::Path;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {

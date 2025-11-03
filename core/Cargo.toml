@@ -1,12 +1,12 @@
 [package]
-name = "genai-keyfinder-core"
+name = "aicred-core"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Core library for genai-keyfinder - discovers AI API keys in configuration files"
+description = "Core library for aicred - discovers AI API keys in configuration files"
 
 [dependencies]
 serde = { workspace = true }

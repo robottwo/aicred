@@ -14,12 +14,12 @@ Use `include_full_values` only in secure environments:
 
 ```bash
 # CLI
-keyfinder scan --include-values
+aicred scan --include-values
 
 # Python
 python - <<'PY'
-import genai_keyfinder
-result = genai_keyfinder.scan(include_full_values=True)
+import aicred
+result = aicred.scan(include_full_values=True)
 print(len(result["keys"]))
 PY
 
@@ -28,11 +28,11 @@ package main
 
 import (
   "fmt"
-  "github.com/robottwo/aicred/bindings/go/genai_keyfinder"
+  "github.com/robottwo/aicred/bindings/go"
 )
 
 func main() {
-  res, _ := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{
+  res, _ := aicred.Scan(aicred.ScanOptions{
     IncludeFullValues: true,
   })
   fmt.Println(len(res.Keys))
@@ -44,7 +44,7 @@ func main() {
 Default: 1MB per file. Configurable:
 
 ```bash
-keyfinder scan --max-bytes-per-file 512000
+aicred scan --max-bytes-per-file 512000
 ```
 
 ## Audit Logging
@@ -52,7 +52,7 @@ keyfinder scan --max-bytes-per-file 512000
 Enable audit logging:
 
 ```bash
-keyfinder scan --audit-log scan-audit.log
+aicred scan --audit-log scan-audit.log
 ```
 
 ## Best Practices

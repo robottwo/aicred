@@ -206,7 +206,7 @@ impl ProviderInstance {
 
     /// Gets the name that should be used for the --key argument.
     /// This returns the instance ID which is used to identify the instance
-    /// in commands like `keyfinder instances get <name>`.
+    /// in commands like `aicred instances get <name>`.
     #[must_use]
     pub fn key_name(&self) -> &str {
         &self.id

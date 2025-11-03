@@ -37,26 +37,26 @@ jobs:
       
       - name: Build FFI library (Windows)
         if: runner.os == 'Windows'
-        run: cargo build --release --target x86_64-pc-windows-gnu -p genai-keyfinder-ffi
+        run: cargo build --release --target x86_64-pc-windows-gnu -p aicred-ffi
       
       - name: Build FFI library (Non-Windows)
         if: runner.os != 'Windows'
-        run: cargo build --release -p genai-keyfinder-ffi
+        run: cargo build --release -p aicred-ffi
       
       - name: Copy FFI library (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           mkdir -p bindings/go/lib
-          cp target/release/libgenai_keyfinder_ffi.* bindings/go/lib/
+          cp target/release/libaicred_ffi.* bindings/go/lib/
       
       - name: Copy FFI library (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir bindings/go/lib
-          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\lib\
-          copy target\x86_64-pc-windows-gnu\release\libgenai_keyfinder_ffi.a bindings\go\lib\
-          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\
-          copy target\x86_64-pc-windows-gnu\release\genai_keyfinder_ffi.dll bindings\go\genai_keyfinder\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\libaicred_ffi.a bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\genai_keyfinder\
       
       - name: Set CGO_LDFLAGS (Linux/macOS)
         if: runner.os != 'Windows'

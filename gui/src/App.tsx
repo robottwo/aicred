@@ -66,7 +66,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🔍 GenAI Key Finder</h1>
+        <h1>🔍 AICred</h1>
         <span className="version">v{version}</span>
       </header>
 
@@ -97,7 +97,7 @@ function App() {
 
           {!scanResult && !isScanning && !error && (
             <div className="welcome-message">
-              <h2>Welcome to GenAI Key Finder</h2>
+              <h2>Welcome to AICred</h2>
               <p>Configure your scan options and click "Start Scan" to begin.</p>
             </div>
           )}

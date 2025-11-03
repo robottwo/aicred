@@ -1,4 +1,4 @@
-# GenAI Key Finder
+# AICred
 
 🔍 A cross-platform library for discovering GenAI API keys and configurations across various providers and applications.
 
@@ -42,25 +42,25 @@
 
 ```bash
 # Install
-cargo install genai-keyfinder
+cargo install aicred
 
 # Scan for credentials
-keyfinder scan
+aicred scan
 
 # Scan with options
-keyfinder scan --format json --only openai,anthropic
+aicred scan --format json --only openai,anthropic
 ```
 
 ### Python
 
 ```bash
-pip install genai-keyfinder
+pip install aicred
 ```
 
 ```python
-import genai_keyfinder
+import aicred
 
-result = genai_keyfinder.scan()
+result = aicred.scan()
 print(f"Found {len(result['keys'])} keys")
 ```
 
@@ -73,18 +73,18 @@ go get github.com/robottwo/aicred/bindings/go
 ```go
 import "github.com/robottwo/aicred/bindings/go"
 
-result, err := genai_keyfinder.Scan(genai_keyfinder.ScanOptions{})
+result, err := aicred.Scan(aicred.ScanOptions{})
 ```
 
 ### Rust Library
 
 ```toml
 [dependencies]
-genai-keyfinder-core = "0.1.0"
+aicred-core = "0.1.0"
 ```
 
 ```rust
-use genai_keyfinder_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions};
 
 let result = scan(ScanOptions::default())?;
 ```
@@ -105,7 +105,7 @@ See detailed installation instructions in [docs/installation.md](docs/installati
 ## Project Structure
 
 ```
-genai-keyfinder/
+aicred/
 ├── core/              # Core Rust library
 ├── ffi/               # C-API layer
 ├── cli/               # Command-line tool

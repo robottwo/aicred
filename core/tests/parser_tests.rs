@@ -1,4 +1,4 @@
-use genai_keyfinder_core::parser::{ConfigParser, FileFormat};
+use aicred_core::parser::{ConfigParser, FileFormat};
 use std::path::Path;
 
 #[test]
