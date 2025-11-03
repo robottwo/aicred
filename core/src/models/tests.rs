@@ -171,7 +171,7 @@ mod tests {
             Confidence::Low,
             Environment::Development,
         )
-        .with_value("".to_string());
+        .with_value(String::new());
 
         config.add_key(key);
 
@@ -179,7 +179,7 @@ mod tests {
         let instance: ProviderInstance = config.into();
 
         // Verify empty API key is preserved
-        assert_eq!(instance.api_key, Some("".to_string()));
+        assert_eq!(instance.api_key, Some(String::new()));
         assert!(instance.has_api_key()); // has_api_key() only checks presence
         assert!(!instance.has_non_empty_api_key()); // has_non_empty_api_key() checks for non-empty
     }
@@ -460,7 +460,7 @@ mod tests {
             Confidence::Low,
             Environment::Development,
         )
-        .with_value("".to_string());
+        .with_value(String::new());
 
         original_config.add_key(key);
 
@@ -470,7 +470,7 @@ mod tests {
 
         // Verify empty key is preserved
         assert_eq!(round_trip_config.keys.len(), 1);
-        assert_eq!(round_trip_config.keys[0].value, Some("".to_string()));
+        assert_eq!(round_trip_config.keys[0].value, Some(String::new()));
     }
 
     #[test]
@@ -597,7 +597,7 @@ mod tests {
         assert!(!instance.has_non_empty_api_key());
 
         // Empty API key
-        instance.set_api_key("".to_string());
+        instance.set_api_key(String::new());
         assert!(instance.has_api_key()); // Present but empty
         assert!(!instance.has_non_empty_api_key()); // Empty
 

@@ -140,20 +140,20 @@ impl ProviderInstance {
 
     /// Gets the API key if present.
     #[must_use]
-    pub fn get_api_key(&self) -> Option<&String> {
+    pub const fn get_api_key(&self) -> Option<&String> {
         self.api_key.as_ref()
     }
 
     /// Checks if this instance has an API key (presence check only).
     #[must_use]
-    pub fn has_api_key(&self) -> bool {
+    pub const fn has_api_key(&self) -> bool {
         self.api_key.is_some()
     }
 
     /// Checks if this instance has a non-empty API key.
     #[must_use]
     pub fn has_non_empty_api_key(&self) -> bool {
-        self.api_key.as_ref().map_or(false, |key| !key.is_empty())
+        self.api_key.as_ref().is_some_and(|key| !key.is_empty())
     }
 
     /// Gets the number of models.
@@ -305,116 +305,7 @@ impl From<ProviderInstance> for crate::models::ProviderConfig {
 
             // Restore metadata from instance if available
             if let Some(ref instance_metadata) = instance.metadata {
-                // Restore environment with safe default
-                if let Some(env_str) = instance_metadata.get("environment") {
-                    key.environment = match env_str.as_str() {
-                        "development" => crate::models::provider_key::Environment::Development,
-                        "staging" => crate::models::provider_key::Environment::Staging,
-                        "production" => crate::models::provider_key::Environment::Production,
-                        "testing" => crate::models::provider_key::Environment::Testing,
-                        custom => {
-                            // Handle custom environments, including malformed ones
-                            if custom.is_empty() {
-                                tracing::debug!(
-                                    "Empty environment string found, defaulting to Production"
-                                );
-                                crate::models::provider_key::Environment::Production
-                            } else {
-                                crate::models::provider_key::Environment::Custom(custom.to_string())
-                            }
-                        }
-                    };
-                }
-
-                // Restore confidence with safe default
-                if let Some(conf_str) = instance_metadata.get("confidence") {
-                    key.confidence = match conf_str.as_str() {
-                        "Low" => crate::models::discovered_key::Confidence::Low,
-                        "Medium" => crate::models::discovered_key::Confidence::Medium,
-                        "High" => crate::models::discovered_key::Confidence::High,
-                        "Very High" => crate::models::discovered_key::Confidence::VeryHigh,
-                        unknown => {
-                            tracing::debug!(
-                                "Unknown confidence level '{}', defaulting to Medium",
-                                unknown
-                            );
-                            crate::models::discovered_key::Confidence::Medium
-                        }
-                    };
-                }
-
-                // Restore validation status with safe default
-                if let Some(status_str) = instance_metadata.get("validation_status") {
-                    key.validation_status = match status_str.as_str() {
-                        "Unknown" => crate::models::provider_key::ValidationStatus::Unknown,
-                        "Valid" => crate::models::provider_key::ValidationStatus::Valid,
-                        "Invalid" => crate::models::provider_key::ValidationStatus::Invalid,
-                        "Expired" => crate::models::provider_key::ValidationStatus::Expired,
-                        "Revoked" => crate::models::provider_key::ValidationStatus::Revoked,
-                        "Rate Limited" => {
-                            crate::models::provider_key::ValidationStatus::RateLimited
-                        }
-                        unknown => {
-                            tracing::debug!(
-                                "Unknown validation status '{}', defaulting to Unknown",
-                                unknown
-                            );
-                            crate::models::provider_key::ValidationStatus::Unknown
-                        }
-                    };
-                }
-
-                // Restore discovered_at timestamp with safe fallback
-                if let Some(discovered_str) = instance_metadata.get("discovered_at") {
-                    match chrono::DateTime::parse_from_rfc3339(discovered_str) {
-                        Ok(discovered_at) => {
-                            key.discovered_at = discovered_at.with_timezone(&chrono::Utc);
-                        }
-                        Err(e) => {
-                            tracing::debug!("Failed to parse discovered_at timestamp '{}': {}, using current time", discovered_str, e);
-                            // Keep the default timestamp from ProviderKey::new
-                        }
-                    }
-                }
-
-                // Restore source
-                if let Some(source) = instance_metadata.get("source") {
-                    key.source = source.clone();
-                }
-
-                // Restore line number with safe parsing
-                if let Some(line_str) = instance_metadata.get("line_number") {
-                    match line_str.parse::<u32>() {
-                        Ok(line) => {
-                            key.line_number = Some(line);
-                        }
-                        Err(e) => {
-                            tracing::debug!(
-                                "Failed to parse line_number '{}': {}, omitting field",
-                                line_str,
-                                e
-                            );
-                            // Leave line_number as None
-                        }
-                    }
-                }
-
-                // Restore additional key metadata with safe JSON parsing
-                if let Some(key_metadata_str) = instance_metadata.get("key_metadata") {
-                    match serde_json::from_str::<serde_json::Value>(key_metadata_str) {
-                        Ok(key_metadata) => {
-                            key.metadata = Some(key_metadata);
-                        }
-                        Err(e) => {
-                            tracing::debug!(
-                                "Failed to parse key_metadata JSON '{}': {}, omitting field",
-                                key_metadata_str,
-                                e
-                            );
-                            // Leave metadata as None rather than storing corrupted data
-                        }
-                    }
-                }
+                restore_metadata_from_instance(&mut key, instance_metadata);
             }
 
             config.keys = vec![key];
@@ -428,6 +319,153 @@ impl From<ProviderInstance> for crate::models::ProviderConfig {
             .collect();
 
         config
+    }
+}
+
+/// Restores metadata from `ProviderInstance` to `ProviderKey`
+fn restore_metadata_from_instance(
+    key: &mut ProviderKey,
+    instance_metadata: &std::collections::HashMap<String, String>,
+) {
+    // Restore environment with safe default
+    if let Some(env_str) = instance_metadata.get("environment") {
+        key.environment = parse_environment(env_str);
+    }
+
+    // Restore confidence with safe default
+    if let Some(conf_str) = instance_metadata.get("confidence") {
+        key.confidence = parse_confidence(conf_str);
+    }
+
+    // Restore validation status with safe default
+    if let Some(status_str) = instance_metadata.get("validation_status") {
+        key.validation_status = parse_validation_status(status_str);
+    }
+
+    // Restore discovered_at timestamp with safe fallback
+    if let Some(discovered_str) = instance_metadata.get("discovered_at") {
+        parse_timestamp(key, discovered_str);
+    }
+
+    // Restore source
+    if let Some(source) = instance_metadata.get("source") {
+        key.source.clone_from(source);
+    }
+
+    // Restore line number with safe parsing
+    if let Some(line_str) = instance_metadata.get("line_number") {
+        parse_line_number(key, line_str);
+    }
+
+    // Restore additional key metadata with safe JSON parsing
+    if let Some(key_metadata_str) = instance_metadata.get("key_metadata") {
+        parse_key_metadata(key, key_metadata_str);
+    }
+}
+
+/// Parses environment string to Environment enum
+fn parse_environment(env_str: &str) -> crate::models::provider_key::Environment {
+    match env_str {
+        "development" => crate::models::provider_key::Environment::Development,
+        "staging" => crate::models::provider_key::Environment::Staging,
+        "production" => crate::models::provider_key::Environment::Production,
+        "testing" => crate::models::provider_key::Environment::Testing,
+        custom => {
+            // Handle custom environments, including malformed ones
+            if custom.is_empty() {
+                tracing::debug!("Empty environment string found, defaulting to Production");
+                crate::models::provider_key::Environment::Production
+            } else {
+                crate::models::provider_key::Environment::Custom(custom.to_string())
+            }
+        }
+    }
+}
+
+/// Parses confidence string to Confidence enum
+fn parse_confidence(conf_str: &str) -> crate::models::discovered_key::Confidence {
+    match conf_str {
+        "Low" => crate::models::discovered_key::Confidence::Low,
+        "Medium" => crate::models::discovered_key::Confidence::Medium,
+        "High" => crate::models::discovered_key::Confidence::High,
+        "Very High" => crate::models::discovered_key::Confidence::VeryHigh,
+        unknown => {
+            tracing::debug!(
+                "Unknown confidence level '{}', defaulting to Medium",
+                unknown
+            );
+            crate::models::discovered_key::Confidence::Medium
+        }
+    }
+}
+
+/// Parses validation status string to `ValidationStatus` enum
+fn parse_validation_status(status_str: &str) -> crate::models::provider_key::ValidationStatus {
+    match status_str {
+        "Unknown" => crate::models::provider_key::ValidationStatus::Unknown,
+        "Valid" => crate::models::provider_key::ValidationStatus::Valid,
+        "Invalid" => crate::models::provider_key::ValidationStatus::Invalid,
+        "Expired" => crate::models::provider_key::ValidationStatus::Expired,
+        "Revoked" => crate::models::provider_key::ValidationStatus::Revoked,
+        "Rate Limited" => crate::models::provider_key::ValidationStatus::RateLimited,
+        unknown => {
+            tracing::debug!(
+                "Unknown validation status '{}', defaulting to Unknown",
+                unknown
+            );
+            crate::models::provider_key::ValidationStatus::Unknown
+        }
+    }
+}
+
+/// Parses timestamp string and updates `key.discovered_at`
+fn parse_timestamp(key: &mut ProviderKey, discovered_str: &str) {
+    match chrono::DateTime::parse_from_rfc3339(discovered_str) {
+        Ok(discovered_at) => {
+            key.discovered_at = discovered_at.with_timezone(&chrono::Utc);
+        }
+        Err(e) => {
+            tracing::debug!(
+                "Failed to parse discovered_at timestamp '{}': {}, using current time",
+                discovered_str,
+                e
+            );
+            // Keep the default timestamp from ProviderKey::new
+        }
+    }
+}
+
+/// Parses line number string and updates `key.line_number`
+fn parse_line_number(key: &mut ProviderKey, line_str: &str) {
+    match line_str.parse::<u32>() {
+        Ok(line) => {
+            key.line_number = Some(line);
+        }
+        Err(e) => {
+            tracing::debug!(
+                "Failed to parse line_number '{}': {}, omitting field",
+                line_str,
+                e
+            );
+            // Leave line_number as None
+        }
+    }
+}
+
+/// Parses key metadata JSON string and updates key.metadata
+fn parse_key_metadata(key: &mut ProviderKey, key_metadata_str: &str) {
+    match serde_json::from_str::<serde_json::Value>(key_metadata_str) {
+        Ok(key_metadata) => {
+            key.metadata = Some(key_metadata);
+        }
+        Err(e) => {
+            tracing::debug!(
+                "Failed to parse key_metadata JSON '{}': {}, omitting field",
+                key_metadata_str,
+                e
+            );
+            // Leave metadata as None rather than storing corrupted data
+        }
     }
 }
 

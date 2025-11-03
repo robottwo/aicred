@@ -77,6 +77,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
                     Err(_e) => {
                         // Fallback: try a permissive parse for ad-hoc YAML fixtures produced by tests
                         // which may omit fields like `version` or use model objects instead of strings.
+                        #[allow(clippy::collapsible_match)]
                         if let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(&content) {
                             if let serde_yaml::Value::Mapping(map) = value {
                                 use chrono::DateTime;

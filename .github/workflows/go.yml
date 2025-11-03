@@ -56,7 +56,7 @@ jobs:
           copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\lib\
           copy target\x86_64-pc-windows-gnu\release\libaicred_ffi.a bindings\go\lib\
           copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\
-          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\genai_keyfinder\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\aicred\
       
       - name: Set CGO_LDFLAGS (Linux/macOS)
         if: runner.os != 'Windows'
