@@ -1,0 +1,83 @@
+name: Go Bindings
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test Go ${{ matrix.go-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.21', '1.22']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      
+      - name: Install Rust (Windows)
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-gnu
+          targets: x86_64-pc-windows-gnu
+      
+      - name: Install Rust (Non-Windows)
+        if: runner.os != 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build FFI library (Windows)
+        if: runner.os == 'Windows'
+        run: cargo build --release --target x86_64-pc-windows-gnu -p aicred-ffi
+      
+      - name: Build FFI library (Non-Windows)
+        if: runner.os != 'Windows'
+        run: cargo build --release -p aicred-ffi
+      
+      - name: Copy FFI library (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p bindings/go/lib
+          cp target/release/libaicred_ffi.* bindings/go/lib/
+      
+      - name: Copy FFI library (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir bindings/go/lib
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\libaicred_ffi.a bindings\go\lib\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\
+          copy target\x86_64-pc-windows-gnu\release\aicred_ffi.dll bindings\go\aicred\
+      
+      - name: Set CGO_LDFLAGS (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: echo "CGO_LDFLAGS=-L${{ github.workspace }}/target/release" >> $GITHUB_ENV
+      
+      - name: Set CGO_LDFLAGS (Windows)
+        if: runner.os == 'Windows'
+        run: echo "CGO_LDFLAGS=-L${{ github.workspace }}\target\x86_64-pc-windows-gnu\release" >> $env:GITHUB_ENV
+      
+      - name: Add DLL to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: echo "${{ github.workspace }}\target\x86_64-pc-windows-gnu\release" >> $env:GITHUB_PATH
+      
+      - name: Generate go.sum
+        working-directory: bindings/go
+        run: go mod tidy
+      
+      - name: Run Go tests
+        working-directory: bindings/go
+        run: go test -v ./...
+      
+      - name: Build Go examples
+        working-directory: bindings/go/examples/basic_usage
+        run: go build

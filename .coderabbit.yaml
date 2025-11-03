@@ -1,0 +1,31 @@
+# CodeRabbit Configuration
+# Note: CodeRabbit as a GitHub App doesn't support required_status_checks in its config file.
+# To make CodeRabbit wait for tests, you need to configure this in GitHub's branch protection rules.
+
+language: en-US
+early_access: false
+enable_free_tier: true
+
+reviews:
+  # Request changes workflow
+  request_changes_workflow: false
+  
+  # High level summary
+  high_level_summary: true
+  
+  # Poem generation
+  poem: false
+  
+  # Review status
+  review_status: true
+  
+  # Collapse walkthrough
+  collapse_walkthrough: false
+  
+  # Auto review settings
+  auto_review:
+    enabled: true
+    drafts: false
+
+chat:
+  auto_reply: true

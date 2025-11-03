@@ -1,0 +1,11 @@
+{
+  "openai": {
+    "api_key": "sk-test_XXXXXXXXXXXXXXXX",
+    "organization": "org-test_XXXXXXXXXXXXXXXX"
+  },
+  "anthropic": {
+    "api_key": "sk-ant-test_XXXXXXXXXXXXXXXX"
+  },
+  "debug": true,
+  "port": 3000
+}

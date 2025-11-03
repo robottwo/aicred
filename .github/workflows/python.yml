@@ -1,0 +1,152 @@
+name: Python Bindings
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+      - uses: actions/checkout@v4
+       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config
+       
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+       
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Create and configure virtual environment
+        shell: bash
+        run: |
+          echo "Creating virtual environment..."
+          python -m venv .venv
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            VENV_BIN="$PWD/.venv/Scripts"
+            echo "PYTHON_BIN=$VENV_BIN/python.exe" >> $GITHUB_ENV
+          else
+            VENV_BIN="$PWD/.venv/bin"
+            echo "PYTHON_BIN=$VENV_BIN/python" >> $GITHUB_ENV
+          fi
+          echo "VENV_BIN=$VENV_BIN" >> $GITHUB_ENV
+          echo "$VENV_BIN" >> $GITHUB_PATH
+          echo "Virtual environment created and configured"
+      
+      - name: Install maturin and pytest
+        shell: bash
+        run: |
+          echo "Installing packages into virtual environment..."
+          "$PYTHON_BIN" -m pip install --upgrade pip
+          "$PYTHON_BIN" -m pip install maturin pytest
+          echo "Verifying pytest installation..."
+          "$PYTHON_BIN" -m pip show pytest
+      
+      - name: Debug Python environment
+        shell: bash
+        run: |
+          echo "=== Python Environment Debug ==="
+          echo "PYTHON_BIN: $PYTHON_BIN"
+          echo -n "Python version (from PYTHON_BIN): "
+          "$PYTHON_BIN" --version
+          echo "Python path on PATH: $(command -v python)"
+          echo "PYTHONPATH: $PYTHONPATH"
+          echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "Current directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
+          echo "Contents of bindings/python:"
+          ls -la bindings/python/
+          echo "=== End Debug ==="
+      
+      - name: Inspect virtual environment
+        shell: bash
+        run: |
+          echo "=== Virtual Environment Debug ==="
+          echo "VENV_BIN: $VENV_BIN"
+          echo "Contents of VENV_BIN:"
+          ls -la "$VENV_BIN"
+          echo "Installed packages:"
+          "$PYTHON_BIN" -m pip list
+          echo "=== End Debug ==="
+      
+      - name: Build Python package
+        shell: bash
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: '1'
+        run: |
+          echo "Building Python package with maturin..."
+          cd bindings/python
+          which maturin
+          maturin --version
+          # Maturin 1.9+ automatically detects the Python interpreter
+          maturin develop --verbose
+          echo "Build completed successfully"
+      
+      - name: Verify installation
+        shell: bash
+        run: |
+          echo "Verifying aicred installation..."
+          "$PYTHON_BIN" -c "import aicred; print(f'aicred version: {aicred.version()}')"
+          echo "Installation verified"
+      
+      - name: Run Python tests
+        shell: bash
+        working-directory: bindings/python
+        run: |
+          echo "Running tests from bindings/python directory..."
+          "$PYTHON_BIN" -m pytest tests/ -v
+  
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev pkg-config libssl-dev
+       
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+       
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install and build wheels
+        shell: bash
+        run: |
+          pip install maturin
+          cd bindings/python
+          maturin build --release --out dist
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: bindings/python/dist

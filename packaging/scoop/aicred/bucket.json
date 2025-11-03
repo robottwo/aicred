@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "description": "Cross-platform GenAI key discovery tool",
+  "homepage": "https://github.com/robottwo/aicred",
+  "license": "MIT",
+  "suggest": {
+    "git": "https://github.com/ScoopInstaller/Main/blob/master/bucket/git.json"
+  },
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/robottwo/aicred/releases/download/v0.1.0/aicred-windows-x86_64.zip",
+      "hash": "REPLACE_WITH_ACTUAL_SHA"
+    }
+  },
+  "bin": "aicred.exe",
+  "checkver": {
+    "github": "https://github.com/robottwo/aicred"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/robottwo/aicred/releases/download/v$version/aicred-windows-x86_64.zip"
+      }
+    }
+  }
+}

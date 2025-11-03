@@ -1,0 +1,16 @@
+[package]
+name = "aicred-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "aicred_ffi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+aicred-core = { path = "../core" }
+serde_json = "1.0"
+libc = "0.2"
+
+[build-dependencies]
+cbindgen = "0.26"

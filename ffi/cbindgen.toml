@@ -1,0 +1,18 @@
+language = "C"
+include_guard = "GENAI_KEYFINDER_H"
+documentation = true
+documentation_style = "doxy"
+
+[export]
+include = ["aicred_scan", "aicred_free", "aicred_version", "aicred_last_error"]
+
+[fn]
+rename_types = "CamelCase"
+prefix = "aicred_"
+
+[struct]
+rename_types = "CamelCase"
+
+[enum]
+rename_types = "CamelCase"
+rename_variants = "CamelCase"

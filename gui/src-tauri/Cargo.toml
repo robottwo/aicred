@@ -1,0 +1,19 @@
+[package]
+name = "aicred-gui"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[lib]
+name = "aicred_gui_lib"
+path = "src/lib.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+aicred-core = { path = "../../core" }

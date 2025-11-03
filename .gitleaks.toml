@@ -1,0 +1,10 @@
+title = "GenAI Keyfinder Gitleaks Config"
+
+[allowlist]
+description = "Allow documentation samples and scanner specification files"
+paths = [
+    '''docs/.*''',
+    '''examples/goose-scanner-spec\.md''',
+    '''core/src/scanners/ragit\.rs''',
+    '''core/tests/fixtures/.*'''
+]

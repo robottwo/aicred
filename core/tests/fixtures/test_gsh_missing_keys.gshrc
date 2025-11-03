@@ -1,0 +1,15 @@
+# GSH Configuration with missing API keys
+# This tests edge case handling
+
+# Fast Model Configuration (missing API key)
+export GSH_FAST_MODEL_BASE_URL="https://api.groq.com/openai/v1"
+export GSH_FAST_MODEL_ID="llama3-70b-8192"
+export GSH_FAST_MODEL_TEMPERATURE="0.7"
+
+# Slow Model Configuration (empty API key)
+export GSH_SLOW_MODEL_API_KEY=""
+export GSH_SLOW_MODEL_BASE_URL="https://openrouter.ai/api/v1"
+export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
+
+# Invalid key format
+export OPENAI_API_KEY="invalid"

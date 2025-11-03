@@ -1,0 +1,55 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+
+jobs:
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run security audit
+        run: cargo audit
+  
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Debug Repository Info
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository visibility: ${{ github.repository_visibility }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "=== Testing invalid properties (these will fail) ==="
+          echo "Testing github.repository.private (invalid): ${{ github.repository.private || 'PROPERTY_NOT_FOUND' }}"
+          echo "Testing github.repository.security_and_analysis.advanced_security.enabled (invalid): ${{ github.repository.security_and_analysis.advanced_security.enabled || 'PROPERTY_NOT_FOUND' }}"
+      
+      - name: Check Cargo Dependencies for Security Issues
+        run: |
+          echo "Using cargo-audit as fallback for dependency review..."
+          cargo install cargo-audit
+          cargo audit
+        continue-on-error: true
+      
+      - name: Dependency Review (if supported)
+        uses: actions/dependency-review-action@v4
+        if: github.repository_visibility == 'public'
+        continue-on-error: true
+        with:
+          fail-on-severity: moderate
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD

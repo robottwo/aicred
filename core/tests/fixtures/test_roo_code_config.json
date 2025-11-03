@@ -1,0 +1,18 @@
+{
+  "roo-cline.api.key": "sk-test1234567890abcdef1234567890abcdef",
+  "roo-cline.model": "gpt-4",
+  "roo-cline.temperature": 0.8,
+  "roo-cline.enable": true,
+  "roo-cline.max_tokens": 2048,
+  "roo-cline": {
+    "keys": {
+      "openai": "sk-openai-test1234567890abcdef1234567890abcdef",
+      "anthropic": "sk-ant-anthropic-test1234567890abcdef1234567890abcdef",
+      "google": "AIzaSyGoogle-test1234567890abcdef1234567890abcdef"
+    },
+    "settings": {
+      "auto_complete": true,
+      "syntax_highlighting": true
+    }
+  }
+}
