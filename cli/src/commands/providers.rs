@@ -7,6 +7,15 @@ use colored::*;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
+/// Truncate a string to a maximum length, adding "..." if truncated
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.chars().count() <= max_len {
+        return s.to_string();
+    }
+    let truncated: String = s.chars().take(max_len.saturating_sub(3)).collect();
+    format!("{}...", truncated)
+}
+
 /// Load provider instances from configuration directory
 fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
     let config_dir = match home {
@@ -397,6 +406,8 @@ pub fn handle_list_instances(
     verbose: bool,
     provider_type: Option<String>,
     active_only: bool,
+    tag: Option<String>,
+    label: Option<String>,
 ) -> Result<()> {
     let instances = load_provider_instances(home.as_deref())?;
 
@@ -419,7 +430,24 @@ pub fn handle_list_instances(
                 .as_ref()
                 .map_or(true, |pt| instance.provider_type == *pt);
             let active_match = !active_only || instance.active;
-            type_match && active_match
+
+            // Tag filtering
+            let tag_match = tag.as_ref().map_or(true, |tag_name| {
+                match crate::commands::tags::get_tags_for_target(&instance.id, None) {
+                    Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
+                    Err(_) => false,
+                }
+            });
+
+            // Label filtering
+            let label_match = label.as_ref().map_or(true, |label_name| {
+                match crate::commands::labels::get_labels_for_target(&instance.id, None) {
+                    Ok(labels) => labels.iter().any(|l| l.name == *label_name),
+                    Err(_) => false,
+                }
+            });
+
+            type_match && active_match && tag_match && label_match
         })
         .collect();
 
@@ -430,8 +458,9 @@ pub fn handle_list_instances(
 
     let total_count = filtered_instances.len();
 
-    for instance in filtered_instances {
-        if verbose {
+    if verbose {
+        // Verbose mode: show detailed information for each instance
+        for instance in filtered_instances {
             println!(
                 "\n{} {}",
                 instance.key_name().cyan().bold(),
@@ -478,23 +507,23 @@ pub fn handle_list_instances(
                 "  Updated: {}",
                 instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
             );
-        } else {
-            let key_status = format!(
-                "{} keys ({} valid)",
-                if instance.has_api_key() { 1 } else { 0 },
-                if instance.has_non_empty_api_key() {
-                    1
-                } else {
-                    0
-                }
-            );
-            let model_status = format!("{} models", instance.model_count());
+        }
+    } else {
+        // Table mode: show instances in a nicely formatted table
+        println!(
+            "{:<20} {:<15} {:<15}",
+            "ID".bold(),
+            "Provider".bold(),
+            "Num of Models".bold()
+        );
+        println!("{}", "-".repeat(55));
+
+        for instance in filtered_instances {
             println!(
-                "  {} - {} - {} - {}",
-                instance.display_name.cyan(),
+                "{:<20} {:<15} {:<15}",
+                instance.id.cyan(),
                 instance.provider_type.yellow(),
-                key_status.dimmed(),
-                model_status.dimmed()
+                instance.model_count()
             );
         }
     }
@@ -953,6 +982,244 @@ pub fn handle_providers(verbose: bool) -> Result<()> {
 
     println!("\n{}", "Provider Instance Management:".green().bold());
     println!("  Use 'aicred instances --help' for instance management commands");
+
+    Ok(())
+}
+
+/// Handle the list-models command
+pub fn handle_list_models(
+    home: Option<PathBuf>,
+    verbose: bool,
+    provider_type: Option<String>,
+    tag: Option<String>,
+    label: Option<String>,
+) -> Result<()> {
+    let instances = load_provider_instances(home.as_deref())?;
+
+    if instances.is_empty() {
+        println!("{}", "No provider instances configured.".yellow());
+        println!(
+            "{}",
+            "Use 'aicred instances add' to create a new instance.".dimmed()
+        );
+        return Ok(());
+    }
+
+    println!("\n{}", "Configured Models:".green().bold());
+
+    // Collect all models from all instances
+    let mut all_models: Vec<(&ProviderInstance, &Model)> = Vec::new();
+    for instance in instances.all_instances() {
+        for model in &instance.models {
+            all_models.push((instance, model));
+        }
+    }
+
+    if all_models.is_empty() {
+        println!("{}", "No models configured.".yellow());
+        return Ok(());
+    }
+
+    // Filter models
+    let filtered_models: Vec<(&ProviderInstance, &Model)> = all_models
+        .into_iter()
+        .filter(|(instance, model)| {
+            let type_match = provider_type
+                .as_ref()
+                .map_or(true, |pt| instance.provider_type == *pt);
+
+            // Tag filtering
+            let tag_match = tag.as_ref().map_or(true, |tag_name| {
+                match crate::commands::tags::get_tags_for_target(&instance.id, Some(&model.name)) {
+                    Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
+                    Err(_) => false,
+                }
+            });
+
+            // Label filtering
+            let label_match = label.as_ref().map_or(true, |label_name| {
+                match crate::commands::labels::get_labels_for_target(
+                    &instance.id,
+                    Some(&model.name),
+                ) {
+                    Ok(labels) => labels.iter().any(|l| l.name == *label_name),
+                    Err(_) => false,
+                }
+            });
+
+            type_match && tag_match && label_match
+        })
+        .collect();
+
+    if filtered_models.is_empty() {
+        println!("{}", "No models match the specified criteria.".yellow());
+        return Ok(());
+    }
+
+    let total_count = filtered_models.len();
+
+    if verbose {
+        println!("Found {} model(s):\n", total_count);
+
+        for (instance, model) in filtered_models {
+            println!(
+                "{} - {} ({})",
+                model.model_id.cyan(),
+                model.name,
+                instance.provider_type
+            );
+            println!("  Instance: {} ({})", instance.display_name, instance.id);
+
+            // Show capabilities
+            if let Some(capabilities) = &model.capabilities {
+                let mut caps = Vec::new();
+                if capabilities.text_generation {
+                    caps.push("text_generation");
+                }
+                if capabilities.image_generation {
+                    caps.push("image_generation");
+                }
+                if capabilities.audio_processing {
+                    caps.push("audio_processing");
+                }
+                if capabilities.video_processing {
+                    caps.push("video_processing");
+                }
+                if capabilities.code_generation {
+                    caps.push("code_generation");
+                }
+                if capabilities.function_calling {
+                    caps.push("function_calling");
+                }
+                if capabilities.fine_tuning {
+                    caps.push("fine_tuning");
+                }
+                if capabilities.streaming {
+                    caps.push("streaming");
+                }
+                if capabilities.multimodal {
+                    caps.push("multimodal");
+                }
+                if capabilities.tool_use {
+                    caps.push("tool_use");
+                }
+                if !caps.is_empty() {
+                    println!("  Capabilities: {}", caps.join(", "));
+                }
+            }
+
+            // Show cost information
+            if let Some(cost) = &model.cost {
+                if let Some(input_cost) = cost.input_cost_per_million {
+                    println!("  Input cost: ${} per 1M tokens", input_cost);
+                }
+                if let Some(output_cost) = cost.output_cost_per_million {
+                    println!("  Output cost: ${} per 1M tokens", output_cost);
+                }
+            }
+
+            // Show tags
+            if let Ok(tags) =
+                crate::commands::tags::get_tags_for_target(&instance.id, Some(&model.name))
+            {
+                if !tags.is_empty() {
+                    println!("  Tags:");
+                    for tag in tags {
+                        let tag_display = if let Some(ref color) = tag.color {
+                            format!("{} ({})", tag.name, color)
+                        } else {
+                            tag.name.clone()
+                        };
+                        println!("    - {}", tag_display);
+                    }
+                }
+            }
+
+            // Show labels
+            if let Ok(labels) =
+                crate::commands::labels::get_labels_for_target(&instance.id, Some(&model.name))
+            {
+                if !labels.is_empty() {
+                    println!("  Labels:");
+                    for label in labels {
+                        let label_display = if let Some(ref color) = label.color {
+                            format!("{} ({})", label.name, color)
+                        } else {
+                            label.name.clone()
+                        };
+                        println!("    - {}", label_display);
+                    }
+                }
+            }
+
+            println!();
+        }
+    } else {
+        // Table mode: show models in a nicely formatted table
+        println!(
+            "{:<25} {:<20} {:<35} {:<15} {:<15}",
+            "Basename".bold(),
+            "Provider".bold(),
+            "Model".bold(),
+            "Labels".bold(),
+            "Tags".bold()
+        );
+        println!("{}", "-".repeat(105));
+
+        for (instance, model) in filtered_models {
+            // Extract basename from model_id (everything after the last slash)
+            let basename = if let Some(last_slash_pos) = model.model_id.rfind('/') {
+                &model.model_id[last_slash_pos + 1..]
+            } else {
+                &model.model_id
+            };
+
+            // Get labels and tags for this model
+            let labels = match crate::commands::labels::get_labels_for_target(
+                &instance.id,
+                Some(&model.name),
+            ) {
+                Ok(labels) => labels
+                    .iter()
+                    .map(|l| l.name.clone())
+                    .collect::<Vec<_>>()
+                    .join(","),
+                Err(_) => String::new(),
+            };
+
+            let tags =
+                match crate::commands::tags::get_tags_for_target(&instance.id, Some(&model.name)) {
+                    Ok(tags) => tags
+                        .iter()
+                        .map(|t| t.name.clone())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                    Err(_) => String::new(),
+                };
+
+            println!(
+                "{:<25} {:<20} {:<35} {:<15} {:<15}",
+                basename.cyan(),
+                format!(
+                    "{} ({})",
+                    instance.display_name.trim_end_matches(" Instance"),
+                    instance.id
+                )
+                .yellow(),
+                truncate_string(&model.model_id, 35),
+                if labels.is_empty() {
+                    "-".dimmed()
+                } else {
+                    labels.dimmed()
+                },
+                if tags.is_empty() {
+                    "-".dimmed()
+                } else {
+                    tags.dimmed()
+                }
+            );
+        }
+    }
 
     Ok(())
 }

@@ -1,3 +1,4 @@
+use crate::commands::{get_labels_for_target, get_tags_for_target};
 use aicred_core::ScanResult;
 use colored::*;
 use tracing::debug;
@@ -66,8 +67,74 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                         .iter()
                         .map(|m| m.name.clone())
                         .collect();
-                    println!("    Models: {}", model_names.join(", "));
+                    println!("        Models: {}", model_names.join(", "));
+
+                    // Show tags and labels for each model
+                    for model in &provider_instance.models {
+                        if let Ok(tags) =
+                            get_tags_for_target(&instance.instance_id, Some(&model.name))
+                        {
+                            if !tags.is_empty() {
+                                println!("          {} tags:", model.name);
+                                for tag in tags {
+                                    let tag_display = if let Some(ref color) = tag.color {
+                                        format!("{} ({})", tag.name, color)
+                                    } else {
+                                        tag.name.clone()
+                                    };
+                                    println!("            - {}", tag_display);
+                                }
+                            }
+                        }
+
+                        if let Ok(labels) =
+                            get_labels_for_target(&instance.instance_id, Some(&model.name))
+                        {
+                            if !labels.is_empty() {
+                                println!("          {} labels:", model.name);
+                                for label in labels {
+                                    let label_display = if let Some(ref color) = label.color {
+                                        format!("{} ({})", label.name, color)
+                                    } else {
+                                        label.name.clone()
+                                    };
+                                    println!("            - {}", label_display);
+                                }
+                            }
+                        }
+                    }
                 }
+
+                // Show tags for this provider instance
+                if let Ok(tags) = get_tags_for_target(&instance.instance_id, None) {
+                    if !tags.is_empty() {
+                        println!("    Tags:");
+                        for tag in tags {
+                            let tag_display = if let Some(ref color) = tag.color {
+                                format!("{} ({})", tag.name, color)
+                            } else {
+                                tag.name.clone()
+                            };
+                            println!("      - {}", tag_display);
+                        }
+                    }
+                }
+
+                // Show labels for this provider instance
+                if let Ok(labels) = get_labels_for_target(&instance.instance_id, None) {
+                    if !labels.is_empty() {
+                        println!("    Labels:");
+                        for label in labels {
+                            let label_display = if let Some(ref color) = label.color {
+                                format!("{} ({})", label.name, color)
+                            } else {
+                                label.name.clone()
+                            };
+                            println!("      - {}", label_display);
+                        }
+                    }
+                }
+
                 if let Some(metadata) = &provider_instance.metadata {
                     if !metadata.is_empty() {
                         println!("    Settings:");

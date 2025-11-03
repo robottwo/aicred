@@ -11,6 +11,8 @@ The CLI binary is `aicred`.
 - `aicred scan` — Scan for GenAI credentials and configurations
 - `aicred providers` — Show available providers and application scanners
 - `aicred instances` — List provider instances with their configurations
+- `aicred tags` — Manage tags for organizing provider instances and models
+- `aicred labels` — Manage labels for unique categorization of provider instances and models
 - `aicred version` — Show version information
 
 ### Scan Options
@@ -81,6 +83,103 @@ aicred instances get --id my-openai
 
 # Validate instance configurations
 aicred instances validate
+### Tag and Label Management
+
+The tagging and labeling system helps you organize and categorize your provider instances and models:
+
+- **Tags**: Non-unique identifiers that can be applied to multiple targets
+- **Labels**: Unique identifiers that can only be assigned to one target at a time
+
+#### Tag Management
+
+```bash
+# List all tags
+aicred tags list
+
+# Add a new tag
+aicred tags add --name "Production" --color "#ff0000" --description "Production environment"
+
+# Update an existing tag
+aicred tags update --name "Production" --color "#00ff00"
+
+# Remove a tag (with confirmation if assigned)
+aicred tags remove --name "Production"
+
+# Force remove a tag and all its assignments
+aicred tags remove --name "Production" --force
+
+# Assign a tag to a provider instance
+aicred tags assign --name "Production" --instance-id my-openai
+
+# Assign a tag to a specific model
+aicred tags assign --name "GPT-4" --instance-id my-openai --model-id gpt-4
+
+# Unassign a tag from a target
+aicred tags unassign --name "Production" --instance-id my-openai
+```
+
+#### Label Management
+
+```bash
+# List all labels
+aicred labels list
+
+# Add a new label
+aicred labels add --name "Primary" --color "#17c964" --description "Primary provider instance"
+
+# Update an existing label
+aicred labels update --name "Primary" --color "#00ff00"
+
+# Remove a label (must be unassigned first)
+aicred labels remove --name "Primary"
+
+# Assign a label to a provider instance
+aicred labels assign --name "Primary" --instance-id my-openai
+
+# Assign a label to a specific model
+aicred labels assign --name "Fast-Model" --instance-id my-openai --model-id gpt-3.5-turbo
+
+# Unassign a label from a target
+aicred labels unassign --name "Primary" --instance-id my-openai
+```
+
+#### Tag vs Label Usage Patterns
+
+**Use Tags when:**
+- You want to categorize multiple instances with the same attribute (e.g., "Production", "Development", "Testing")
+- You need to apply the same label to multiple targets
+- You're organizing by environment, team, or other shared characteristics
+
+**Use Labels when:**
+- You need to uniquely identify a specific instance or model
+- You want to ensure only one target has a particular designation
+- You're marking something as "Primary", "Backup", "Deprecated", etc.
+
+#### Example Workflows
+
+**Environment-based organization:**
+```bash
+# Create environment tags
+aicred tags add --name "Production" --color "#ff0000"
+aicred tags add --name "Staging" --color "#ffa500"
+aicred tags add --name "Development" --color "#00ff00"
+
+# Assign environment tags
+aicred tags assign --name "Production" --instance-id openai-prod
+aicred tags assign --name "Staging" --instance-id openai-staging
+aicred tags assign --name "Development" --instance-id openai-dev
+```
+
+**Primary/Backup labeling:**
+```bash
+# Create labels for primary/backup designation
+aicred labels add --name "Primary" --color "#17c964"
+aicred labels add --name "Backup" --color "#f5a524"
+
+# Assign labels (only one can be "Primary" at a time)
+aicred labels assign --name "Primary" --instance-id openai-prod
+aicred labels assign --name "Backup" --instance-id openai-backup
+```
 ```
 
 ### Output Formats

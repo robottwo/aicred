@@ -3,6 +3,10 @@ name = "aicred"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "aicred_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "aicred"
 path = "src/main.rs"

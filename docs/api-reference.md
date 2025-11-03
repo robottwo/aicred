@@ -1,3 +1,445 @@
+# Core Data Structures and Relationships
+
+## Overview
+
+This document provides a comprehensive overview of the core data structures in the AICred tagging and labeling system, their relationships, and how they interact to provide a robust configuration management solution.
+
+## Core Data Models
+
+### ProviderInstance
+
+The foundational model representing a configured AI provider instance.
+
+```rust
+pub struct ProviderInstance {
+    pub id: String,
+    pub display_name: String,
+    pub provider_type: String,
+    pub api_endpoint: String,
+    pub metadata: HashMap<String, String>,
+    pub active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+**Key Characteristics:**
+- **Unique Identifier**: Each instance has a unique `id` for system-wide reference
+- **Display Name**: Human-readable name for UI and CLI display
+- **Provider Type**: Categorizes the AI provider (OpenAI, Anthropic, etc.)
+- **API Endpoint**: Base URL for API communications
+- **Metadata**: Flexible key-value storage for additional information
+- **Active Status**: Controls whether the instance is usable
+
+**Relationships:**
+- Can have multiple `TagAssignment` entries
+- Can have multiple `LabelAssignment` entries
+- References in `TagAssignmentTarget::ProviderInstance`
+- References in `LabelAssignmentTarget::ProviderInstance`
+
+### Tag
+
+Represents a categorization tag that can be applied to provider instances and models.
+
+```rust
+pub struct Tag {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    pub metadata: HashMap<String, String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+**Key Characteristics:**
+- **Flexible Categorization**: Used for organizing and grouping instances
+- **Visual Identification**: Optional color coding for UI display
+- **Rich Metadata**: Additional context and properties
+- **Multiple Assignments**: Can be assigned to multiple targets
+
+**Relationships:**
+- Referenced by `TagAssignment` entries
+- Can target `ProviderInstance` or `Model` via `TagAssignmentTarget`
+- Many-to-many relationship with provider instances and models
+
+### Label
+
+Represents a designation or status label with uniqueness constraints.
+
+```rust
+pub struct Label {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    pub metadata: HashMap<String, String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+**Key Characteristics:**
+- **Unique Designations**: Often used for exclusive designations (Primary, Backup)
+- **Uniqueness Constraints**: Can enforce global uniqueness across assignments
+- **Status Management**: Ideal for tracking states and designations
+- **Visual Coding**: Optional color for UI identification
+
+**Relationships:**
+- Referenced by `LabelAssignment` entries
+- Can target `ProviderInstance` or `Model` via `LabelAssignmentTarget`
+- Enforces uniqueness constraints through assignment validation
+
+### TagAssignment
+
+Links tags to their target entities (provider instances or models).
+
+```rust
+pub struct TagAssignment {
+    pub id: String,
+    pub tag_id: String,
+    pub target: TagAssignmentTarget,
+    pub metadata: HashMap<String, String>,
+    pub assigned_at: DateTime<Utc>,
+    pub assigned_by: Option<String>,
+}
+```
+
+**Target Types:**
+```rust
+pub enum TagAssignmentTarget {
+    ProviderInstance(String),  // ProviderInstance ID
+    Model(String),             // Model identifier
+}
+```
+
+**Key Characteristics:**
+- **Flexible Targeting**: Can assign tags to instances or specific models
+- **Assignment Metadata**: Additional context about the assignment
+- **Audit Trail**: Tracks who assigned and when
+- **Multiple Tags**: Supports multiple tags per target
+
+**Relationships:**
+- References `Tag` via `tag_id`
+- References target entity via `TagAssignmentTarget`
+- One-to-many relationship from Tag to TagAssignment
+
+### LabelAssignment
+
+Links labels to their target entities with uniqueness enforcement.
+
+```rust
+pub struct LabelAssignment {
+    pub id: String,
+    pub label_id: String,
+    pub target: LabelAssignmentTarget,
+    pub metadata: HashMap<String, String>,
+    pub assigned_at: DateTime<Utc>,
+    pub assigned_by: Option<String>,
+}
+```
+
+**Target Types:**
+```rust
+pub enum LabelAssignmentTarget {
+    ProviderInstance(String),  // ProviderInstance ID
+    Model(String),             // Model identifier
+}
+```
+
+**Key Characteristics:**
+- **Uniqueness Enforcement**: Prevents duplicate label assignments
+- **Exclusive Designations**: Supports primary/backup patterns
+- **Assignment Context**: Metadata about the assignment
+- **Audit Information**: Tracks assignment details
+
+**Relationships:**
+- References `Label` via `label_id`
+- References target entity via `LabelAssignmentTarget`
+- Enforces uniqueness constraints
+- One-to-many relationship from Label to LabelAssignment
+
+## Data Structure Relationships
+
+### Entity Relationship Diagram
+
+```
+┌─────────────────────┐
+│   ProviderInstance  │
+├─────────────────────┤
+│ id (PK)             │
+│ display_name        │
+│ provider_type       │
+│ api_endpoint        │
+│ metadata            │
+│ active              │
+│ created_at          │
+│ updated_at          │
+└─────────────────────┘
+          │
+          │ 1:N
+          │
+          ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│   TagAssignment     │     │  LabelAssignment    │
+├─────────────────────┤     ├─────────────────────┤
+│ id (PK)             │     │ id (PK)             │
+│ tag_id (FK)         │     │ label_id (FK)       │
+│ target_type         │     │ target_type         │
+│ target_id           │     │ target_id           │
+│ metadata            │     │ metadata            │
+│ assigned_at         │     │ assigned_at         │
+│ assigned_by         │     │ assigned_by         │
+└─────────────────────┘     └─────────────────────┘
+          │                           │
+          │ N:1                       │ N:1
+          │                           │
+          ▼                           ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│        Tag          │     │       Label         │
+├─────────────────────┤     ├─────────────────────┤
+│ id (PK)             │     │ id (PK)             │
+│ name                │     │ name                │
+│ description         │     │ description         │
+│ color               │     │ color               │
+│ metadata            │     │ metadata            │
+│ created_at          │     │ created_at          │
+│ updated_at          │     │ updated_at          │
+└─────────────────────┘     └─────────────────────┘
+```
+
+### Relationship Types
+
+#### 1. ProviderInstance ↔ TagAssignment (1:N)
+- One provider instance can have multiple tag assignments
+- Each tag assignment references exactly one provider instance
+- Supports bulk tag management and filtering
+
+#### 2. ProviderInstance ↔ LabelAssignment (1:N)
+- One provider instance can have multiple label assignments
+- Each label assignment references exactly one provider instance
+- Enables complex labeling strategies with uniqueness constraints
+
+#### 3. Tag ↔ TagAssignment (1:N)
+- One tag can be assigned to multiple targets
+- Each tag assignment references exactly one tag
+- Supports tag reuse across different entities
+
+#### 4. Label ↔ LabelAssignment (1:N)
+- One label can be assigned to multiple targets (unless uniqueness is enforced)
+- Each label assignment references exactly one label
+- Enables exclusive designations like "Primary"
+
+#### 5. TagAssignmentTarget ↔ Entity (N:1)
+- Tag assignments can target either ProviderInstance or Model
+- Provides flexibility in assignment granularity
+- Supports both instance-level and model-level tagging
+
+## Validation Rules and Constraints
+
+### ProviderInstance Validation
+- `id` must be unique across all instances
+- `display_name` cannot be empty
+- `provider_type` must be a supported provider
+- `api_endpoint` must be a valid URL
+- `metadata` values must be strings
+
+### Tag Validation
+- `id` must be unique across all tags
+- `name` cannot be empty and must be unique
+- `color` must be a valid hex color code if provided
+- `metadata` keys and values must be strings
+
+### Label Validation
+- `id` must be unique across all labels
+- `name` cannot be empty and must be unique
+- `color` must be a valid hex color code if provided
+- `metadata` keys and values must be strings
+- Uniqueness constraints enforced during assignment
+
+### TagAssignment Validation
+- `id` must be unique across all tag assignments
+- `tag_id` must reference an existing tag
+- `target` must reference an existing entity
+- Cannot create duplicate assignments for same tag-target pair
+
+### LabelAssignment Validation
+- `id` must be unique across all label assignments
+- `label_id` must reference an existing label
+- `target` must reference an existing entity
+- Cannot violate label uniqueness constraints
+- Cannot create duplicate assignments for same label-target pair
+
+## Usage Patterns
+
+### Environment-Based Organization
+
+```yaml
+# Tags for environment categorization
+tags:
+  - id: "tag-production"
+    name: "Production"
+    color: "#ff0000"
+    metadata:
+      environment: "production"
+      category: "environment"
+
+# Provider instances with environment tags
+provider_instances:
+  - id: "openai-prod"
+    display_name: "OpenAI Production"
+    provider_type: "openai"
+    tags:
+      - "tag-production"
+```
+
+### Primary/Backup Designation
+
+```yaml
+# Labels for designation
+labels:
+  - id: "label-primary"
+    name: "Primary"
+    color: "#17c964"
+    metadata:
+      category: "designation"
+      priority: "high"
+    uniqueness_scope: "global"
+
+# Provider instances with designations
+provider_instances:
+  - id: "openai-primary"
+    display_name: "OpenAI Primary"
+    labels:
+      - "label-primary"
+```
+
+### Complex Metadata Relationships
+
+```yaml
+# Tags with rich metadata
+tags:
+  - id: "tag-cost-optimized"
+    name: "Cost Optimized"
+    metadata:
+      category: "optimization"
+      cost_tier: "low"
+      performance_impact: "minimal"
+
+# Labels with business context
+labels:
+  - id: "label-critical"
+    name: "Critical"
+    metadata:
+      business_impact: "high"
+      sla_required: "true"
+      escalation_level: "immediate"
+```
+
+## Data Flow and Interactions
+
+### Assignment Creation Flow
+
+1. **Validation Phase**
+   - Validate tag/label exists
+   - Check target entity exists
+   - Verify uniqueness constraints
+   - Ensure no duplicate assignments
+
+2. **Assignment Creation**
+   - Generate unique assignment ID
+   - Set assignment metadata
+   - Record assignment timestamp
+   - Store assigned_by information
+
+3. **Relationship Update**
+   - Link assignment to tag/label
+   - Link assignment to target entity
+   - Update entity metadata if needed
+   - Trigger UI refresh events
+
+### Query and Filter Patterns
+
+#### By Tag
+```rust
+// Find all instances with specific tag
+let instances = provider_instances
+    .iter()
+    .filter(|instance| {
+        tag_assignments
+            .iter()
+            .any(|assignment| {
+                assignment.tag_id == tag_id && 
+                matches_target(&assignment.target, instance.id)
+            })
+    })
+    .collect();
+```
+
+#### By Label
+```rust
+// Find instances with specific label
+let instances = provider_instances
+    .iter()
+    .filter(|instance| {
+        label_assignments
+            .iter()
+            .any(|assignment| {
+                assignment.label_id == label_id && 
+                matches_target(&assignment.target, instance.id)
+            })
+    })
+    .collect();
+```
+
+#### Complex Filtering
+```rust
+// Find production instances that are primary
+let production_primary = provider_instances
+    .iter()
+    .filter(|instance| {
+        has_tag(instance, "production") && 
+        has_label(instance, "primary")
+    })
+    .collect();
+```
+
+## Performance Considerations
+
+### Indexing Strategy
+- Primary indexes on all ID fields
+- Composite indexes on (tag_id, target_id) for tag assignments
+- Composite indexes on (label_id, target_id) for label assignments
+- Indexes on frequently queried metadata fields
+
+### Caching Layers
+- Tag and label definitions cached in memory
+- Assignment relationships cached for quick lookups
+- Metadata fields cached for filtering operations
+- UI state cached for responsive interactions
+
+### Batch Operations
+- Bulk assignment creation for migration scenarios
+- Batch validation for configuration imports
+- Efficient bulk queries for reporting
+- Optimized bulk updates for configuration changes
+
+## Migration and Compatibility
+
+### Backward Compatibility
+- Existing provider configurations automatically migrated
+- Legacy metadata preserved during migration
+- Default tags and labels created for existing instances
+- Assignment relationships established based on existing data
+
+### Data Integrity
+- Referential integrity maintained across all relationships
+- Cascade deletion rules for cleanup operations
+- Validation checkpoints during migration
+- Rollback capabilities for failed migrations
+
+This comprehensive data structure documentation provides the foundation for understanding how the AICred tagging and labeling system organizes and manages AI provider configurations through flexible, validated relationships between core entities.
 # API Reference
 
 Authoritative reference for all public surfaces of AICred across Core (Rust), FFI/C-API, Python, Go, and the Tauri GUI interface types.
@@ -155,6 +597,117 @@ See [definition](core/src/models/config_instance.rs:13).
 - [struct Provider](core/src/models/provider.rs:33) with `name`, `provider_type`, `base_url`, etc.
 - [enum AuthMethod](core/src/models/provider.rs:7) — `ApiKey`, `OAuth`, `BearerToken`, `Custom(String)`
 - [struct RateLimit](core/src/models/provider.rs:20)
+### Tagging and Labeling System - **NEW**
+
+The tagging and labeling system provides organization and categorization for provider instances and models:
+
+#### Tag Model
+- [struct Tag](core/src/models/tag.rs:10) — Non-unique identifier for categorization
+  - `id: String` — Unique identifier (auto-generated)
+  - `name: String` — Human-readable name
+  - `description: Option<String>` — Optional description
+  - `color: Option<String>` — Optional color for UI display
+  - `metadata: Option<HashMap<String, String>>` — Additional metadata
+  - `created_at: DateTime<Utc>` — Creation timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+#### Label Model
+- [struct Label](core/src/models/label.rs:10) — Unique identifier for designation
+  - `id: String` — Unique identifier (auto-generated)
+  - `name: String` — Human-readable name
+  - `description: Option<String>` — Optional description
+  - `color: Option<String>` — Optional color for UI display
+  - `metadata: Option<HashMap<String, String>>` — Additional metadata
+  - `created_at: DateTime<Utc>` — Creation timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+#### Tag Assignment Model
+- [struct TagAssignment](core/src/models/tag_assignment.rs:67) — Links tags to targets
+  - `id: String` — Unique assignment identifier
+  - `tag_id: String` — Reference to tag
+  - `target: TagAssignmentTarget` — Target (instance or model)
+  - `metadata: Option<HashMap<String, String>>` — Assignment metadata
+  - `created_at: DateTime<Utc>` — Assignment timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+- [enum TagAssignmentTarget](core/src/models/tag_assignment.rs:10) — Assignment targets
+  - `ProviderInstance { instance_id: String }` — Provider instance target
+  - `Model { instance_id: String, model_id: String }` — Model target
+
+#### Label Assignment Model
+- [struct LabelAssignment](core/src/models/label_assignment.rs:67) — Links labels to targets with uniqueness
+  - `id: String` — Unique assignment identifier
+  - `label_id: String` — Reference to label
+  - `target: LabelAssignmentTarget` — Target (instance or model)
+  - `metadata: Option<HashMap<String, String>>` — Assignment metadata
+  - `created_at: DateTime<Utc>` — Assignment timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+- [enum LabelAssignmentTarget](core/src/models/label_assignment.rs:10) — Assignment targets
+  - `ProviderInstance { instance_id: String }` — Provider instance target
+  - `Model { instance_id: String, model_id: String }` — Model target
+
+#### Tag Methods
+- [new(id, name) -> Tag](core/src/models/tag.rs:39) — Creates new tag
+- [with_description(description) -> Tag](core/src/models/tag.rs:54) — Adds description
+- [with_color(color) -> Tag](core/src/models/tag.rs:62) — Adds color
+- [with_metadata(metadata) -> Tag](core/src/models/tag.rs:70) — Adds metadata
+- [set_description(&mut self, description)](core/src/models/tag.rs:77) — Updates description
+- [set_color(&mut self, color)](core/src/models/tag.rs:83) — Updates color
+- [set_metadata(&mut self, metadata)](core/src/models/tag.rs:89) — Updates metadata
+- [get_metadata(&self, key) -> Option<&String>](core/src/models/tag.rs:96) — Gets metadata value
+- [validate(&self) -> Result<(), String>](core/src/models/tag.rs:104) — Validates tag configuration
+
+#### Label Methods
+- [new(id, name) -> Label](core/src/models/label.rs:39) — Creates new label
+- [with_description(description) -> Label](core/src/models/label.rs:54) — Adds description
+- [with_color(color) -> Label](core/src/models/label.rs:62) — Adds color
+- [with_metadata(metadata) -> Label](core/src/models/label.rs:70) — Adds metadata
+- [set_description(&mut self, description)](core/src/models/label.rs:77) — Updates description
+- [set_color(&mut self, color)](core/src/models/label.rs:83) — Updates color
+- [set_metadata(&mut self, metadata)](core/src/models/label.rs:89) — Updates metadata
+- [get_metadata(&self, key) -> Option<&String>](core/src/models/label.rs:96) — Gets metadata value
+- [validate(&self) -> Result<(), String>](core/src/models/label.rs:104) — Validates label configuration
+- [can_assign_to(&self, target_id) -> bool](core/src/models/label.rs:131) — Checks assignability
+- [uniqueness_scope(&self) -> &'static str](core/src/models/label.rs:138) — Gets uniqueness scope
+
+#### Tag Assignment Methods
+- [new_to_instance(id, tag_id, instance_id) -> TagAssignment](core/src/models/tag_assignment.rs:91) — Creates instance assignment
+- [new_to_model(id, tag_id, instance_id, model_id) -> TagAssignment](core/src/models/tag_assignment.rs:105) — Creates model assignment
+- [with_metadata(metadata) -> TagAssignment](core/src/models/tag_assignment.rs:119) — Adds assignment metadata
+- [set_metadata(&mut self, metadata)](core/src/models/tag_assignment.rs:126) — Updates metadata
+- [get_metadata(&self, key) -> Option<&String>](core/src/models/tag_assignment.rs:133) — Gets metadata value
+- [validate(&self) -> Result<(), String>](core/src/models/tag_assignment.rs:141) — Validates assignment
+- [targets_instance(&self, instance_id) -> bool](core/src/models/tag_assignment.rs:171) — Checks instance targeting
+- [targets_model(&self, instance_id, model_id) -> bool](core/src/models/tag_assignment.rs:177) — Checks model targeting
+- [target_description(&self) -> String](core/src/models/tag_assignment.rs:183) — Gets target description
+
+#### Label Assignment Methods
+- [new_to_instance(id, label_id, instance_id) -> LabelAssignment](core/src/models/label_assignment.rs:91) — Creates instance assignment
+- [new_to_model(id, label_id, instance_id, model_id) -> LabelAssignment](core/src/models/label_assignment.rs:105) — Creates model assignment
+- [with_metadata(metadata) -> LabelAssignment](core/src/models/label_assignment.rs:119) — Adds assignment metadata
+- [set_metadata(&mut self, metadata)](core/src/models/label_assignment.rs:126) — Updates metadata
+- [get_metadata(&self, key) -> Option<&String>](core/src/models/label_assignment.rs:133) — Gets metadata value
+- [validate(&self) -> Result<(), String>](core/src/models/label_assignment.rs:141) — Validates assignment
+- [targets_instance(&self, instance_id) -> bool](core/src/models/label_assignment.rs:171) — Checks instance targeting
+- [targets_model(&self, instance_id, model_id) -> bool](core/src/models/label_assignment.rs:177) — Checks model targeting
+- [target_description(&self) -> String](core/src/models/label_assignment.rs:184) — Gets target description
+- [uniqueness_key(&self) -> &str](core/src/models/label_assignment.rs:190) — Gets uniqueness key
+- [conflicts_with(&self, other) -> bool](core/src/models/label_assignment.rs:197) — Checks for conflicts
+
+#### CLI Commands for Tags and Labels
+- [tags list](cli/src/commands/tags.rs:87) — List all configured tags
+- [tags add](cli/src/commands/tags.rs:126) — Add a new tag
+- [tags update](cli/src/commands/tags.rs:227) — Update existing tag
+- [tags remove](cli/src/commands/tags.rs:165) — Remove a tag
+- [tags assign](cli/src/commands/tags.rs:269) — Assign tag to instance/model
+- [tags unassign](cli/src/commands/tags.rs:352) — Unassign tag from target
+- [labels list](cli/src/commands/labels.rs:87) — List all configured labels
+- [labels add](cli/src/commands/labels.rs:136) — Add a new label
+- [labels update](cli/src/commands/labels.rs:236) — Update existing label
+- [labels remove](cli/src/commands/labels.rs:184) — Remove a label
+- [labels assign](cli/src/commands/labels.rs:278) — Assign label to instance/model
+- [labels unassign](cli/src/commands/labels.rs:357) — Unassign label from target
 
 ### Provider Instance Model - **REFACTORED**
 
