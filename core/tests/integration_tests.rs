@@ -242,7 +242,7 @@ fn test_anthropic_auto_model_detection() {
 
     // Verify the instance has a valid key
     assert!(
-        anthropic_instance.has_valid_keys(),
+        anthropic_instance.has_api_key(),
         "Expected Anthropic instance to have valid keys"
     );
 
@@ -262,7 +262,7 @@ fn test_anthropic_auto_model_detection() {
 
     // The instance should still be valid with keys but no models
     assert!(
-        anthropic_instance.has_valid_keys(),
+        anthropic_instance.has_api_key(),
         "Instance should have valid keys even without models"
     );
 }

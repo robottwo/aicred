@@ -117,7 +117,7 @@ impl ProviderPlugin for OpenAIPlugin {
         }
 
         // Validate that at least one key exists if models are configured
-        if !instance.models.is_empty() && !instance.has_valid_keys() {
+        if !instance.models.is_empty() && !instance.has_non_empty_api_key() {
             return Err(Error::PluginError(
                 "OpenAI instance has models configured but no valid API keys".to_string(),
             ));
@@ -139,7 +139,7 @@ impl ProviderPlugin for OpenAIPlugin {
         let mut models = config.all_models();
 
         // If no valid keys, only return a subset of models (mainly for testing/demo purposes)
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             // Return only the first few models to avoid exposing all capabilities without keys
             models.truncate(3); // Return first 3 models for testing without keys
         }
@@ -149,7 +149,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // OpenAI requires both a valid base URL and at least one valid API key
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             return Ok(false);
         }
 
@@ -233,7 +233,7 @@ mod tests {
         );
         key.value = Some("sk-test1234567890abcdef".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
         let model = crate::models::Model::new(
@@ -349,7 +349,7 @@ mod tests {
         );
         key.value = Some("sk-test1234567890abcdef".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());
@@ -374,7 +374,7 @@ mod tests {
         );
         key.value = Some("sk-test1234567890abcdef".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         let result = plugin.initialize_instance(&instance);
         assert!(result.is_ok());

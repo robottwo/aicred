@@ -47,7 +47,7 @@ impl ProviderPlugin for GroqPlugin {
         }
 
         // Validate that at least one key exists if models are configured
-        if !instance.models.is_empty() && !instance.has_valid_keys() {
+        if !instance.models.is_empty() && !instance.has_non_empty_api_key() {
             return Err(Error::PluginError(
                 "Groq instance has models configured but no valid API keys".to_string(),
             ));
@@ -72,7 +72,7 @@ impl ProviderPlugin for GroqPlugin {
         ];
 
         // If no valid keys, only return a subset of models
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             models.truncate(2); // Only return two models for testing without keys
         }
 
@@ -81,7 +81,7 @@ impl ProviderPlugin for GroqPlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // Groq requires both a valid base URL and at least one valid API key
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             return Ok(false);
         }
 
@@ -157,7 +157,7 @@ mod tests {
         );
         key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
         let model =
@@ -267,7 +267,7 @@ mod tests {
         );
         key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

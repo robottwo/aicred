@@ -114,7 +114,7 @@ impl ProviderInstances {
     pub fn instances_with_valid_keys(&self) -> Vec<&ProviderInstance> {
         self.instances
             .values()
-            .filter(|instance| instance.has_valid_keys())
+            .filter(|instance| instance.has_non_empty_api_key())
             .collect()
     }
 
@@ -239,9 +239,10 @@ mod tests {
                 "/test/path".to_string(),
                 Confidence::High,
                 Environment::Production,
-            );
+            )
+            .with_value("sk-test-key-12345".to_string());
             key.set_validation_status(ValidationStatus::Valid);
-            instance.add_key(key);
+            instance.set_api_key(key.value.unwrap());
         } else {
             instance.active = false;
         }

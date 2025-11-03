@@ -62,9 +62,9 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     );
 
                     // Show API key if verbose and available
-                    if let Some(key) = provider_instance.default_key() {
-                        if key.is_valid() {
-                            println!("  API Key: {}", key.redacted_value().yellow());
+                    if let Some(api_key) = provider_instance.get_api_key() {
+                        if !api_key.is_empty() {
+                            println!("  API Key: {}", "********".yellow());
                         }
                     }
                     if let Some(metadata) = &provider_instance.metadata {

@@ -469,8 +469,7 @@ mod tests {
         assert_eq!(provider_instances.len(), 1);
         let provider_instance = provider_instances[0];
         assert_eq!(provider_instance.provider_type, "anthropic");
-        assert_eq!(provider_instance.key_count(), 1);
-        assert!(provider_instance.has_valid_keys());
+        assert!(provider_instance.has_non_empty_api_key());
     }
 
     #[test]
@@ -538,8 +537,7 @@ mod tests {
         // Verify provider instance details
         assert_eq!(provider_instance.provider_type, "anthropic");
         assert_eq!(provider_instance.display_name, "anthropic");
-        assert_eq!(provider_instance.key_count(), 1);
-        assert!(provider_instance.has_valid_keys());
+        assert!(provider_instance.has_non_empty_api_key());
 
         // Verify model was added to provider instance
         assert_eq!(provider_instance.model_count(), 1);

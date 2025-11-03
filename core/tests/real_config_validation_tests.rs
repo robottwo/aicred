@@ -65,7 +65,7 @@ fn test_gsh_real_config_validation() {
         println!("\n    Provider: {}", instance.display_name);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
-        println!("      Keys: {}", instance.key_count());
+        println!("    Keys: {}", instance.has_api_key() as usize);
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
@@ -163,7 +163,7 @@ fn test_claude_desktop_real_config_validation() {
         println!("\n    Provider: {}", instance.display_name);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
-        println!("      Keys: {}", instance.key_count());
+        println!("    Keys: {}", instance.has_api_key() as usize);
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
@@ -254,7 +254,7 @@ fn test_roo_code_real_config_validation() {
         println!("\n    Provider: {}", instance.display_name);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
-        println!("      Keys: {}", instance.key_count());
+        println!("      Keys: {}", instance.has_api_key() as usize);
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
@@ -405,7 +405,7 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
         println!("  Provider: {}", instance.display_name);
         println!("    Type: {}", instance.provider_type);
         println!("    Base URL: {}", instance.base_url);
-        println!("    Keys: {}", instance.key_count());
+        println!("      Keys: {}", instance.has_api_key() as usize);
         println!("    Models: {}", instance.model_count());
 
         for model in &instance.models {

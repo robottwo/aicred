@@ -156,9 +156,73 @@ See [definition](core/src/models/config_instance.rs:13).
 - [enum AuthMethod](core/src/models/provider.rs:7) — `ApiKey`, `OAuth`, `BearerToken`, `Custom(String)`
 - [struct RateLimit](core/src/models/provider.rs:20)
 
-### Provider Configuration (Multi-Key) - **NEW**
+### Provider Instance Model - **REFACTORED**
 
-The provider configuration now supports multiple API keys per provider:
+The [`ProviderInstance`](core/src/models/provider_instance.rs:25) model manages individual provider configurations with a simplified single-key approach:
+
+#### ProviderInstance Structure
+
+- [struct ProviderInstance](core/src/models/provider_instance.rs:25) — Provider instance configuration
+  - `id: String` — Unique identifier for this instance
+  - `display_name: String` — Human-readable display name
+  - `provider_type: String` — Provider type (e.g., "openai", "anthropic", "groq")
+  - `base_url: String` — Base URL for API requests
+  - `api_key: Option<String>` — **Single API key** (simplified from multi-key model)
+  - `models: Vec<Model>` — Instance-specific model configurations
+  - `metadata: Option<HashMap<String, String>>` — Additional metadata (preserves key metadata during conversions)
+  - `active: bool` — Whether this instance is active
+  - `created_at: DateTime<Utc>` — Creation timestamp
+  - `updated_at: DateTime<Utc>` — Last update timestamp
+
+#### ProviderInstance Methods
+
+Construction:
+- [new(id, display_name, provider_type, base_url) -> Self](core/src/models/provider_instance.rs:64) — Creates new instance
+- [new_with_cleaned_metadata(...) -> Self](core/src/models/provider_instance.rs:83) — Creates instance with cleaned metadata (removes redundant fields)
+
+API Key Management:
+- [set_api_key(&mut self, api_key: String)](core/src/models/provider_instance.rs:137) — Sets the API key
+- [get_api_key(&self) -> Option<&String>](core/src/models/provider_instance.rs:144) — Gets API key reference
+- [has_api_key(&self) -> bool](core/src/models/provider_instance.rs:150) — Checks if API key is present (including empty strings)
+- [has_non_empty_api_key(&self) -> bool](core/src/models/provider_instance.rs:156) — Checks if non-empty API key is present
+
+Model Management:
+- [add_model(&mut self, model: Model)](core/src/models/provider_instance.rs:111) — Adds a model
+- [add_models(&mut self, models: Vec<Model>)](core/src/models/provider_instance.rs:117) — Adds multiple models
+- [model_count(&self) -> usize](core/src/models/provider_instance.rs:163) — Gets model count
+- [get_model(&self, model_id: &str) -> Option<&Model>](core/src/models/provider_instance.rs:170) — Gets model by ID
+- [active_models(&self) -> Vec<&Model>](core/src/models/provider_instance.rs:203) — Gets active models
+
+Configuration:
+- [with_metadata(self, metadata: HashMap<String, String>) -> Self](core/src/models/provider_instance.rs:124) — Sets metadata
+- [with_active(self, active: bool) -> Self](core/src/models/provider_instance.rs:131) — Sets active status
+- [validate(&self) -> Result<(), String>](core/src/models/provider_instance.rs:178) — Validates configuration
+- [key_name(&self) -> &str](core/src/models/provider_instance.rs:215) — Gets the instance ID for CLI usage
+
+#### Metadata-Preserving Conversions
+
+The model includes bidirectional conversions with [`ProviderConfig`](core/src/models/provider_config.rs:11) that preserve key metadata:
+
+**From ProviderConfig to ProviderInstance** ([impl](core/src/models/provider_instance.rs:227)):
+- Extracts first valid key value to `api_key`
+- Preserves key metadata in instance `metadata` HashMap:
+  - `environment` — Environment type
+  - `confidence` — Confidence level
+  - `validation_status` — Validation state
+  - `discovered_at` — RFC3339 timestamp
+  - `source` — Source file path
+  - `line_number` — Line number (if available)
+  - `key_metadata` — Additional JSON metadata (if available)
+
+**From ProviderInstance to ProviderConfig** ([impl](core/src/models/provider_instance.rs:293)):
+- Wraps `api_key` in a [`ProviderKey`](core/src/models/provider_key.rs:11) with ID "default"
+- Restores all preserved metadata from instance `metadata`
+- Uses safe defaults for missing or malformed metadata
+- Logs parsing errors without failing conversion
+
+### Provider Configuration (Multi-Key)
+
+The provider configuration supports multiple API keys per provider:
 
 - [struct ProviderConfig](core/src/models/provider_config.rs:11) — Main configuration structure
   - `keys: Vec<ProviderKey>` — Multiple keys instead of single `api_key`
@@ -194,6 +258,8 @@ ProviderConfig methods:
 - [keys_by_environment(env: Environment) -> Vec<&ProviderKey>](core/src/models/provider_config.rs:46)
 - [get_key(id: &str) -> Option<&ProviderKey>](core/src/models/provider_config.rs:50)
 - [from_old_format(...) -> Self](core/src/models/provider_config.rs:54) — Backward compatibility
+
+**Note:** [`ProviderInstance`](core/src/models/provider_instance.rs:25) uses a simplified single-key model (`api_key: Option<String>`), while [`ProviderConfig`](core/src/models/provider_config.rs:11) maintains the multi-key model (`keys: Vec<ProviderKey>`). Conversions between these models preserve metadata. See the [Migration Guide](docs/migration-guide.md) for details on the refactoring.
 
 ### Plugin System
 

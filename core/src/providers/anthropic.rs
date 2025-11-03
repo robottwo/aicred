@@ -64,7 +64,7 @@ impl ProviderPlugin for AnthropicPlugin {
         }
 
         // Validate that at least one key exists if models are configured
-        if !instance.models.is_empty() && !instance.has_valid_keys() {
+        if !instance.models.is_empty() && !instance.has_non_empty_api_key() {
             return Err(Error::PluginError(
                 "Anthropic instance has models configured but no valid API keys".to_string(),
             ));
@@ -80,11 +80,9 @@ impl ProviderPlugin for AnthropicPlugin {
         }
 
         // Try to fetch models from API if we have a valid key
-        if instance.has_valid_keys() {
-            if let Some(key) = instance.keys.first() {
-                if let Some(api_key) = &key.value {
-                    return Self::fetch_supported_models(api_key);
-                }
+        if instance.has_non_empty_api_key() {
+            if let Some(api_key) = instance.get_api_key() {
+                return Self::fetch_supported_models(api_key);
             }
         }
 
@@ -94,7 +92,7 @@ impl ProviderPlugin for AnthropicPlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // Anthropic requires both a valid base URL and at least one valid API key
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             return Ok(false);
         }
 
@@ -237,7 +235,7 @@ mod tests {
         );
         key.value = Some("sk-ant-test123".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
         let model =
@@ -345,7 +343,7 @@ mod tests {
         );
         key.value = Some("sk-ant-test123".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

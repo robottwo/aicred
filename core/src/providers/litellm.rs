@@ -43,7 +43,7 @@ impl ProviderPlugin for LiteLLMPlugin {
         }
 
         // Validate that at least one key exists if models are configured
-        if !instance.models.is_empty() && !instance.has_valid_keys() {
+        if !instance.models.is_empty() && !instance.has_non_empty_api_key() {
             return Err(Error::PluginError(
                 "LiteLLM instance has models configured but no valid API keys".to_string(),
             ));
@@ -69,7 +69,7 @@ impl ProviderPlugin for LiteLLMPlugin {
         ];
 
         // If no valid keys, only return a subset of models
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             models.truncate(3); // Only return three models for testing without keys
         }
 
@@ -78,7 +78,7 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // LiteLLM requires both a valid base URL and at least one valid API key
-        if !instance.has_valid_keys() {
+        if !instance.has_non_empty_api_key() {
             return Ok(false);
         }
 
@@ -173,7 +173,7 @@ mod tests {
         );
         key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
         let model =
@@ -284,7 +284,7 @@ mod tests {
         );
         key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());
@@ -309,7 +309,7 @@ mod tests {
         );
         key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
         key.validation_status = ValidationStatus::Valid;
-        instance.add_key(key);
+        instance.set_api_key(key.value.unwrap_or_default());
 
         let result = plugin.initialize_instance(&instance);
         assert!(result.is_ok());

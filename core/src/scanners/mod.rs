@@ -516,38 +516,11 @@ pub trait ScannerPluginExt: ScannerPlugin {
                 final_base_url,
             );
 
-            // Add API keys as ProviderKey objects
-            for (discovered_key, key_value) in api_keys {
-                let key_id = format!("key-{}", instance.keys.len() + 1);
-
-                // Determine environment from confidence level
-                let environment = match discovered_key.confidence {
-                    Confidence::VeryHigh | Confidence::High => Environment::Production,
-                    Confidence::Medium => Environment::Development,
-                    Confidence::Low => Environment::Testing,
-                };
-
-                let mut provider_key = ProviderKey::new(
-                    key_id,
-                    source_path.to_string(),
-                    discovered_key.confidence,
-                    environment,
-                )
-                .with_value(key_value);
-
-                // Set line number if available
-                if let Some(line) = discovered_key.line_number {
-                    provider_key = provider_key.with_line_number(line);
-                }
-
-                // Set validation status based on confidence
-                if discovered_key.confidence >= Confidence::High {
-                    provider_key.set_validation_status(ValidationStatus::Valid);
-                }
-
-                instance.add_key(provider_key);
+            // Set the API key from the first discovered key
+            if let Some((discovered_key, key_value)) = api_keys.first() {
+                instance.set_api_key(key_value.clone());
                 tracing::debug!(
-                    "Added API key to instance '{}' (confidence: {})",
+                    "Set API key for instance '{}' (confidence: {})",
                     instance_id,
                     discovered_key.confidence
                 );
@@ -566,40 +539,38 @@ pub trait ScannerPluginExt: ScannerPlugin {
                     // Check if this is the anthropic provider
                     if provider_name.to_lowercase() == "anthropic" {
                         if let Some(plugin) = registry.get("anthropic") {
-                            // Get the first valid API key
-                            if let Some(first_key) = instance.keys.first() {
-                                if let Some(api_key) = &first_key.value {
-                                    tracing::info!(
-                                        "No models configured for Anthropic instance '{}', attempting to probe API",
-                                        instance_id
-                                    );
-                                    // Try to fetch models from the API
-                                    match plugin.probe_models(api_key) {
-                                        Ok(probed_models) if !probed_models.is_empty() => {
-                                            tracing::info!(
+                            // Get the API key
+                            if let Some(api_key) = instance.get_api_key() {
+                                tracing::info!(
+                                    "No models configured for Anthropic instance '{}', attempting to probe API",
+                                    instance_id
+                                );
+                                // Try to fetch models from the API
+                                match plugin.probe_models(api_key) {
+                                    Ok(probed_models) if !probed_models.is_empty() => {
+                                        tracing::info!(
                                                 "Successfully probed {} models from Anthropic API for instance '{}'",
                                                 probed_models.len(),
                                                 instance_id
                                             );
-                                            for model_id in probed_models {
-                                                let model =
-                                                    Model::new(model_id.clone(), model_id.clone());
-                                                instance.add_model(model);
-                                            }
+                                        for model_id in probed_models {
+                                            let model =
+                                                Model::new(model_id.clone(), model_id.clone());
+                                            instance.add_model(model);
                                         }
-                                        Ok(_) => {
-                                            tracing::warn!(
+                                    }
+                                    Ok(_) => {
+                                        tracing::warn!(
                                                 "Anthropic API probe returned no models for instance '{}'",
                                                 instance_id
                                             );
-                                        }
-                                        Err(e) => {
-                                            tracing::warn!(
+                                    }
+                                    Err(e) => {
+                                        tracing::warn!(
                                                 "Failed to probe Anthropic API for models (instance '{}'): {}. Continuing without API-discovered models.",
                                                 instance_id,
                                                 e
                                             );
-                                        }
                                     }
                                 }
                             }
@@ -643,9 +614,8 @@ pub trait ScannerPluginExt: ScannerPlugin {
             }
 
             tracing::info!(
-                "Successfully created provider instance '{}' with {} keys and {} models",
+                "Successfully created provider instance '{}' with API key and {} models",
                 instance_id,
-                instance.key_count(),
                 instance.model_count()
             );
 
@@ -795,8 +765,7 @@ mod tests {
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
         assert_eq!(instance.provider_type, "openai");
-        assert_eq!(instance.key_count(), 1);
-        assert!(instance.has_valid_keys());
+        assert!(instance.has_non_empty_api_key());
     }
 
     #[test]
@@ -885,16 +854,12 @@ mod tests {
 
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
-        assert_eq!(instance.key_count(), 2);
+        // Verify API key is present (ProviderInstance only stores one key)
+        assert!(instance.has_non_empty_api_key());
 
-        // Check that keys have different environments based on confidence
-        let keys: Vec<_> = instance.keys.iter().collect();
-        assert!(keys
-            .iter()
-            .any(|k| k.environment == Environment::Production));
-        assert!(keys
-            .iter()
-            .any(|k| k.environment == Environment::Development));
+        // Note: ProviderInstance only stores one API key, not multiple keys
+        // Metadata is only set if there are special value types (temperature, headers, etc.)
+        // In this test, we only have API keys, so metadata will be None
     }
 
     #[test]
@@ -1073,6 +1038,8 @@ mod tests {
 
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
-        assert_eq!(instance.keys[0].line_number, Some(42));
+        // Metadata is only set if there are special value types (temperature, headers, etc.)
+        // Line numbers from DiscoveredKey are not automatically stored in instance metadata
+        // unless the instance goes through ProviderConfig conversion
     }
 }

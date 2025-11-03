@@ -57,10 +57,8 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     instance.config_path.display()
                 );
 
-                if let Some(key) = provider_instance.default_key() {
-                    if key.is_valid() {
-                        println!("    API Key: {}", "configured".green());
-                    }
+                if provider_instance.has_non_empty_api_key() {
+                    println!("    API Key: {}", "configured".green());
                 }
                 if !provider_instance.models.is_empty() {
                     let model_names: Vec<String> = provider_instance

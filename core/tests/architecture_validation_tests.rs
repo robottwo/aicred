@@ -61,8 +61,8 @@ fn test_gsh_scanner_architecture() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
         println!("  Display Name: {}", instance.display_name);
-        println!("  Key Count: {}", instance.key_count());
-        println!("  Has Valid Keys: {}", instance.has_valid_keys());
+        println!("  Key Count: {}", instance.has_api_key() as usize);
+        println!("  Has Valid Keys: {}", instance.has_api_key());
         println!("  Model Count: {}", instance.model_count());
         println!("  Base URL: {}", instance.base_url);
 
@@ -80,10 +80,10 @@ fn test_gsh_scanner_architecture() {
             "Base URL should not be empty"
         );
         assert!(
-            instance.key_count() > 0,
+            instance.has_api_key(),
             "Provider instance should have at least one key"
         );
-        // Note: has_valid_keys() may be false for test fixtures with placeholder keys
+        // Note: has_api_key() may be false for test fixtures with placeholder keys
     }
 
     // Verify no duplicate provider instances and collect provider types
@@ -227,8 +227,8 @@ fn test_claude_desktop_scanner_architecture() {
     println!("\nProvider Instance:");
     println!("  Type: {}", provider_instance.provider_type);
     println!("  Display Name: {}", provider_instance.display_name);
-    println!("  Key Count: {}", provider_instance.key_count());
-    println!("  Has Valid Keys: {}", provider_instance.has_valid_keys());
+    println!("  Key Count: {}", provider_instance.has_api_key() as usize);
+    println!("  Has Valid Keys: {}", provider_instance.has_api_key());
 
     // Verify provider instance properties
     assert_eq!(
@@ -240,11 +240,11 @@ fn test_claude_desktop_scanner_architecture() {
         "Display name should match provider type"
     );
     assert_eq!(
-        provider_instance.key_count(),
+        provider_instance.has_api_key() as usize,
         1,
         "Should have exactly one API key"
     );
-    assert!(provider_instance.has_valid_keys(), "Should have valid keys");
+    assert!(provider_instance.has_api_key(), "Should have valid keys");
     assert!(
         !provider_instance.base_url.is_empty(),
         "Should have a base URL"
@@ -349,9 +349,9 @@ fn test_roo_code_scanner_architecture() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
         println!("  Display Name: {}", instance.display_name);
-        println!("  Key Count: {}", instance.key_count());
+        println!("  Key Count: {}", instance.has_api_key() as usize);
         println!("  Model Count: {}", instance.model_count());
-        println!("  Has Valid Keys: {}", instance.has_valid_keys());
+        println!("  Has Valid Keys: {}", instance.has_api_key());
         println!("  Base URL: {}", instance.base_url);
 
         // Verify basic properties
@@ -368,10 +368,10 @@ fn test_roo_code_scanner_architecture() {
             "Base URL should not be empty"
         );
         assert!(
-            instance.key_count() > 0,
+            instance.has_api_key(),
             "Provider instance should have at least one key"
         );
-        // Note: has_valid_keys() may be false for test fixtures with placeholder keys
+        // Note: has_api_key() may be false for test fixtures with placeholder keys
     }
 
     // Verify no duplicate provider instances
@@ -427,12 +427,12 @@ fn test_gsh_missing_keys_edge_case() {
     for instance in provider_instances {
         println!("\nProvider Instance:");
         println!("  Type: {}", instance.provider_type);
-        println!("  Key Count: {}", instance.key_count());
-        println!("  Has Valid Keys: {}", instance.has_valid_keys());
+        println!("  Key Count: {}", instance.has_api_key() as usize);
+        println!("  Has Valid Keys: {}", instance.has_api_key());
 
         // All included instances should have at least one key
         assert!(
-            instance.key_count() > 0,
+            instance.has_api_key(),
             "Provider instance should have at least one key"
         );
         assert!(
@@ -574,7 +574,7 @@ fn test_provider_instance_counts() {
         println!(
             "  {}: {} keys, {} models",
             instance.provider_type,
-            instance.key_count(),
+            instance.has_api_key() as usize,
             instance.model_count()
         );
 
@@ -584,7 +584,7 @@ fn test_provider_instance_counts() {
             .copied()
             .unwrap_or(0);
         assert_eq!(
-            instance.key_count(),
+            instance.has_api_key() as usize,
             expected_count,
             "Provider instance key count should match API key count for {}",
             instance.provider_type

@@ -36,9 +36,9 @@ pub struct ProviderInstance {
     /// Base URL for API requests.
     pub base_url: String,
 
-    /// API keys associated with this instance.
-    #[serde(default)]
-    pub keys: Vec<ProviderKey>,
+    /// API key associated with this instance.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
 
     /// Instance-specific model configurations.
     #[serde(default)]
@@ -68,7 +68,7 @@ impl ProviderInstance {
             display_name,
             provider_type,
             base_url,
-            keys: Vec::new(),
+            api_key: None,
             models: Vec::new(),
             metadata: None,
             active: true,
@@ -106,18 +106,6 @@ impl ProviderInstance {
         instance
     }
 
-    /// Adds a key to this instance.
-    pub fn add_key(&mut self, key: ProviderKey) {
-        self.keys.push(key);
-        self.updated_at = Utc::now();
-    }
-
-    /// Adds multiple keys to this instance.
-    pub fn add_keys(&mut self, keys: Vec<ProviderKey>) {
-        self.keys.extend(keys);
-        self.updated_at = Utc::now();
-    }
-
     /// Adds a model to this instance.
     pub fn add_model(&mut self, model: Model) {
         self.models.push(model);
@@ -144,37 +132,34 @@ impl ProviderInstance {
         self
     }
 
-    /// Gets the number of keys.
-    #[must_use]
-    pub const fn key_count(&self) -> usize {
-        self.keys.len()
+    /// Sets the API key for this instance.
+    pub fn set_api_key(&mut self, api_key: String) {
+        self.api_key = Some(api_key);
+        self.updated_at = Utc::now();
     }
 
-    /// Gets the number of valid keys.
+    /// Gets the API key if present.
     #[must_use]
-    pub fn valid_key_count(&self) -> usize {
-        self.keys.iter().filter(|key| key.is_valid()).count()
+    pub fn get_api_key(&self) -> Option<&String> {
+        self.api_key.as_ref()
+    }
+
+    /// Checks if this instance has an API key (presence check only).
+    #[must_use]
+    pub fn has_api_key(&self) -> bool {
+        self.api_key.is_some()
+    }
+
+    /// Checks if this instance has a non-empty API key.
+    #[must_use]
+    pub fn has_non_empty_api_key(&self) -> bool {
+        self.api_key.as_ref().map_or(false, |key| !key.is_empty())
     }
 
     /// Gets the number of models.
     #[must_use]
     pub const fn model_count(&self) -> usize {
         self.models.len()
-    }
-
-    /// Gets a key by ID.
-    #[must_use]
-    pub fn get_key(&self, id: &str) -> Option<&ProviderKey> {
-        self.keys.iter().find(|key| key.id == id)
-    }
-
-    /// Gets the default key (first valid key or first key).
-    #[must_use]
-    pub fn default_key(&self) -> Option<&ProviderKey> {
-        self.keys
-            .iter()
-            .find(|key| key.is_valid())
-            .or_else(|| self.keys.first())
     }
 
     /// Gets a model by ID.
@@ -207,14 +192,6 @@ impl ProviderInstance {
         }
 
         Ok(())
-    }
-
-    /// Checks if this instance has any valid keys.
-    #[must_use]
-    pub fn has_valid_keys(&self) -> bool {
-        self.keys
-            .iter()
-            .any(super::provider_key::ProviderKey::is_valid)
     }
 
     /// Gets active models (from active instance).
@@ -252,8 +229,51 @@ impl From<crate::models::ProviderConfig> for ProviderInstance {
             "https://api.example.com".to_string(),
         );
 
-        // Copy keys
-        instance.keys = config.keys;
+        // Extract the first valid key value and metadata if available
+        if let Some(key) = config.keys.first() {
+            if let Some(value) = &key.value {
+                instance.api_key = Some(value.clone());
+            }
+
+            // Store key metadata in the instance metadata
+            let mut metadata = std::collections::HashMap::new();
+
+            // Store environment
+            metadata.insert("environment".to_string(), key.environment.to_string());
+
+            // Store confidence
+            metadata.insert("confidence".to_string(), key.confidence.to_string());
+
+            // Store validation status
+            metadata.insert(
+                "validation_status".to_string(),
+                key.validation_status.to_string(),
+            );
+
+            // Store discovered_at timestamp
+            metadata.insert("discovered_at".to_string(), key.discovered_at.to_rfc3339());
+
+            // Store source and line number if available
+            metadata.insert("source".to_string(), key.source.clone());
+            if let Some(line) = key.line_number {
+                metadata.insert("line_number".to_string(), line.to_string());
+            }
+
+            // Store additional key metadata if present - only if JSON serialization succeeds
+            if let Some(ref key_metadata) = key.metadata {
+                match serde_json::to_string(key_metadata) {
+                    Ok(metadata_str) => {
+                        metadata.insert("key_metadata".to_string(), metadata_str);
+                    }
+                    Err(e) => {
+                        tracing::debug!("Failed to serialize key metadata during ProviderConfig->ProviderInstance conversion: {}", e);
+                        // Omit the field rather than storing corrupted data
+                    }
+                }
+            }
+
+            instance.metadata = Some(metadata);
+        }
 
         // Convert model strings to Model objects (basic conversion)
         instance.models = config
@@ -273,8 +293,132 @@ impl From<ProviderInstance> for crate::models::ProviderConfig {
     fn from(instance: ProviderInstance) -> Self {
         let mut config = Self::new("1.0".to_string());
 
-        // Copy keys
-        config.keys = instance.keys;
+        // Create ProviderKey from the api_key and preserved metadata if present
+        if let Some(api_key_value) = &instance.api_key {
+            let mut key = ProviderKey::new(
+                "default".to_string(),
+                "converted".to_string(),
+                crate::models::discovered_key::Confidence::Medium,
+                crate::models::provider_key::Environment::Production,
+            )
+            .with_value(api_key_value.clone());
+
+            // Restore metadata from instance if available
+            if let Some(ref instance_metadata) = instance.metadata {
+                // Restore environment with safe default
+                if let Some(env_str) = instance_metadata.get("environment") {
+                    key.environment = match env_str.as_str() {
+                        "development" => crate::models::provider_key::Environment::Development,
+                        "staging" => crate::models::provider_key::Environment::Staging,
+                        "production" => crate::models::provider_key::Environment::Production,
+                        "testing" => crate::models::provider_key::Environment::Testing,
+                        custom => {
+                            // Handle custom environments, including malformed ones
+                            if custom.is_empty() {
+                                tracing::debug!(
+                                    "Empty environment string found, defaulting to Production"
+                                );
+                                crate::models::provider_key::Environment::Production
+                            } else {
+                                crate::models::provider_key::Environment::Custom(custom.to_string())
+                            }
+                        }
+                    };
+                }
+
+                // Restore confidence with safe default
+                if let Some(conf_str) = instance_metadata.get("confidence") {
+                    key.confidence = match conf_str.as_str() {
+                        "Low" => crate::models::discovered_key::Confidence::Low,
+                        "Medium" => crate::models::discovered_key::Confidence::Medium,
+                        "High" => crate::models::discovered_key::Confidence::High,
+                        "Very High" => crate::models::discovered_key::Confidence::VeryHigh,
+                        unknown => {
+                            tracing::debug!(
+                                "Unknown confidence level '{}', defaulting to Medium",
+                                unknown
+                            );
+                            crate::models::discovered_key::Confidence::Medium
+                        }
+                    };
+                }
+
+                // Restore validation status with safe default
+                if let Some(status_str) = instance_metadata.get("validation_status") {
+                    key.validation_status = match status_str.as_str() {
+                        "Unknown" => crate::models::provider_key::ValidationStatus::Unknown,
+                        "Valid" => crate::models::provider_key::ValidationStatus::Valid,
+                        "Invalid" => crate::models::provider_key::ValidationStatus::Invalid,
+                        "Expired" => crate::models::provider_key::ValidationStatus::Expired,
+                        "Revoked" => crate::models::provider_key::ValidationStatus::Revoked,
+                        "Rate Limited" => {
+                            crate::models::provider_key::ValidationStatus::RateLimited
+                        }
+                        unknown => {
+                            tracing::debug!(
+                                "Unknown validation status '{}', defaulting to Unknown",
+                                unknown
+                            );
+                            crate::models::provider_key::ValidationStatus::Unknown
+                        }
+                    };
+                }
+
+                // Restore discovered_at timestamp with safe fallback
+                if let Some(discovered_str) = instance_metadata.get("discovered_at") {
+                    match chrono::DateTime::parse_from_rfc3339(discovered_str) {
+                        Ok(discovered_at) => {
+                            key.discovered_at = discovered_at.with_timezone(&chrono::Utc);
+                        }
+                        Err(e) => {
+                            tracing::debug!("Failed to parse discovered_at timestamp '{}': {}, using current time", discovered_str, e);
+                            // Keep the default timestamp from ProviderKey::new
+                        }
+                    }
+                }
+
+                // Restore source
+                if let Some(source) = instance_metadata.get("source") {
+                    key.source = source.clone();
+                }
+
+                // Restore line number with safe parsing
+                if let Some(line_str) = instance_metadata.get("line_number") {
+                    match line_str.parse::<u32>() {
+                        Ok(line) => {
+                            key.line_number = Some(line);
+                        }
+                        Err(e) => {
+                            tracing::debug!(
+                                "Failed to parse line_number '{}': {}, omitting field",
+                                line_str,
+                                e
+                            );
+                            // Leave line_number as None
+                        }
+                    }
+                }
+
+                // Restore additional key metadata with safe JSON parsing
+                if let Some(key_metadata_str) = instance_metadata.get("key_metadata") {
+                    match serde_json::from_str::<serde_json::Value>(key_metadata_str) {
+                        Ok(key_metadata) => {
+                            key.metadata = Some(key_metadata);
+                        }
+                        Err(e) => {
+                            tracing::debug!(
+                                "Failed to parse key_metadata JSON '{}': {}, omitting field",
+                                key_metadata_str,
+                                e
+                            );
+                            // Leave metadata as None rather than storing corrupted data
+                        }
+                    }
+                }
+            }
+
+            config.keys = vec![key];
+        }
 
         // Convert models back to strings
         config.models = instance
@@ -307,12 +451,12 @@ mod tests {
         assert_eq!(instance.provider_type, "openai");
         assert_eq!(instance.base_url, "https://api.openai.com");
         assert!(instance.active);
-        assert_eq!(instance.key_count(), 0);
+        assert!(!instance.has_non_empty_api_key());
         assert_eq!(instance.model_count(), 0);
     }
 
     #[test]
-    fn test_provider_instance_with_data() {
+    fn test_provider_instance_with_api_key() {
         let mut instance = ProviderInstance::new(
             "anthropic-dev".to_string(),
             "Anthropic Development".to_string(),
@@ -320,22 +464,14 @@ mod tests {
             "https://api.anthropic.com".to_string(),
         );
 
-        let mut key = ProviderKey::new(
-            "dev-key".to_string(),
-            "/config/anthropic".to_string(),
-            Confidence::High,
-            Environment::Development,
-        );
-        key.set_validation_status(ValidationStatus::Valid);
-
+        instance.set_api_key("sk-ant-test123".to_string());
         let model = Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-
-        instance.add_key(key);
         instance.add_model(model);
 
-        assert_eq!(instance.key_count(), 1);
+        assert!(instance.has_api_key());
+        assert!(instance.has_non_empty_api_key());
+        assert_eq!(instance.get_api_key(), Some(&"sk-ant-test123".to_string()));
         assert_eq!(instance.model_count(), 1);
-        assert!(instance.has_valid_keys());
     }
 
     #[test]

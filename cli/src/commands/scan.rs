@@ -530,25 +530,13 @@ fn update_yaml_config(
                     }
 
                     // Check if this key already exists in the instance
-                    let key_exists = instance.keys.iter().any(|k| {
-                        k.value
-                            .as_ref()
-                            .map(|v| v == &api_key_to_store)
-                            .unwrap_or(false)
-                    });
+                    let key_exists = instance
+                        .get_api_key()
+                        .map_or(false, |existing_key| existing_key == &api_key_to_store);
 
                     // Only add the key if it doesn't already exist
                     if !key_exists {
-                        let mut provider_key = ProviderKey::new(
-                            instance_id.to_string(),
-                            primary_key.source.clone(),
-                            Confidence::High,
-                            Environment::Production,
-                        );
-                        provider_key.value = Some(api_key_to_store.clone());
-                        provider_key.discovered_at = primary_key.discovered_at;
-                        provider_key.validation_status = ValidationStatus::Unknown;
-                        instance.add_key(provider_key);
+                        instance.set_api_key(api_key_to_store.clone());
                     }
 
                     tracing::debug!(
@@ -652,27 +640,14 @@ fn update_yaml_config(
                         }
                     }
 
-                    // Check if this key already exists in the instance (by placeholder or hash)
-                    let key_exists = instance.keys.iter().any(|k| {
-                        k.id == *instance_id
-                            || k.value
-                                .as_ref()
-                                .map(|v| v == &api_key_placeholder)
-                                .unwrap_or(false)
-                    });
+                    // Check if this key already exists in the instance
+                    let key_exists = instance
+                        .get_api_key()
+                        .map_or(false, |existing_key| existing_key == &api_key_placeholder);
 
                     // Only add the key if it doesn't already exist
                     if !key_exists {
-                        let mut provider_key = ProviderKey::new(
-                            instance_id.to_string(),
-                            primary_key.source.clone(),
-                            Confidence::High,
-                            Environment::Production,
-                        );
-                        provider_key.value = Some(api_key_placeholder.clone());
-                        provider_key.discovered_at = primary_key.discovered_at;
-                        provider_key.validation_status = ValidationStatus::Unknown;
-                        instance.add_key(provider_key);
+                        instance.set_api_key(api_key_placeholder.clone());
                     }
 
                     // Save the instance configuration

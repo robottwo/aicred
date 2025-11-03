@@ -130,7 +130,7 @@ pub trait ProviderPlugin: Send + Sync {
     /// This includes checking API keys, base URL accessibility, etc.
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // Default implementation - checks if instance has valid keys
-        Ok(instance.has_valid_keys())
+        Ok(instance.has_non_empty_api_key())
     }
 
     /// Probes the provider API to fetch available models using the provided API key.

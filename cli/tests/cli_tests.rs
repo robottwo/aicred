@@ -482,28 +482,24 @@ OPENAI_TEMPERATURE=0.8"#;
 
     // Verify structure is correct - should have exactly one API key per provider
     let openai_config2: serde_yaml::Value = serde_yaml::from_str(&openai_content2).unwrap();
-    let openai_keys2 = openai_config2["keys"].as_sequence().unwrap();
-    assert_eq!(
-        openai_keys2.len(),
-        1,
-        "OpenAI should have exactly one key entry"
+    assert!(
+        openai_config2["api_key"].is_string(),
+        "OpenAI should have api_key field"
     );
 
     let groq_config2: serde_yaml::Value = serde_yaml::from_str(&groq_content2).unwrap();
-    let groq_keys2 = groq_config2["keys"].as_sequence().unwrap();
-    assert_eq!(
-        groq_keys2.len(),
-        1,
-        "Groq should have exactly one key entry"
+    assert!(
+        groq_config2["api_key"].is_string(),
+        "Groq should have api_key field"
     );
 
     // Verify the API keys are correct
     assert_eq!(
-        openai_keys2[0]["api_key"].as_str().unwrap(),
+        openai_config2["api_key"].as_str().unwrap(),
         "sk-1234567890abcdefghijklmnopqrstuvwxyz"
     );
     assert_eq!(
-        groq_keys2[0]["api_key"].as_str().unwrap(),
+        groq_config2["api_key"].as_str().unwrap(),
         "gsk_1234567890abcdefghijklmnopqrstuvwxyz"
     );
 
@@ -540,8 +536,6 @@ OPENAI_TEMPERATURE=0.8"#;
     );
 
     let groq_config: serde_yaml::Value = serde_yaml::from_str(&groq_content2).unwrap();
-    let groq_keys = groq_config["keys"].as_sequence().unwrap();
-    assert_eq!(groq_keys.len(), 1, "Groq should have exactly one key entry");
 
     // Verify metadata is present and correctly structured
     // base_url and model_id should NOT be in metadata (architect's requirement)
@@ -651,17 +645,11 @@ OPENROUTER_TEMPERATURE=0.5"#;
     let anthropic_content = std::fs::read_to_string(&anthropic_file.unwrap()).unwrap();
     let anthropic_config: serde_yaml::Value = serde_yaml::from_str(&anthropic_content).unwrap();
 
-    let anthropic_keys = anthropic_config["keys"].as_sequence().unwrap();
+    // Verify the new ProviderInstance format uses direct "api_key" field
     assert_eq!(
-        anthropic_keys.len(),
-        1,
-        "Anthropic should have exactly one key entry"
-    );
-    assert_eq!(
-        anthropic_keys[0]["api_key"],
+        anthropic_config["api_key"],
         "sk-ant-1234567890abcdefghijklmnopqrstuvwxyz"
     );
-    assert_eq!(anthropic_keys[0]["confidence"], "High");
 
     // base_url should be removed from metadata as it's redundant with ProviderInstance level
     let anthropic_metadata = &anthropic_config["metadata"];
@@ -680,14 +668,8 @@ OPENROUTER_TEMPERATURE=0.5"#;
     let huggingface_content = std::fs::read_to_string(&huggingface_file.unwrap()).unwrap();
     let huggingface_config: serde_yaml::Value = serde_yaml::from_str(&huggingface_content).unwrap();
 
-    let huggingface_keys = huggingface_config["keys"].as_sequence().unwrap();
     assert_eq!(
-        huggingface_keys.len(),
-        1,
-        "HuggingFace should have exactly one key entry"
-    );
-    assert_eq!(
-        huggingface_keys[0]["api_key"],
+        huggingface_config["api_key"],
         "hf_1234567890abcdefghijklmnopqrstuvwxyz"
     );
 
@@ -707,14 +689,8 @@ OPENROUTER_TEMPERATURE=0.5"#;
     let openrouter_content = std::fs::read_to_string(&openrouter_file.unwrap()).unwrap();
     let openrouter_config: serde_yaml::Value = serde_yaml::from_str(&openrouter_content).unwrap();
 
-    let openrouter_keys = openrouter_config["keys"].as_sequence().unwrap();
     assert_eq!(
-        openrouter_keys.len(),
-        1,
-        "OpenRouter should have exactly one key entry"
-    );
-    assert_eq!(
-        openrouter_keys[0]["api_key"],
+        openrouter_config["api_key"],
         "sk-or-v1-1234567890abcdefghijklmnopqrstuvwxyz"
     );
 
@@ -789,19 +765,17 @@ fn test_api_key_field_name_serialization() {
     // Parse as YAML to verify structure
     let config: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
 
-    // Verify the key uses "api_key" field name
-    let keys = config["keys"].as_sequence().unwrap();
-    assert_eq!(keys.len(), 1);
+    // Verify the new ProviderInstance format uses direct "api_key" field
     assert!(
-        keys[0]["api_key"].is_string(),
-        "Key should have 'api_key' field, not 'value'"
+        config["api_key"].is_string(),
+        "ProviderInstance should have direct 'api_key' field, not 'value'"
     );
-    assert_eq!(keys[0]["api_key"], "test-key-1234567890");
+    assert_eq!(config["api_key"], "test-key-1234567890");
 
     // Ensure there's no "value" field
     assert!(
-        keys[0].get("value").is_none(),
-        "Key should not have 'value' field"
+        config.get("value").is_none(),
+        "ProviderInstance should not have 'value' field"
     );
 }
 #[test]
