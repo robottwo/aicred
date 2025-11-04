@@ -16,7 +16,7 @@ pub struct ProviderModelTuple {
 impl ProviderModelTuple {
     /// Creates a new provider:model tuple.
     #[must_use]
-    pub fn new(provider: String, model: String) -> Self {
+    pub const fn new(provider: String, model: String) -> Self {
         Self { provider, model }
     }
 
@@ -28,6 +28,13 @@ impl ProviderModelTuple {
     ///
     /// # Returns
     /// Result containing the parsed tuple or an error message
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The input is empty
+    /// - The input doesn't contain a ':' separator
+    /// - The provider or model identifier is empty
+    /// - The provider or model identifier contains ':'
     ///
     /// # Examples
     /// ```
@@ -329,7 +336,7 @@ mod tests {
         let tuple = ProviderModelTuple::new("test-provider".to_string(), "test-model".to_string());
 
         // Test Display trait
-        assert_eq!(format!("{}", tuple), "test-provider:test-model");
+        assert_eq!(format!("{tuple}"), "test-provider:test-model");
 
         // Test to_string
         assert_eq!(tuple.to_string(), "test-provider:test-model");

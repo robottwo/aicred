@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 /// A unified label that combines label metadata and assignment information.
 /// Labels only exist when they are assigned to a provider:model tuple.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UnifiedLabel {
     /// Human-readable name for the label (used as both display name and identifier)
     pub label_name: String,
@@ -34,6 +34,7 @@ pub struct UnifiedLabel {
 
 impl UnifiedLabel {
     /// Creates a new unified label assignment
+    #[must_use]
     pub fn new(label_name: String, target: ProviderModelTuple) -> Self {
         let now = Utc::now();
         Self {

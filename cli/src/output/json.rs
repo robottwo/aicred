@@ -81,7 +81,7 @@ fn get_tags_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
 
     let tags = get_tags_for_target(instance_id, None)?;
     let tags_json: Result<Vec<serde_json::Value>, _> =
-        tags.iter().map(|tag| serde_json::to_value(tag)).collect();
+        tags.iter().map(serde_json::to_value).collect();
 
     Ok(tags_json?)
 }
@@ -90,11 +90,9 @@ fn get_tags_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
 fn get_labels_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
     use crate::commands::labels::get_labels_for_target;
 
-    let labels = get_labels_for_target(instance_id, None)?;
-    let labels_json: Result<Vec<serde_json::Value>, _> = labels
-        .iter()
-        .map(|label| serde_json::to_value(label))
-        .collect();
+    let labels = get_labels_for_target(instance_id, None, None)?;
+    let labels_json: Result<Vec<serde_json::Value>, _> =
+        labels.iter().map(serde_json::to_value).collect();
 
     Ok(labels_json?)
 }
@@ -105,7 +103,7 @@ fn get_tags_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_jso
 
     let tags = get_tags_for_target(instance_id, Some(model_id))?;
     let tags_json: Result<Vec<serde_json::Value>, _> =
-        tags.iter().map(|tag| serde_json::to_value(tag)).collect();
+        tags.iter().map(serde_json::to_value).collect();
 
     Ok(tags_json?)
 }
@@ -114,11 +112,9 @@ fn get_tags_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_jso
 fn get_labels_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_json::Value>> {
     use crate::commands::labels::get_labels_for_target;
 
-    let labels = get_labels_for_target(instance_id, Some(model_id))?;
-    let labels_json: Result<Vec<serde_json::Value>, _> = labels
-        .iter()
-        .map(|label| serde_json::to_value(label))
-        .collect();
+    let labels = get_labels_for_target(instance_id, Some(model_id), None)?;
+    let labels_json: Result<Vec<serde_json::Value>, _> =
+        labels.iter().map(serde_json::to_value).collect();
 
     Ok(labels_json?)
 }

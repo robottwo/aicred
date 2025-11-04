@@ -3,13 +3,24 @@
 use aicred_core::models::{Tag, TagAssignment};
 use anyhow::Result;
 use colored::*;
+use std::path::Path;
 
 /// Load all tags from the configuration directory
-pub fn load_tags() -> Result<Vec<Tag>> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn load_tags_with_home(home: Option<&Path>) -> Result<Vec<Tag>> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     let tags_file = config_dir.join("tags.yaml");
 
@@ -22,12 +33,27 @@ pub fn load_tags() -> Result<Vec<Tag>> {
     Ok(tags)
 }
 
+/// Load all tags from the configuration directory
+pub fn load_tags() -> Result<Vec<Tag>> {
+    load_tags_with_home(None)
+}
+
 /// Save tags to the configuration directory
-pub fn save_tags(tags: &[Tag]) -> Result<()> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn save_tags_with_home(tags: &[Tag], home: Option<&Path>) -> Result<()> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     std::fs::create_dir_all(&config_dir)?;
 
@@ -38,12 +64,27 @@ pub fn save_tags(tags: &[Tag]) -> Result<()> {
     Ok(())
 }
 
+/// Save tags to the configuration directory
+pub fn save_tags(tags: &[Tag]) -> Result<()> {
+    save_tags_with_home(tags, None)
+}
+
 /// Load all tag assignments from the configuration directory
-pub fn load_tag_assignments() -> Result<Vec<TagAssignment>> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn load_tag_assignments_with_home(home: Option<&Path>) -> Result<Vec<TagAssignment>> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     let assignments_file = config_dir.join("tag_assignments.yaml");
 
@@ -56,12 +97,30 @@ pub fn load_tag_assignments() -> Result<Vec<TagAssignment>> {
     Ok(assignments)
 }
 
+/// Load all tag assignments from the configuration directory
+pub fn load_tag_assignments() -> Result<Vec<TagAssignment>> {
+    load_tag_assignments_with_home(None)
+}
+
 /// Save tag assignments to the configuration directory
-pub fn save_tag_assignments(assignments: &[TagAssignment]) -> Result<()> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn save_tag_assignments_with_home(
+    assignments: &[TagAssignment],
+    home: Option<&Path>,
+) -> Result<()> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     std::fs::create_dir_all(&config_dir)?;
 
@@ -70,6 +129,11 @@ pub fn save_tag_assignments(assignments: &[TagAssignment]) -> Result<()> {
     std::fs::write(&assignments_file, content)?;
 
     Ok(())
+}
+
+/// Save tag assignments to the configuration directory
+pub fn save_tag_assignments(assignments: &[TagAssignment]) -> Result<()> {
+    save_tag_assignments_with_home(assignments, None)
 }
 
 /// Generate a unique tag ID
@@ -309,7 +373,7 @@ pub fn handle_assign_tag(
             && assignment.targets_instance(&target_instance_id)
             && assignment.targets_model(
                 &target_instance_id,
-                &target_model_id.as_deref().unwrap_or(""),
+                target_model_id.as_deref().unwrap_or(""),
             )
     });
 
@@ -382,7 +446,7 @@ pub fn handle_unassign_tag(
             && assignment.targets_instance(&target_instance_id)
             && assignment.targets_model(
                 &target_instance_id,
-                &target_model_id.as_deref().unwrap_or(""),
+                target_model_id.as_deref().unwrap_or(""),
             ))
     });
 

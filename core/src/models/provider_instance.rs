@@ -215,7 +215,7 @@ impl ProviderInstance {
     /// Gets all tags assigned to this provider instance.
     /// This is a placeholder method that would be implemented with actual tag storage.
     #[must_use]
-    pub fn get_tags(&self) -> Vec<String> {
+    pub const fn get_tags(&self) -> Vec<String> {
         // TODO: Implement actual tag retrieval from storage
         Vec::new()
     }
@@ -223,7 +223,7 @@ impl ProviderInstance {
     /// Gets all labels assigned to this provider instance.
     /// This is a placeholder method that would be implemented with actual label storage.
     #[must_use]
-    pub fn get_labels(&self) -> Vec<String> {
+    pub const fn get_labels(&self) -> Vec<String> {
         // TODO: Implement actual label retrieval from storage
         Vec::new()
     }
@@ -231,7 +231,7 @@ impl ProviderInstance {
     /// Checks if this provider instance has a specific tag.
     /// This is a placeholder method that would be implemented with actual tag storage.
     #[must_use]
-    pub fn has_tag(&self, _tag_id: &str) -> bool {
+    pub const fn has_tag(&self, _tag_id: &str) -> bool {
         // TODO: Implement actual tag checking
         false
     }
@@ -239,7 +239,7 @@ impl ProviderInstance {
     /// Checks if this provider instance has a specific label.
     /// This is a placeholder method that would be implemented with actual label storage.
     #[must_use]
-    pub fn has_label(&self, _label_id: &str) -> bool {
+    pub const fn has_label(&self, _label_id: &str) -> bool {
         // TODO: Implement actual label checking
         false
     }
@@ -247,7 +247,7 @@ impl ProviderInstance {
     /// Gets tags assigned to a specific model in this provider instance.
     /// This is a placeholder method that would be implemented with actual tag storage.
     #[must_use]
-    pub fn get_model_tags(&self, _model_id: &str) -> Vec<String> {
+    pub const fn get_model_tags(&self, _model_id: &str) -> Vec<String> {
         // TODO: Implement actual model tag retrieval
         Vec::new()
     }
@@ -255,7 +255,7 @@ impl ProviderInstance {
     /// Gets labels assigned to a specific model in this provider instance.
     /// This is a placeholder method that would be implemented with actual label storage.
     #[must_use]
-    pub fn get_model_labels(&self, _model_id: &str) -> Vec<String> {
+    pub const fn get_model_labels(&self, _model_id: &str) -> Vec<String> {
         // TODO: Implement actual model label retrieval
         Vec::new()
     }
@@ -263,7 +263,7 @@ impl ProviderInstance {
     /// Checks if a specific model in this provider instance has a tag.
     /// This is a placeholder method that would be implemented with actual tag storage.
     #[must_use]
-    pub fn model_has_tag(&self, _model_id: &str, _tag_id: &str) -> bool {
+    pub const fn model_has_tag(&self, _model_id: &str, _tag_id: &str) -> bool {
         // TODO: Implement actual model tag checking
         false
     }
@@ -271,7 +271,7 @@ impl ProviderInstance {
     /// Checks if a specific model in this provider instance has a label.
     /// This is a placeholder method that would be implemented with actual label storage.
     #[must_use]
-    pub fn model_has_label(&self, _model_id: &str, _label_id: &str) -> bool {
+    pub const fn model_has_label(&self, _model_id: &str, _label_id: &str) -> bool {
         // TODO: Implement actual model label checking
         false
     }
@@ -279,14 +279,14 @@ impl ProviderInstance {
     /// Validates that this provider instance can accept a tag assignment.
     /// Always returns true for tags since they can be shared.
     #[must_use]
-    pub fn can_accept_tag(&self, _tag_id: &str) -> bool {
+    pub const fn can_accept_tag(&self, _tag_id: &str) -> bool {
         true
     }
 
     /// Validates that this provider instance can accept a label assignment.
     /// Always returns true - actual uniqueness validation would be done at the storage level.
     #[must_use]
-    pub fn can_accept_label(&self, _label_id: &str) -> bool {
+    pub const fn can_accept_label(&self, _label_id: &str) -> bool {
         true
     }
 
@@ -308,7 +308,7 @@ impl ProviderInstance {
             format!("{} label(s)", labels.len())
         };
 
-        format!("{} and {}", tag_summary, label_summary)
+        format!("{tag_summary} and {label_summary}")
     }
 }
 

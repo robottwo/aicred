@@ -33,7 +33,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
         let entry = entry?;
         let path = entry.path();
 
-        if path.extension().map_or(false, |ext| ext == "yaml") {
+        if path.extension().is_some_and(|ext| ext == "yaml") {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 // First try to parse as the modern ProviderInstance directly
                 if let Ok(instance) =
@@ -120,11 +120,21 @@ fn parse_legacy_instance(
     Ok(instance)
 }
 /// Load all unified labels from the configuration directory
-pub fn load_label_assignments() -> Result<Vec<UnifiedLabel>> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<UnifiedLabel>> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     let labels_file = config_dir.join("labels.yaml");
 
@@ -137,12 +147,30 @@ pub fn load_label_assignments() -> Result<Vec<UnifiedLabel>> {
     Ok(labels)
 }
 
+/// Load all unified labels from the configuration directory
+pub fn load_label_assignments() -> Result<Vec<UnifiedLabel>> {
+    load_label_assignments_with_home(None)
+}
+
 /// Save unified labels to the configuration directory
-pub fn save_label_assignments(labels: &[UnifiedLabel]) -> Result<()> {
-    let config_dir = dirs_next::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
-        .join(".config")
-        .join("aicred");
+pub fn save_label_assignments_with_home(
+    labels: &[UnifiedLabel],
+    home: Option<&Path>,
+) -> Result<()> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
 
     std::fs::create_dir_all(&config_dir)?;
 
@@ -151,6 +179,11 @@ pub fn save_label_assignments(labels: &[UnifiedLabel]) -> Result<()> {
     std::fs::write(&labels_file, content)?;
 
     Ok(())
+}
+
+/// Save unified labels to the configuration directory
+pub fn save_label_assignments(labels: &[UnifiedLabel]) -> Result<()> {
+    save_label_assignments_with_home(labels, None)
 }
 
 /// Handle the labels list command
@@ -195,6 +228,7 @@ pub fn handle_list_labels() -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
     use std::env;
@@ -208,14 +242,14 @@ mod tests {
 
     #[test]
     fn test_get_labels_for_target_matches_provider_and_model() {
-        let _temp_dir = setup_test_env();
+        let temp_dir = setup_test_env();
 
         // Create a test label
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let mut labels = vec![UnifiedLabel::new("thinking".to_string(), tuple)];
+        let labels = vec![UnifiedLabel::new("thinking".to_string(), tuple)];
 
         // Save it
-        save_label_assignments(&labels).unwrap();
+        save_label_assignments_with_home(&labels, Some(temp_dir.path())).unwrap();
 
         // Create a mock provider instance
         // Note: In a real test, we'd need to set up provider instances
@@ -224,12 +258,12 @@ mod tests {
 
     #[test]
     fn test_get_labels_for_target_ignores_different_provider() {
-        let _temp_dir = setup_test_env();
+        let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments(&vec![label]).unwrap();
+        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
 
         // Querying for anthropic instance should return no labels
         // (would need mock provider instances to test fully)
@@ -237,12 +271,12 @@ mod tests {
 
     #[test]
     fn test_get_labels_for_target_matches_model_basename() {
-        let _temp_dir = setup_test_env();
+        let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments(&vec![label]).unwrap();
+        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
 
         // Should match both "gpt-4" and "openai/gpt-4" model names
         // (would need mock provider instances to test fully)
@@ -250,12 +284,12 @@ mod tests {
 
     #[test]
     fn test_get_labels_for_target_rejects_wrong_provider_prefix() {
-        let _temp_dir = setup_test_env();
+        let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments(&vec![label]).unwrap();
+        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
 
         // Should NOT match "anthropic/gpt-4" even though basename matches
         // (would need mock provider instances to test fully)
@@ -269,6 +303,12 @@ pub fn handle_set_label(
     color: Option<String>,
     description: Option<String>,
 ) -> Result<()> {
+    // Trim and validate label name
+    let label_name = label_name.trim().to_string();
+    if label_name.is_empty() {
+        return Err(anyhow::anyhow!("Label name cannot be empty"));
+    }
+
     let mut labels = load_label_assignments()?;
 
     // Parse the provider:model tuple
@@ -359,14 +399,22 @@ pub fn handle_unset_label(name: String, force: bool) -> Result<()> {
 }
 
 /// Get labels assigned to a specific instance or model
-pub fn get_labels_for_target(instance_id: &str, model_id: Option<&str>) -> Result<Vec<Label>> {
-    let labels = load_label_assignments()?;
-    let provider_instances = load_provider_instances(None)?;
+pub fn get_labels_for_target(
+    instance_id: &str,
+    model_id: Option<&str>,
+    home: Option<&Path>,
+) -> Result<Vec<Label>> {
+    let labels = load_label_assignments_with_home(home)?;
+    let provider_instances = load_provider_instances(home)?;
 
     // Look up the instance to get its provider_type
-    let instance = provider_instances
-        .get_instance(instance_id)
-        .ok_or_else(|| anyhow::anyhow!("Instance not found: {}", instance_id))?;
+    let instance = match provider_instances.get_instance(instance_id) {
+        Some(instance) => instance,
+        None => {
+            // Instance not found - return empty labels for newly discovered instances
+            return Ok(Vec::new());
+        }
+    };
 
     let provider_type = &instance.provider_type;
 
@@ -382,17 +430,30 @@ pub fn get_labels_for_target(instance_id: &str, model_id: Option<&str>) -> Resul
             continue;
         }
 
-        // If model_id is provided, check if it matches the tuple's model
-        if let Some(model_name) = model_id {
-            // Extract the basename from the model_id for comparison
-            let model_basename = if let Some(slash_pos) = model_name.find('/') {
-                &model_name[slash_pos + 1..]
-            } else {
-                model_name
+        // If model_id is provided, resolve the actual Model and compare against canonical ID and basename
+        if let Some(model_display_name) = model_id {
+            // Find the model in the instance by matching the display name
+            let model = match instance
+                .models
+                .iter()
+                .find(|m| &m.name == model_display_name)
+            {
+                Some(model) => model,
+                None => {
+                    // Model not found in this instance
+                    continue;
+                }
             };
 
-            // The tuple model must match the model basename
-            if tuple_model != model_basename {
+            // Extract the basename from the canonical model ID for comparison
+            let model_basename = if let Some(slash_pos) = model.model_id.find('/') {
+                &model.model_id[slash_pos + 1..]
+            } else {
+                &model.model_id
+            };
+
+            // The tuple model must match either the canonical model ID or its basename
+            if tuple_model != model.model_id && tuple_model != model_basename {
                 continue;
             }
         }

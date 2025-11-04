@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 /// A tag is a shared identifier that can be applied to multiple provider/model combinations.
 /// Tags are non-unique and can be reused across different targets.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Tag {
     /// Unique identifier for this tag.
     pub id: String,

@@ -484,7 +484,7 @@ mod cli_integration_tests {
 
     #[test]
     fn test_cli_concurrent_operations() {
-        let (cmd, _temp_dir) = setup_test_cli();
+        let (_cmd, _temp_dir) = setup_test_cli();
 
         // Create multiple tags rapidly
         for i in 0..10 {
@@ -515,7 +515,7 @@ mod cli_integration_tests {
 
     #[test]
     fn test_cli_large_dataset_handling() {
-        let (cmd, _temp_dir) = setup_test_cli();
+        let (_cmd, _temp_dir) = setup_test_cli();
 
         // Create large number of tags
         for i in 0..100 {

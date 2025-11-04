@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// A label is a unique identifier that can only be applied to one provider/model combination at a time.
+///
 /// Labels enforce uniqueness across all targets in the system and are scoped to specific provider:model tuples.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Label {
     /// Unique identifier for this label.
     pub id: String,
@@ -149,7 +150,7 @@ impl Label {
     /// Checks if this label can be assigned to a target (always true for labels).
     /// This method exists for API consistency with tags.
     #[must_use]
-    pub fn can_assign_to(&self, _target_id: &str) -> bool {
+    pub const fn can_assign_to(&self, _target_id: &str) -> bool {
         true
     }
 
@@ -167,13 +168,13 @@ impl Label {
     /// Gets the uniqueness constraint for this label.
     /// Labels are unique across all provider/model combinations, but scoped to their tuple if specified.
     #[must_use]
-    pub fn uniqueness_scope(&self) -> &'static str {
+    pub const fn uniqueness_scope(&self) -> &'static str {
         "global"
     }
 
     /// Gets the provider:model tuple this label is scoped to, if any.
     #[must_use]
-    pub fn get_provider_model_tuple(&self) -> Option<&ProviderModelTuple> {
+    pub const fn get_provider_model_tuple(&self) -> Option<&ProviderModelTuple> {
         self.provider_model_tuple.as_ref()
     }
 }
@@ -284,13 +285,14 @@ mod tests {
         assert!(label.can_assign_to("any-target"));
         assert_eq!(label.uniqueness_scope(), "global");
     }
+
+    #[test]
     fn test_label_with_provider_model_tuple() {
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let tuple_clone = tuple.clone();
         let label = Label::new("label-1".to_string(), "Production GPT-4".to_string())
-            .with_provider_model_tuple(tuple_clone);
+            .with_provider_model_tuple(tuple.clone());
 
-        assert_eq!(label.provider_model_tuple, Some(tuple.clone()));
+        assert_eq!(label.provider_model_tuple.as_ref(), Some(&tuple));
         assert!(label.can_assign_to_tuple(&tuple));
     }
 
@@ -331,7 +333,7 @@ mod tests {
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         label.set_provider_model_tuple(Some(tuple.clone()));
 
-        assert_eq!(label.provider_model_tuple, Some(tuple.clone()));
+        assert_eq!(label.provider_model_tuple.as_ref(), Some(&tuple));
 
         // Clear the tuple
         label.set_provider_model_tuple(None);

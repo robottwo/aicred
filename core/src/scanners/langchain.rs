@@ -1,6 +1,6 @@
 //! `LangChain` scanner for discovering API keys in `LangChain` configuration files.
 
-use super::{ScanResult, ScannerPlugin};
+use super::{ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::{Error, Result};
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
@@ -78,7 +78,39 @@ impl ScannerPlugin for LangChainScanner {
             }
         } else if file_name == ".env" || file_name.ends_with(".env") {
             // Parse environment file
-            return Ok(Self::parse_env_file(content));
+            let mut env_result = Self::parse_env_file(content);
+
+            // Build provider instances from discovered keys
+            if !env_result.keys.is_empty() {
+                match self.build_instances_from_keys(
+                    &env_result.keys,
+                    path.to_str().unwrap_or(""),
+                    None,
+                ) {
+                    Ok(provider_instances) => {
+                        // Create a config instance for the .env file with the provider instances
+                        let mut instance = ConfigInstance::new(
+                            Self::generate_instance_id(path),
+                            "langchain".to_string(),
+                            path.to_path_buf(),
+                        );
+
+                        // Add each provider instance to the config instance
+                        for provider_instance in provider_instances {
+                            if let Err(e) = instance.add_provider_instance(provider_instance) {
+                                tracing::warn!("Failed to add provider instance to config: {}", e);
+                            }
+                        }
+
+                        env_result.add_instance(instance);
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to build provider instances from .env keys: {}", e);
+                    }
+                }
+            }
+
+            return Ok(env_result);
         }
 
         Ok(result)

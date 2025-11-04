@@ -20,6 +20,7 @@ pub mod provider_key;
 pub mod scan_result;
 pub mod tag;
 pub mod tag_assignment;
+/// Unified label model combining label metadata and assignment information.
 pub mod unified_label;
 
 #[cfg(test)]

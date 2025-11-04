@@ -42,7 +42,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
         let entry = entry?;
         let path = entry.path();
 
-        if path.extension().map_or(false, |ext| ext == "yaml") {
+        if path.extension().is_some_and(|ext| ext == "yaml") {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 // First try to parse as the modern ProviderInstance directly
                 if let Ok(instance) = serde_yaml::from_str::<ProviderInstance>(&content) {
@@ -94,7 +94,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 
                                 // Helper to extract string fields
                                 let get_str = |k: &str| -> Option<String> {
-                                    map.get(&serde_yaml::Value::String(k.to_string()))
+                                    map.get(serde_yaml::Value::String(k.to_string()))
                                         .and_then(|v| v.as_str().map(|s| s.to_string()))
                                 };
 
@@ -116,7 +116,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
                                 let created_at = get_str("created_at")
                                     .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
                                     .map(|dt| dt.with_timezone(&Utc))
-                                    .unwrap_or_else(|| Utc::now());
+                                    .unwrap_or_else(Utc::now);
                                 let updated_at = get_str("updated_at")
                                     .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
                                     .map(|dt| dt.with_timezone(&Utc))
@@ -131,7 +131,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 
                                 // Active flag
                                 if let Some(active_val) =
-                                    map.get(&serde_yaml::Value::String("active".to_string()))
+                                    map.get(serde_yaml::Value::String("active".to_string()))
                                 {
                                     if let Some(b) = active_val.as_bool() {
                                         instance.active = b;
@@ -140,18 +140,18 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 
                                 // Extract API key from legacy `keys` sequence if present
                                 if let Some(keys_val) =
-                                    map.get(&serde_yaml::Value::String("keys".to_string()))
+                                    map.get(serde_yaml::Value::String("keys".to_string()))
                                 {
                                     if let Some(seq) = keys_val.as_sequence() {
                                         if !seq.is_empty() {
                                             if let Some(first_key) = seq[0].as_mapping() {
                                                 // try api_key then value as fallbacks
                                                 let api_key = first_key
-                                                    .get(&serde_yaml::Value::String(
+                                                    .get(serde_yaml::Value::String(
                                                         "api_key".to_string(),
                                                     ))
                                                     .or_else(|| {
-                                                        first_key.get(&serde_yaml::Value::String(
+                                                        first_key.get(serde_yaml::Value::String(
                                                             "value".to_string(),
                                                         ))
                                                     })
@@ -171,7 +171,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 
                                 // Extract models: either sequence of strings or sequence of maps with model_id
                                 if let Some(models_val) =
-                                    map.get(&serde_yaml::Value::String("models".to_string()))
+                                    map.get(serde_yaml::Value::String("models".to_string()))
                                 {
                                     if let Some(seq) = models_val.as_sequence() {
                                         for item in seq {
@@ -181,7 +181,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
                                                 instance.add_model(model);
                                             } else if let Some(m) = item.as_mapping() {
                                                 if let Some(model_id_val) =
-                                                    m.get(&serde_yaml::Value::String(
+                                                    m.get(serde_yaml::Value::String(
                                                         "model_id".to_string(),
                                                     ))
                                                 {
@@ -223,6 +223,7 @@ fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
 }
 
 /// Load instances from legacy provider configurations
+#[allow(dead_code)]
 fn load_instances_from_providers(
     providers_dir: &PathBuf,
     instances: &mut ProviderInstances,
@@ -238,7 +239,7 @@ fn load_instances_from_providers(
         let entry = entry?;
         let path = entry.path();
 
-        if path.extension().map_or(false, |ext| ext == "yaml") {
+        if path.extension().is_some_and(|ext| ext == "yaml") {
             if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
                 if let Ok(content) = std::fs::read_to_string(&path) {
                     if let Ok(config) = ProviderConfig::from_yaml(&content) {
@@ -423,33 +424,34 @@ pub fn handle_list_instances(
     println!("\n{}", "Configured Provider Instances:".green().bold());
 
     let all_instances = instances.all_instances();
-    let filtered_instances: Vec<&ProviderInstance> = all_instances
-        .into_iter()
-        .filter(|instance| {
-            let type_match = provider_type
-                .as_ref()
-                .map_or(true, |pt| instance.provider_type == *pt);
-            let active_match = !active_only || instance.active;
+    let filtered_instances: Vec<&ProviderInstance> =
+        all_instances
+            .into_iter()
+            .filter(|instance| {
+                let type_match = provider_type
+                    .as_ref()
+                    .is_none_or(|pt| instance.provider_type == *pt);
+                let active_match = !active_only || instance.active;
 
-            // Tag filtering
-            let tag_match = tag.as_ref().map_or(true, |tag_name| {
-                match crate::commands::tags::get_tags_for_target(&instance.id, None) {
-                    Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
-                    Err(_) => false,
-                }
-            });
+                // Tag filtering
+                let tag_match = tag.as_ref().is_none_or(|tag_name| {
+                    match crate::commands::tags::get_tags_for_target(&instance.id, None) {
+                        Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
+                        Err(_) => false,
+                    }
+                });
 
-            // Label filtering
-            let label_match = label.as_ref().map_or(true, |label_name| {
-                match crate::commands::labels::get_labels_for_target(&instance.id, None) {
-                    Ok(labels) => labels.iter().any(|l| l.name == *label_name),
-                    Err(_) => false,
-                }
-            });
+                // Label filtering
+                let label_match = label.as_ref().is_none_or(|label_name| {
+                    match crate::commands::labels::get_labels_for_target(&instance.id, None, None) {
+                        Ok(labels) => labels.iter().any(|l| l.name == *label_name),
+                        Err(_) => false,
+                    }
+                });
 
-            type_match && active_match && tag_match && label_match
-        })
-        .collect();
+                type_match && active_match && tag_match && label_match
+            })
+            .collect();
 
     if filtered_instances.is_empty() {
         println!("{}", "No instances match the specified criteria.".yellow());
@@ -521,7 +523,7 @@ pub fn handle_list_instances(
         for instance in filtered_instances {
             println!(
                 "{:<20} {:<15} {:<15}",
-                instance.display_name.cyan(),
+                instance.id.cyan(),
                 instance.provider_type.yellow(),
                 instance.model_count()
             );
@@ -1026,21 +1028,26 @@ pub fn handle_list_models(
         .filter(|(instance, model)| {
             let type_match = provider_type
                 .as_ref()
-                .map_or(true, |pt| instance.provider_type == *pt);
+                .is_none_or(|pt| instance.provider_type == *pt);
 
             // Tag filtering
-            let tag_match = tag.as_ref().map_or(true, |tag_name| {
-                match crate::commands::tags::get_tags_for_target(&instance.id, Some(&model.name)) {
-                    Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
-                    Err(_) => false,
-                }
-            });
+            let tag_match =
+                tag.as_ref().is_none_or(
+                    |tag_name| match crate::commands::tags::get_tags_for_target(
+                        &instance.id,
+                        Some(&model.name),
+                    ) {
+                        Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
+                        Err(_) => false,
+                    },
+                );
 
             // Label filtering
-            let label_match = label.as_ref().map_or(true, |label_name| {
+            let label_match = label.as_ref().is_none_or(|label_name| {
                 match crate::commands::labels::get_labels_for_target(
                     &instance.id,
                     Some(&model.name),
+                    None,
                 ) {
                     Ok(labels) => labels.iter().any(|l| l.name == *label_name),
                     Err(_) => false,
@@ -1136,9 +1143,11 @@ pub fn handle_list_models(
             }
 
             // Show labels
-            if let Ok(labels) =
-                crate::commands::labels::get_labels_for_target(&instance.id, Some(&model.name))
-            {
+            if let Ok(labels) = crate::commands::labels::get_labels_for_target(
+                &instance.id,
+                Some(&model.name),
+                None,
+            ) {
                 if !labels.is_empty() {
                     println!("  Labels:");
                     for label in labels {
@@ -1186,6 +1195,7 @@ pub fn handle_list_models(
             let labels = match crate::commands::labels::get_labels_for_target(
                 &instance.id,
                 Some(&model.name),
+                None,
             ) {
                 Ok(labels) => labels
                     .iter()

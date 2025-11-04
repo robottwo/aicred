@@ -88,7 +88,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                         }
 
                         if let Ok(labels) =
-                            get_labels_for_target(&instance.instance_id, Some(&model.name))
+                            get_labels_for_target(&instance.instance_id, Some(&model.name), None)
                         {
                             if !labels.is_empty() {
                                 println!("          {} labels:", model.name);
@@ -121,7 +121,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                 }
 
                 // Show labels for this provider instance
-                if let Ok(labels) = get_labels_for_target(&instance.instance_id, None) {
+                if let Ok(labels) = get_labels_for_target(&instance.instance_id, None, None) {
                     if !labels.is_empty() {
                         println!("    Labels:");
                         for label in labels {

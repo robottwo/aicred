@@ -31,7 +31,7 @@ pub fn output_ndjson(result: &ScanResult, _verbose: bool) -> Result<()> {
             }
 
             // Get labels for this provider instance
-            if let Ok(labels) = get_labels_for_target(&instance.instance_id, None) {
+            if let Ok(labels) = get_labels_for_target(&instance.instance_id, None, None) {
                 if !labels.is_empty() {
                     if provider_instance.metadata.is_none() {
                         provider_instance.metadata = Some(std::collections::HashMap::new());
@@ -63,7 +63,8 @@ pub fn output_ndjson(result: &ScanResult, _verbose: bool) -> Result<()> {
                 }
 
                 // Get labels for this model
-                if let Ok(labels) = get_labels_for_target(&instance.instance_id, Some(&model.name))
+                if let Ok(labels) =
+                    get_labels_for_target(&instance.instance_id, Some(&model.name), None)
                 {
                     if !labels.is_empty() {
                         if model.metadata.is_none() {

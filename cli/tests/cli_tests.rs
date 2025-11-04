@@ -182,7 +182,7 @@ updated_at: "2023-01-01T00:00:00Z"
         .arg(temp_home.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("OpenRouter Instance"));
+        .stdout(predicate::str::contains("openrouter-instance"));
 }
 
 #[test]
@@ -226,8 +226,8 @@ updated_at: "2023-01-01T00:00:00Z"
     cmd.arg("instances").arg("--home").arg(temp_home.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("OpenAI Instance"))
-        .stdout(predicate::str::contains("Anthropic Instance"));
+        .stdout(predicate::str::contains("openai-instance"))
+        .stdout(predicate::str::contains("anthropic-instance"));
 
     // Verify it produces the same output as `aicred instances list`
     let mut cmd_list = Command::cargo_bin("aicred").unwrap();
@@ -248,10 +248,10 @@ updated_at: "2023-01-01T00:00:00Z"
     // Both should contain the same provider names
     let stdout_default = String::from_utf8_lossy(&output_default.stdout);
     let stdout_list = String::from_utf8_lossy(&output_list.stdout);
-    assert!(stdout_default.contains("OpenAI Instance"));
-    assert!(stdout_default.contains("Anthropic Instance"));
-    assert!(stdout_list.contains("OpenAI Instance"));
-    assert!(stdout_list.contains("Anthropic Instance"));
+    assert!(stdout_default.contains("openai-instance"));
+    assert!(stdout_default.contains("anthropic-instance"));
+    assert!(stdout_list.contains("openai-instance"));
+    assert!(stdout_list.contains("anthropic-instance"));
 }
 
 // Multi-file YAML storage system integration tests
@@ -854,8 +854,8 @@ updated_at: "2023-01-01T00:00:00Z"
         .arg(temp_home.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("OpenAI Instance")) // Note: capitalized from file name
-        .stdout(predicate::str::contains("Anthropic Instance"));
+        .stdout(predicate::str::contains("openai-instance"))
+        .stdout(predicate::str::contains("anthropic-instance"));
 }
 
 #[test]
@@ -1538,7 +1538,7 @@ updated_at: "2023-01-01T00:00:00Z"
     // Verify that the command finds the instance in the custom home
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Custom Home Instance"));
+        .stdout(predicate::str::contains("custom-home-instance"));
 }
 
 // Label management integration tests

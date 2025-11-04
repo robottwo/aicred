@@ -196,22 +196,17 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
         println!("{}", "-".repeat(95));
 
         for instance in &result.config_instances {
-            // Count unique providers and models from the keys associated with this instance
+            // Count unique providers and models from the provider instances
             let mut providers = std::collections::HashSet::new();
             let mut models = std::collections::HashSet::new();
 
-            // Get all keys from the main result that match this instance's source
-            let instance_path = instance.config_path.display().to_string();
-            for key in &result.keys {
-                if key.source == instance_path {
-                    providers.insert(key.provider.clone());
+            // Count from actual provider instances
+            for provider_instance in instance.provider_instances() {
+                providers.insert(provider_instance.provider_type.clone());
 
-                    // Count models (ModelId value type)
-                    if matches!(key.value_type, aicred_core::ValueType::ModelId) {
-                        if let Some(model_id) = key.full_value() {
-                            models.insert(model_id.to_string());
-                        }
-                    }
+                // Count all models configured in this provider instance
+                for model in &provider_instance.models {
+                    models.insert(model.name.clone());
                 }
             }
 
@@ -288,7 +283,7 @@ fn get_tags_for_instance(
     instance_id: &str,
 ) -> Result<Vec<aicred_core::models::Tag>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
-    Ok(get_tags_for_target(instance_id, None)?)
+    get_tags_for_target(instance_id, None)
 }
 
 /// Get labels for a specific instance
@@ -296,5 +291,5 @@ fn get_labels_for_instance(
     instance_id: &str,
 ) -> Result<Vec<aicred_core::models::Label>, anyhow::Error> {
     use crate::commands::labels::get_labels_for_target;
-    Ok(get_labels_for_target(instance_id, None)?)
+    get_labels_for_target(instance_id, None, None)
 }

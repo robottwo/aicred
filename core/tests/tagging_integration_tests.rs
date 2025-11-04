@@ -369,10 +369,10 @@ mod integration_tests {
         }
 
         // Verify targeting
-        assert_eq!(assignments[0].targets_instance("instance-1"), true);
-        assert_eq!(assignments[1].targets_instance("instance-2"), true);
-        assert_eq!(assignments[2].targets_model("instance-1", "model-1"), true);
-        assert_eq!(assignments[3].targets_model("instance-1", "model-2"), true);
+        assert!(assignments[0].targets_instance("instance-1"));
+        assert!(assignments[1].targets_instance("instance-2"));
+        assert!(assignments[2].targets_model("instance-1", "model-1"));
+        assert!(assignments[3].targets_model("instance-1", "model-2"));
     }
 
     #[test]

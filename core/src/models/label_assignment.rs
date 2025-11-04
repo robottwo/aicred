@@ -6,18 +6,26 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Represents the target of a label assignment.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LabelAssignmentTarget {
     /// Label is assigned to a provider instance.
-    ProviderInstance { instance_id: String },
+    ProviderInstance {
+        /// The provider instance ID
+        instance_id: String,
+    },
     /// Label is assigned to a specific model within a provider instance.
     Model {
+        /// The provider instance ID
         instance_id: String,
+        /// The model ID
         model_id: String,
     },
     /// Label is assigned to a specific provider:model tuple.
-    ProviderModelTuple { tuple: ProviderModelTuple },
+    ProviderModelTuple {
+        /// The provider:model tuple
+        tuple: ProviderModelTuple,
+    },
 }
 
 impl LabelAssignmentTarget {
@@ -25,9 +33,8 @@ impl LabelAssignmentTarget {
     #[must_use]
     pub fn instance_id(&self) -> &str {
         match self {
-            LabelAssignmentTarget::ProviderInstance { instance_id } => instance_id,
-            LabelAssignmentTarget::Model { instance_id, .. } => instance_id,
-            LabelAssignmentTarget::ProviderModelTuple { tuple } => &tuple.provider,
+            Self::ProviderInstance { instance_id } | Self::Model { instance_id, .. } => instance_id,
+            Self::ProviderModelTuple { tuple } => &tuple.provider,
         }
     }
 
@@ -35,9 +42,9 @@ impl LabelAssignmentTarget {
     #[must_use]
     pub fn model_id(&self) -> Option<&str> {
         match self {
-            LabelAssignmentTarget::ProviderInstance { .. } => None,
-            LabelAssignmentTarget::Model { model_id, .. } => Some(model_id),
-            LabelAssignmentTarget::ProviderModelTuple { tuple } => Some(&tuple.model),
+            Self::ProviderInstance { .. } => None,
+            Self::Model { model_id, .. } => Some(model_id),
+            Self::ProviderModelTuple { tuple } => Some(&tuple.model),
         }
     }
 
@@ -46,19 +53,19 @@ impl LabelAssignmentTarget {
     pub fn matches(&self, instance_id: &str, model_id: Option<&str>) -> bool {
         match (self, model_id) {
             (
-                LabelAssignmentTarget::ProviderInstance {
+                Self::ProviderInstance {
                     instance_id: target_instance,
                 },
                 None,
             ) => target_instance == instance_id,
             (
-                LabelAssignmentTarget::Model {
+                Self::Model {
                     instance_id: target_instance,
                     model_id: target_model,
                 },
                 Some(model),
             ) => target_instance == instance_id && target_model == model,
-            (LabelAssignmentTarget::ProviderModelTuple { tuple }, target_model_id) => {
+            (Self::ProviderModelTuple { tuple }, target_model_id) => {
                 // For provider:model tuple matching, we need to check both provider and model
                 // The tuple provider should match the instance_id, and tuple model should match the basename of the full model ID
                 match target_model_id {
@@ -97,20 +104,17 @@ impl LabelAssignmentTarget {
     #[must_use]
     pub fn description(&self) -> String {
         match self {
-            LabelAssignmentTarget::ProviderInstance { instance_id } => {
-                format!("provider instance '{}'", instance_id)
+            Self::ProviderInstance { instance_id } => {
+                format!("provider instance '{instance_id}'")
             }
-            LabelAssignmentTarget::Model {
+            Self::Model {
                 instance_id,
                 model_id,
             } => {
-                format!(
-                    "model '{}' in provider instance '{}'",
-                    model_id, instance_id
-                )
+                format!("model '{model_id}' in provider instance '{instance_id}'")
             }
-            LabelAssignmentTarget::ProviderModelTuple { tuple } => {
-                format!("provider:model tuple '{}'", tuple)
+            Self::ProviderModelTuple { tuple } => {
+                format!("provider:model tuple '{tuple}'")
             }
         }
     }
@@ -118,7 +122,7 @@ impl LabelAssignmentTarget {
 
 /// A label assignment links a label to a specific target (provider instance or model).
 /// Labels are unique across all targets, so only one assignment can exist per label.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LabelAssignment {
     /// Unique identifier for this assignment.
     pub id: String,
@@ -301,16 +305,16 @@ impl LabelAssignment {
     }
 
     /// Gets the uniqueness key for this label assignment.
-    /// Since labels are globally unique, this returns the label_id.
+    /// Since labels are globally unique, this returns the `label_id`.
     #[must_use]
     pub fn uniqueness_key(&self) -> &str {
         &self.label_id
     }
 
     /// Checks if this assignment conflicts with another label assignment.
-    /// Label assignments conflict if they have the same label_id.
+    /// Label assignments conflict if they have the same `label_id`.
     #[must_use]
-    pub fn conflicts_with(&self, other: &LabelAssignment) -> bool {
+    pub fn conflicts_with(&self, other: &Self) -> bool {
         self.label_id == other.label_id
     }
 }
@@ -512,7 +516,7 @@ mod tests {
             "assignment-1".to_string(),
             "label-1".to_string(),
             "Test Label".to_string(),
-            tuple.clone(),
+            tuple,
         );
 
         // Test matching with full model ID (with provider prefix)
@@ -538,7 +542,7 @@ mod tests {
             "assignment-1".to_string(),
             "label-1".to_string(),
             "Complex Label".to_string(),
-            tuple.clone(),
+            tuple,
         );
 
         // Test various model ID formats
@@ -570,9 +574,7 @@ mod tests {
         use crate::utils::ProviderModelTuple;
 
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let tuple_target = LabelAssignmentTarget::ProviderModelTuple {
-            tuple: tuple.clone(),
-        };
+        let tuple_target = LabelAssignmentTarget::ProviderModelTuple { tuple };
 
         // Test instance_id() returns the provider
         assert_eq!(tuple_target.instance_id(), "openai");

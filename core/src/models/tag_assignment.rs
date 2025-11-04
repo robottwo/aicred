@@ -5,14 +5,19 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Represents the target of a tag assignment.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TagAssignmentTarget {
     /// Tag is assigned to a provider instance.
-    ProviderInstance { instance_id: String },
+    ProviderInstance {
+        /// The provider instance ID
+        instance_id: String,
+    },
     /// Tag is assigned to a specific model within a provider instance.
     Model {
+        /// The provider instance ID
         instance_id: String,
+        /// The model ID
         model_id: String,
     },
 }
@@ -22,8 +27,7 @@ impl TagAssignmentTarget {
     #[must_use]
     pub fn instance_id(&self) -> &str {
         match self {
-            TagAssignmentTarget::ProviderInstance { instance_id } => instance_id,
-            TagAssignmentTarget::Model { instance_id, .. } => instance_id,
+            Self::ProviderInstance { instance_id } | Self::Model { instance_id, .. } => instance_id,
         }
     }
 
@@ -31,8 +35,8 @@ impl TagAssignmentTarget {
     #[must_use]
     pub fn model_id(&self) -> Option<&str> {
         match self {
-            TagAssignmentTarget::ProviderInstance { .. } => None,
-            TagAssignmentTarget::Model { model_id, .. } => Some(model_id),
+            Self::ProviderInstance { .. } => None,
+            Self::Model { model_id, .. } => Some(model_id),
         }
     }
 
@@ -41,13 +45,13 @@ impl TagAssignmentTarget {
     pub fn matches(&self, instance_id: &str, model_id: Option<&str>) -> bool {
         match (self, model_id) {
             (
-                TagAssignmentTarget::ProviderInstance {
+                Self::ProviderInstance {
                     instance_id: target_instance,
                 },
                 None,
             ) => target_instance == instance_id,
             (
-                TagAssignmentTarget::Model {
+                Self::Model {
                     instance_id: target_instance,
                     model_id: target_model,
                 },
@@ -61,17 +65,14 @@ impl TagAssignmentTarget {
     #[must_use]
     pub fn description(&self) -> String {
         match self {
-            TagAssignmentTarget::ProviderInstance { instance_id } => {
-                format!("provider instance '{}'", instance_id)
+            Self::ProviderInstance { instance_id } => {
+                format!("provider instance '{instance_id}'")
             }
-            TagAssignmentTarget::Model {
+            Self::Model {
                 instance_id,
                 model_id,
             } => {
-                format!(
-                    "model '{}' in provider instance '{}'",
-                    model_id, instance_id
-                )
+                format!("model '{model_id}' in provider instance '{instance_id}'")
             }
         }
     }
@@ -79,7 +80,7 @@ impl TagAssignmentTarget {
 
 /// A tag assignment links a tag to a specific target (provider instance or model).
 /// Tags can be assigned to multiple targets, so assignments are not unique.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TagAssignment {
     /// Unique identifier for this assignment.
     pub id: String,
