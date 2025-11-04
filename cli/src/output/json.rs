@@ -1,16 +1,23 @@
 use aicred_core::ScanResult;
 use anyhow::Result;
 
-pub fn output_json(result: &ScanResult, _verbose: bool) -> Result<()> {
+pub fn output_json(
+    result: &ScanResult,
+    _verbose: bool,
+    _home: Option<&std::path::Path>,
+) -> Result<()> {
     // Enhance the result with tag/label information
-    let enhanced_result = enhance_result_with_tags_labels(result)?;
+    let enhanced_result = enhance_result_with_tags_labels(result, _home)?;
     let json = serde_json::to_string_pretty(&enhanced_result)?;
     println!("{}", json);
     Ok(())
 }
 
 /// Enhance scan result with tag and label information
-fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Value> {
+fn enhance_result_with_tags_labels(
+    result: &ScanResult,
+    home: Option<&std::path::Path>,
+) -> Result<serde_json::Value> {
     let mut enhanced = serde_json::to_value(result)?;
 
     // Add tags and labels information to each config instance
@@ -27,8 +34,8 @@ fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Va
                                 .unwrap_or("");
 
                             // Get tags and labels for this instance
-                            let tags = get_tags_for_instance(instance_id)?;
-                            let labels = get_labels_for_instance(instance_id)?;
+                            let tags = get_tags_for_instance(instance_id, home)?;
+                            let labels = get_labels_for_instance(instance_id, home)?;
 
                             // Clone provider to avoid borrow conflicts
                             let mut provider_obj = provider.as_object().unwrap().clone();
@@ -46,9 +53,10 @@ fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Va
                                             .unwrap_or("");
 
                                         // Get tags and labels for this model
-                                        let model_tags = get_tags_for_model(instance_id, model_id)?;
+                                        let model_tags =
+                                            get_tags_for_model(instance_id, model_id, home)?;
                                         let model_labels =
-                                            get_labels_for_model(instance_id, model_id)?;
+                                            get_labels_for_model(instance_id, model_id, home)?;
 
                                         // Add to model
                                         if let Some(model_obj) = model.as_object_mut() {
@@ -78,10 +86,13 @@ fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Va
 }
 
 /// Get tags for a specific instance
-fn get_tags_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
+fn get_tags_for_instance(
+    instance_id: &str,
+    home: Option<&std::path::Path>,
+) -> Result<Vec<serde_json::Value>> {
     use crate::commands::tags::get_tags_for_target;
 
-    let tags = get_tags_for_target(instance_id, None)?;
+    let tags = get_tags_for_target(instance_id, None, home)?;
     let tags_json: Result<Vec<serde_json::Value>, _> =
         tags.iter().map(serde_json::to_value).collect();
 
@@ -89,10 +100,13 @@ fn get_tags_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
 }
 
 /// Get labels for a specific instance
-fn get_labels_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> {
+fn get_labels_for_instance(
+    instance_id: &str,
+    home: Option<&std::path::Path>,
+) -> Result<Vec<serde_json::Value>> {
     use crate::commands::labels::get_labels_for_target;
 
-    let labels = get_labels_for_target(instance_id, None, None)?;
+    let labels = get_labels_for_target(instance_id, None, home)?;
     let labels_json: Result<Vec<serde_json::Value>, _> =
         labels.iter().map(serde_json::to_value).collect();
 
@@ -100,10 +114,14 @@ fn get_labels_for_instance(instance_id: &str) -> Result<Vec<serde_json::Value>> 
 }
 
 /// Get tags for a specific model
-fn get_tags_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_json::Value>> {
+fn get_tags_for_model(
+    instance_id: &str,
+    model_id: &str,
+    home: Option<&std::path::Path>,
+) -> Result<Vec<serde_json::Value>> {
     use crate::commands::tags::get_tags_for_target;
 
-    let tags = get_tags_for_target(instance_id, Some(model_id))?;
+    let tags = get_tags_for_target(instance_id, Some(model_id), home)?;
     let tags_json: Result<Vec<serde_json::Value>, _> =
         tags.iter().map(serde_json::to_value).collect();
 
@@ -111,10 +129,14 @@ fn get_tags_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_jso
 }
 
 /// Get labels for a specific model
-fn get_labels_for_model(instance_id: &str, model_id: &str) -> Result<Vec<serde_json::Value>> {
+fn get_labels_for_model(
+    instance_id: &str,
+    model_id: &str,
+    home: Option<&std::path::Path>,
+) -> Result<Vec<serde_json::Value>> {
     use crate::commands::labels::get_labels_for_target;
 
-    let labels = get_labels_for_target(instance_id, Some(model_id), None)?;
+    let labels = get_labels_for_target(instance_id, Some(model_id), home)?;
     let labels_json: Result<Vec<serde_json::Value>, _> =
         labels.iter().map(serde_json::to_value).collect();
 

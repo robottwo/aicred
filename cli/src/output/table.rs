@@ -283,7 +283,7 @@ fn get_tags_for_instance(
     instance_id: &str,
 ) -> Result<Vec<aicred_core::models::Tag>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
-    get_tags_for_target(instance_id, None)
+    get_tags_for_target(instance_id, None, None)
 }
 
 /// Get labels for a specific instance

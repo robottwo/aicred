@@ -5,5 +5,7 @@
 
 pub mod commands;
 pub mod output;
+pub mod utils;
 
 pub use commands::{labels, tags};
+pub use utils::provider_loader::load_provider_instances;

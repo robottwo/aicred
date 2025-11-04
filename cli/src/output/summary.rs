@@ -72,7 +72,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     // Show tags and labels for each model
                     for model in &provider_instance.models {
                         if let Ok(tags) =
-                            get_tags_for_target(&instance.instance_id, Some(&model.name))
+                            get_tags_for_target(&instance.instance_id, Some(&model.name), None)
                         {
                             if !tags.is_empty() {
                                 println!("          {} tags:", model.name);
@@ -106,7 +106,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                 }
 
                 // Show tags for this provider instance
-                if let Ok(tags) = get_tags_for_target(&instance.instance_id, None) {
+                if let Ok(tags) = get_tags_for_target(&instance.instance_id, None, None) {
                     if !tags.is_empty() {
                         println!("    Tags:");
                         for tag in tags {

@@ -21,6 +21,7 @@ use tracing_subscriber::EnvFilter;
 
 mod commands;
 mod output;
+mod utils;
 
 use commands::{
     labels::{handle_list_labels, handle_set_label, handle_unset_label},
@@ -490,29 +491,51 @@ fn main() -> Result<()> {
             }
         },
         Commands::Tags { command } => match command {
-            Some(TagCommands::List) => handle_list_tags(),
+            Some(TagCommands::List) => handle_list_tags(cli.home.map(PathBuf::from).as_deref()),
             Some(TagCommands::Add {
                 name,
                 color,
                 description,
-            }) => handle_add_tag(name, color, description),
-            Some(TagCommands::Remove { name, force }) => handle_remove_tag(name, force),
+            }) => handle_add_tag(
+                name,
+                color,
+                description,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            Some(TagCommands::Remove { name, force }) => {
+                handle_remove_tag(name, force, cli.home.map(PathBuf::from).as_deref())
+            }
             Some(TagCommands::Update {
                 name,
                 color,
                 description,
-            }) => handle_update_tag(name, color, description),
+            }) => handle_update_tag(
+                name,
+                color,
+                description,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
             Some(TagCommands::Assign {
                 name,
                 instance,
                 model,
-            }) => handle_assign_tag(name, instance, model),
+            }) => handle_assign_tag(
+                name,
+                instance,
+                model,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
             Some(TagCommands::Unassign {
                 name,
                 instance,
                 model,
-            }) => handle_unassign_tag(name, instance, model),
-            None => handle_list_tags(),
+            }) => handle_unassign_tag(
+                name,
+                instance,
+                model,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            None => handle_list_tags(cli.home.map(PathBuf::from).as_deref()),
         },
         Commands::Labels { command } => match command {
             Some(LabelCommands::List) => handle_list_labels(),
@@ -530,9 +553,17 @@ fn main() -> Result<()> {
                 }
                 let label_name = parts[0].trim().to_string();
                 let tuple_str = parts[1].trim().to_string();
-                handle_set_label(label_name, tuple_str, color, description)
+                handle_set_label(
+                    label_name,
+                    tuple_str,
+                    color,
+                    description,
+                    cli.home.map(PathBuf::from).as_deref(),
+                )
             }
-            Some(LabelCommands::Unset { name, force }) => handle_unset_label(name, force),
+            Some(LabelCommands::Unset { name, force }) => {
+                handle_unset_label(name, force, cli.home.map(PathBuf::from).as_deref())
+            }
             None => handle_list_labels(),
         },
         Commands::Models { command } => match command {

@@ -86,7 +86,7 @@ fn get_version() -> String {
 // Tag management commands
 #[tauri::command]
 fn list_tags() -> Result<String, String> {
-    match load_tags() {
+    match load_tags(None) {
         Ok(tags) => {
             serde_json::to_string(&tags).map_err(|e| format!("Failed to serialize tags: {}", e))
         }
@@ -100,7 +100,7 @@ fn add_tag(
     color: Option<String>,
     description: Option<String>,
 ) -> Result<String, String> {
-    match handle_add_tag(name, color, description) {
+    match handle_add_tag(name, color, description, None) {
         Ok(_) => Ok("Tag added successfully".to_string()),
         Err(e) => Err(format!("Failed to add tag: {}", e)),
     }
@@ -112,7 +112,7 @@ fn update_tag(
     color: Option<String>,
     description: Option<String>,
 ) -> Result<String, String> {
-    match handle_update_tag(name, color, description) {
+    match handle_update_tag(name, color, description, None) {
         Ok(_) => Ok("Tag updated successfully".to_string()),
         Err(e) => Err(format!("Failed to update tag: {}", e)),
     }
@@ -120,7 +120,7 @@ fn update_tag(
 
 #[tauri::command]
 fn remove_tag(name: String, force: bool) -> Result<String, String> {
-    match handle_remove_tag(name, force) {
+    match handle_remove_tag(name, force, None) {
         Ok(_) => Ok("Tag removed successfully".to_string()),
         Err(e) => Err(format!("Failed to remove tag: {}", e)),
     }
@@ -132,7 +132,7 @@ fn assign_tag(
     instance_id: Option<String>,
     model_id: Option<String>,
 ) -> Result<String, String> {
-    match handle_assign_tag(tag_name, instance_id, model_id) {
+    match handle_assign_tag(tag_name, instance_id, model_id, None) {
         Ok(_) => Ok("Tag assigned successfully".to_string()),
         Err(e) => Err(format!("Failed to assign tag: {}", e)),
     }
@@ -144,7 +144,7 @@ fn unassign_tag(
     instance_id: Option<String>,
     model_id: Option<String>,
 ) -> Result<String, String> {
-    match handle_unassign_tag(tag_name, instance_id, model_id) {
+    match handle_unassign_tag(tag_name, instance_id, model_id, None) {
         Ok(_) => Ok("Tag unassigned successfully".to_string()),
         Err(e) => Err(format!("Failed to unassign tag: {}", e)),
     }
@@ -152,7 +152,7 @@ fn unassign_tag(
 
 #[tauri::command]
 fn list_tag_assignments() -> Result<String, String> {
-    match load_tag_assignments() {
+    match load_tag_assignments(None) {
         Ok(assignments) => serde_json::to_string(&assignments)
             .map_err(|e| format!("Failed to serialize tag assignments: {}", e)),
         Err(e) => Err(format!("Failed to load tag assignments: {}", e)),
@@ -179,7 +179,7 @@ fn add_label(
     // For the new system, we need a tuple to set a label
     // This is a temporary solution - GUI should be updated to require tuple
     let dummy_tuple = "unknown:placeholder".to_string();
-    match handle_set_label(name, dummy_tuple, color, description) {
+    match handle_set_label(name, dummy_tuple, color, description, None) {
         Ok(_) => Ok("Label added successfully".to_string()),
         Err(e) => Err(format!("Failed to add label: {}", e)),
     }
@@ -194,7 +194,7 @@ fn update_label(
     // For the new system, we need a tuple to update a label
     // This is a temporary solution - GUI should be updated to require tuple
     let dummy_tuple = "unknown:placeholder".to_string();
-    match handle_set_label(name, dummy_tuple, color, description) {
+    match handle_set_label(name, dummy_tuple, color, description, None) {
         Ok(_) => Ok("Label updated successfully".to_string()),
         Err(e) => Err(format!("Failed to update label: {}", e)),
     }
@@ -202,7 +202,7 @@ fn update_label(
 
 #[tauri::command]
 fn remove_label(name: String, force: bool) -> Result<String, String> {
-    match handle_unset_label(name, force) {
+    match handle_unset_label(name, force, None) {
         Ok(_) => Ok("Label removed successfully".to_string()),
         Err(e) => Err(format!("Failed to remove label: {}", e)),
     }
@@ -222,7 +222,7 @@ fn assign_label(
         (None, None) => return Err("Either instance_id or model_id must be provided".to_string()),
     };
 
-    match handle_set_label(label_name, tuple_str, None, None) {
+    match handle_set_label(label_name, tuple_str, None, None, None) {
         Ok(_) => Ok("Label assigned successfully".to_string()),
         Err(e) => Err(format!("Failed to assign label: {}", e)),
     }
@@ -231,12 +231,12 @@ fn assign_label(
 #[tauri::command]
 fn unassign_label(
     label_name: String,
-    instance_id: Option<String>,
-    model_id: Option<String>,
+    _instance_id: Option<String>,
+    _model_id: Option<String>,
 ) -> Result<String, String> {
     // For the new system, unset removes the entire label assignment
     // The instance_id and model_id parameters are not used in the new system
-    match handle_unset_label(label_name, false) {
+    match handle_unset_label(label_name, false, None) {
         Ok(_) => Ok("Label unassigned successfully".to_string()),
         Err(e) => Err(format!("Failed to unassign label: {}", e)),
     }

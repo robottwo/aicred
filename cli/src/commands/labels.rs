@@ -1,124 +1,11 @@
 //! Label management commands for the aicred CLI.
 
-use aicred_core::models::{Label, ProviderInstances, UnifiedLabel};
+use crate::utils::provider_loader::load_provider_instances;
+use aicred_core::models::{Label, UnifiedLabel};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;
-use serde::Deserialize;
 use std::path::Path;
-
-/// Load provider instances from configuration directory
-fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
-    let config_dir = match home {
-        Some(h) => h.to_path_buf(),
-        None => dirs_next::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
-    }
-    .join(".config")
-    .join("aicred");
-
-    let instances_dir = config_dir.join("inference_services");
-
-    // Create instances directory if it doesn't exist
-    if !instances_dir.exists() {
-        std::fs::create_dir_all(&instances_dir)?;
-        return Ok(ProviderInstances::new());
-    }
-
-    // Load all instance files
-    let mut instances = ProviderInstances::new();
-
-    let entries = std::fs::read_dir(&instances_dir)?;
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.extension().is_some_and(|ext| ext == "yaml") {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                // First try to parse as the modern ProviderInstance directly
-                if let Ok(instance) =
-                    serde_yaml::from_str::<aicred_core::models::ProviderInstance>(&content)
-                {
-                    // If the deserialized instance already contains an API key, accept it.
-                    // Otherwise, if the file looks like the legacy format (contains "keys:"),
-                    // try to parse it as the legacy format and extract the key.
-                    if instance.api_key.is_some() {
-                        let _ = instances.add_instance(instance);
-                    } else if content.contains("keys:") {
-                        // Try legacy format
-                        if let Ok(legacy_instance) = parse_legacy_instance(&content, &path) {
-                            let _ = instances.add_instance(legacy_instance);
-                        }
-                    } else {
-                        // Modern format without API key, accept as-is
-                        let _ = instances.add_instance(instance);
-                    }
-                } else if content.contains("keys:") {
-                    // Try legacy format
-                    if let Ok(legacy_instance) = parse_legacy_instance(&content, &path) {
-                        let _ = instances.add_instance(legacy_instance);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(instances)
-}
-
-/// Parse legacy provider instance format
-fn parse_legacy_instance(
-    content: &str,
-    path: &std::path::Path,
-) -> Result<aicred_core::models::ProviderInstance> {
-    use aicred_core::models::discovered_key::Confidence;
-    use aicred_core::models::provider_key::{Environment, ValidationStatus};
-
-    #[derive(Deserialize)]
-    struct LegacyInstance {
-        name: String,
-        provider_type: String,
-        base_url: String,
-        keys: Vec<LegacyKey>,
-    }
-
-    #[derive(Deserialize)]
-    struct LegacyKey {
-        name: String,
-        path: String,
-        confidence: Confidence,
-        environment: Environment,
-    }
-
-    let legacy: LegacyInstance = serde_yaml::from_str(content)?;
-
-    let mut instance = aicred_core::models::ProviderInstance::new(
-        path.file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or(&legacy.name)
-            .to_string(),
-        legacy.name,
-        legacy.provider_type,
-        legacy.base_url,
-    );
-
-    if let Some(key) = legacy.keys.first() {
-        let mut provider_key = aicred_core::models::ProviderKey::new(
-            key.name.clone(),
-            key.path.clone(),
-            key.confidence,
-            key.environment.clone(),
-        );
-
-        if let Ok(content) = std::fs::read_to_string(&key.path) {
-            provider_key = provider_key.with_value(content.trim().to_string());
-            provider_key.set_validation_status(ValidationStatus::Valid);
-            instance.set_api_key(provider_key.value.unwrap());
-        }
-    }
-
-    Ok(instance)
-}
 /// Load all unified labels from the configuration directory
 pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<UnifiedLabel>> {
     let config_dir = match home {
@@ -302,6 +189,7 @@ pub fn handle_set_label(
     tuple_str: String,
     color: Option<String>,
     description: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
     // Trim and validate label name
     let label_name = label_name.trim().to_string();
@@ -309,7 +197,7 @@ pub fn handle_set_label(
         return Err(anyhow::anyhow!("Label name cannot be empty"));
     }
 
-    let mut labels = load_label_assignments()?;
+    let mut labels = load_label_assignments_with_home(home)?;
 
     // Parse the provider:model tuple
     let tuple = ProviderModelTuple::parse(&tuple_str)
@@ -358,14 +246,14 @@ pub fn handle_set_label(
     }
 
     // Save to disk
-    save_label_assignments(&labels)?;
+    save_label_assignments_with_home(&labels, home)?;
 
     Ok(())
 }
 
 /// Handle the labels unset command (remove label assignment entirely)
-pub fn handle_unset_label(name: String, force: bool) -> Result<()> {
-    let mut labels = load_label_assignments()?;
+pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Result<()> {
+    let mut labels = load_label_assignments_with_home(home)?;
 
     // Find the label by name
     let label_index = labels.iter().position(|label| label.label_name == name);
@@ -391,7 +279,7 @@ pub fn handle_unset_label(name: String, force: bool) -> Result<()> {
 
     // Remove the label
     labels.remove(label_index.unwrap());
-    save_label_assignments(&labels)?;
+    save_label_assignments_with_home(&labels, home)?;
 
     println!("{} Label '{}' unset successfully.", "✓".green(), name);
 
@@ -432,11 +320,11 @@ pub fn get_labels_for_target(
 
         // If model_id is provided, resolve the actual Model and compare against canonical ID and basename
         if let Some(model_display_name) = model_id {
-            // Find the model in the instance by matching the display name
+            // Find the model in the instance by matching either display name or canonical ID
             let model = match instance
                 .models
                 .iter()
-                .find(|m| &m.name == model_display_name)
+                .find(|m| m.name == model_display_name || m.model_id == model_display_name)
             {
                 Some(model) => model,
                 None => {
