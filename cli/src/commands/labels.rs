@@ -220,7 +220,8 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
     let labels_dir = find_labels_directory(home)?;
 
     if !labels_dir.exists() {
-        println!("{}", format!("No labels directory found at: {}. Creating scan files in ~/.config/aicred/patterns/ or binary's parent directory + conf/labels is required.", labels_dir.display()).yellow());
+        println!("{}", format!("Labels directory not found: {}", labels_dir.display()).yellow());
+        println!("{}", "Create the directory and add .scan pattern files to enable label scanning.".dimmed());
         return Ok(());
     }
 
