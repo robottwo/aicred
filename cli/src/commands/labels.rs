@@ -338,7 +338,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                                     }
                                 }
                             } else if verbose {
-                                println!("    ❌ Pattern {} did not match", pattern_idx + 1);
+                                eprintln!("    ❌ Pattern {} did not match", pattern_idx + 1);
                             }
                         }
                         Err(e) => {
@@ -390,7 +390,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                 new_assignments.push(label);
             }
         } else if verbose {
-            println!("  ❌ No matches found for label '{}'", label_name);
+            eprintln!("  ❌ No matches found for label '{}'", label_name);
         }
     } // End of for entry in scan_files loop
 
@@ -577,7 +577,7 @@ mod tests {
 
         // Mock the provider loader to return our test instances
         // This test verifies the matching logic works correctly
-        let patterns = vec![".*sonnet.*", ".*gpt5.*", ".*deepseek.*", ".*"];
+        let patterns = [".*sonnet.*", ".*gpt5.*", ".*deepseek.*", ".*"];
 
         // Test that deepseek model gets matched by the specific pattern
         let deepseek_str = "openrouter:deepseek/deepseek-v3.2-exp";

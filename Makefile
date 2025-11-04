@@ -139,7 +139,7 @@ check:
 # Testing targets
 # Note: On macOS, FFI tests are excluded from test-integration due to SIGTRAP issue
 .PHONY: test
-test: test-unit test-integration test-python test-go
+test: clippy test-unit test-integration test-python test-go
 
 .PHONY: test-unit
 test-unit:
