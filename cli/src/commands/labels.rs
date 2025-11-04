@@ -777,6 +777,15 @@ pub fn get_labels_for_target(
             if tuple_model != model.model_id && tuple_model != model_basename {
                 continue;
             }
+        } else if !instance.models.iter().any(|model| {
+            let basename = model
+                .model_id
+                .rsplit_once('/')
+                .map(|(_, name)| name)
+                .unwrap_or(&model.model_id);
+            tuple_model == model.model_id || tuple_model == basename
+        }) {
+            continue;
         }
 
         // This label matches! Create a Label for display
