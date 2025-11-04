@@ -521,7 +521,7 @@ pub fn handle_list_instances(
         for instance in filtered_instances {
             println!(
                 "{:<20} {:<15} {:<15}",
-                instance.id.cyan(),
+                instance.display_name.cyan(),
                 instance.provider_type.yellow(),
                 instance.model_count()
             );
@@ -1021,7 +1021,7 @@ pub fn handle_list_models(
     }
 
     // Filter models
-    let filtered_models: Vec<(&ProviderInstance, &Model)> = all_models
+    let mut filtered_models: Vec<(&ProviderInstance, &Model)> = all_models
         .into_iter()
         .filter(|(instance, model)| {
             let type_match = provider_type
@@ -1155,6 +1155,14 @@ pub fn handle_list_models(
             println!();
         }
     } else {
+        // Sort models by provider type, then by model name
+        filtered_models.sort_by(|(inst_a, model_a), (inst_b, model_b)| {
+            inst_a
+                .provider_type
+                .cmp(&inst_b.provider_type)
+                .then_with(|| model_a.name.cmp(&model_b.name))
+        });
+
         // Table mode: show models in a nicely formatted table
         println!(
             "{:<25} {:<20} {:<35} {:<15} {:<15}",

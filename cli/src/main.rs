@@ -13,7 +13,7 @@
 #![allow(unused_imports)]
 #![allow(unused_comparisons)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use colored::*;
 use std::path::PathBuf;
@@ -23,10 +23,7 @@ mod commands;
 mod output;
 
 use commands::{
-    labels::{
-        handle_add_label, handle_assign_label, handle_list_labels, handle_remove_label,
-        handle_unassign_label, handle_update_label,
-    },
+    labels::{handle_list_labels, handle_set_label, handle_unset_label},
     providers::{
         handle_add_instance, handle_get_instance, handle_list_instances, handle_list_models,
         handle_providers, handle_remove_instance, handle_update_instance,
@@ -335,14 +332,14 @@ enum TagCommands {
 
 #[derive(Subcommand)]
 enum LabelCommands {
-    /// List all labels
+    /// List all label assignments
     List,
 
-    /// Add a new label
-    Add {
-        /// Label name
-        #[arg(short = 'n', long)]
-        name: String,
+    /// Set (create or update) a label assignment
+    Set {
+        /// Label assignment in format: label=provider:model
+        #[arg(index = 1, required = true)]
+        assignment: String,
 
         /// Label color (hex code)
         #[arg(short = 'c', long)]
@@ -353,60 +350,15 @@ enum LabelCommands {
         description: Option<String>,
     },
 
-    /// Remove a label
-    Remove {
+    /// Unset (remove) a label assignment
+    Unset {
         /// Label name to remove
-        #[arg(short = 'n', long)]
+        #[arg(index = 1, required = true)]
         name: String,
 
         /// Force removal without confirmation
         #[arg(long)]
         force: bool,
-    },
-
-    /// Update a label
-    Update {
-        /// Label name to update
-        #[arg(short = 'n', long)]
-        name: String,
-
-        /// New label color
-        #[arg(short = 'c', long)]
-        color: Option<String>,
-
-        /// New label description
-        #[arg(short = 'd', long)]
-        description: Option<String>,
-    },
-
-    /// Assign a label to an instance or model
-    Assign {
-        /// Label name to assign
-        #[arg(short = 'n', long)]
-        name: String,
-
-        /// Instance ID
-        #[arg(short = 'i', long)]
-        instance: Option<String>,
-
-        /// Model ID (requires instance ID)
-        #[arg(short = 'm', long)]
-        model: Option<String>,
-    },
-
-    /// Unassign a label from an instance or model
-    Unassign {
-        /// Label name to unassign
-        #[arg(short = 'n', long)]
-        name: String,
-
-        /// Instance ID
-        #[arg(short = 'i', long)]
-        instance: Option<String>,
-
-        /// Model ID (requires instance ID)
-        #[arg(short = 'm', long)]
-        model: Option<String>,
     },
 }
 
@@ -564,27 +516,23 @@ fn main() -> Result<()> {
         },
         Commands::Labels { command } => match command {
             Some(LabelCommands::List) => handle_list_labels(),
-            Some(LabelCommands::Add {
-                name,
+            Some(LabelCommands::Set {
+                assignment,
                 color,
                 description,
-            }) => handle_add_label(name, color, description),
-            Some(LabelCommands::Remove { name, force }) => handle_remove_label(name, force),
-            Some(LabelCommands::Update {
-                name,
-                color,
-                description,
-            }) => handle_update_label(name, color, description),
-            Some(LabelCommands::Assign {
-                name,
-                instance,
-                model,
-            }) => handle_assign_label(name, instance, model),
-            Some(LabelCommands::Unassign {
-                name,
-                instance,
-                model,
-            }) => handle_unassign_label(name, instance, model),
+            }) => {
+                // Parse assignment format: label=provider:model
+                let parts: Vec<&str> = assignment.split('=').collect();
+                if parts.len() != 2 {
+                    return Err(anyhow::anyhow!(
+                        "Assignment format must be 'label=provider:model', e.g., 'thinking=openrouter:deepseek-v3.2-exp'"
+                    ));
+                }
+                let label_name = parts[0].trim().to_string();
+                let tuple_str = parts[1].trim().to_string();
+                handle_set_label(label_name, tuple_str, color, description)
+            }
+            Some(LabelCommands::Unset { name, force }) => handle_unset_label(name, force),
             None => handle_list_labels(),
         },
         Commands::Models { command } => match command {

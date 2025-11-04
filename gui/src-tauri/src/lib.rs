@@ -1,12 +1,8 @@
 use aicred_core::{scan, ScanOptions as CoreScanOptions};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 // Import CLI command functions
-use aicred_cli::commands::labels::{
-    handle_add_label, handle_assign_label, handle_remove_label, handle_unassign_label,
-    handle_update_label, load_label_assignments, load_labels,
-};
+use aicred_cli::commands::labels::{handle_set_label, handle_unset_label, load_label_assignments};
 use aicred_cli::commands::tags::{
     handle_add_tag, handle_assign_tag, handle_remove_tag, handle_unassign_tag, handle_update_tag,
     load_tag_assignments, load_tags,
@@ -166,7 +162,7 @@ fn list_tag_assignments() -> Result<String, String> {
 // Label management commands
 #[tauri::command]
 fn list_labels() -> Result<String, String> {
-    match load_labels() {
+    match load_label_assignments() {
         Ok(labels) => {
             serde_json::to_string(&labels).map_err(|e| format!("Failed to serialize labels: {}", e))
         }
@@ -180,7 +176,10 @@ fn add_label(
     color: Option<String>,
     description: Option<String>,
 ) -> Result<String, String> {
-    match handle_add_label(name, color, description) {
+    // For the new system, we need a tuple to set a label
+    // This is a temporary solution - GUI should be updated to require tuple
+    let dummy_tuple = "unknown:placeholder".to_string();
+    match handle_set_label(name, dummy_tuple, color, description) {
         Ok(_) => Ok("Label added successfully".to_string()),
         Err(e) => Err(format!("Failed to add label: {}", e)),
     }
@@ -192,7 +191,10 @@ fn update_label(
     color: Option<String>,
     description: Option<String>,
 ) -> Result<String, String> {
-    match handle_update_label(name, color, description) {
+    // For the new system, we need a tuple to update a label
+    // This is a temporary solution - GUI should be updated to require tuple
+    let dummy_tuple = "unknown:placeholder".to_string();
+    match handle_set_label(name, dummy_tuple, color, description) {
         Ok(_) => Ok("Label updated successfully".to_string()),
         Err(e) => Err(format!("Failed to update label: {}", e)),
     }
@@ -200,7 +202,7 @@ fn update_label(
 
 #[tauri::command]
 fn remove_label(name: String, force: bool) -> Result<String, String> {
-    match handle_remove_label(name, force) {
+    match handle_unset_label(name, force) {
         Ok(_) => Ok("Label removed successfully".to_string()),
         Err(e) => Err(format!("Failed to remove label: {}", e)),
     }
@@ -212,7 +214,15 @@ fn assign_label(
     instance_id: Option<String>,
     model_id: Option<String>,
 ) -> Result<String, String> {
-    match handle_assign_label(label_name, instance_id, model_id) {
+    // Convert instance_id and model_id to tuple format
+    let tuple_str = match (instance_id, model_id) {
+        (Some(instance), Some(model)) => format!("{}:{}", instance, model),
+        (Some(instance), None) => instance,
+        (None, Some(model)) => format!("unknown:{}", model),
+        (None, None) => return Err("Either instance_id or model_id must be provided".to_string()),
+    };
+
+    match handle_set_label(label_name, tuple_str, None, None) {
         Ok(_) => Ok("Label assigned successfully".to_string()),
         Err(e) => Err(format!("Failed to assign label: {}", e)),
     }
@@ -224,7 +234,9 @@ fn unassign_label(
     instance_id: Option<String>,
     model_id: Option<String>,
 ) -> Result<String, String> {
-    match handle_unassign_label(label_name, instance_id, model_id) {
+    // For the new system, unset removes the entire label assignment
+    // The instance_id and model_id parameters are not used in the new system
+    match handle_unset_label(label_name, false) {
         Ok(_) => Ok("Label unassigned successfully".to_string()),
         Err(e) => Err(format!("Failed to unassign label: {}", e)),
     }

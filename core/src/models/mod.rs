@@ -20,6 +20,7 @@ pub mod provider_key;
 pub mod scan_result;
 pub mod tag;
 pub mod tag_assignment;
+pub mod unified_label;
 
 #[cfg(test)]
 mod tests;
@@ -41,3 +42,4 @@ pub use provider_key::{Environment, ProviderKey, ValidationStatus};
 pub use scan_result::{ScanResult, ScanSummary};
 pub use tag::Tag;
 pub use tag_assignment::{TagAssignment, TagAssignmentTarget};
+pub use unified_label::UnifiedLabel;

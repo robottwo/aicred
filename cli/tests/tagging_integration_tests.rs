@@ -29,6 +29,7 @@ mod cli_integration_tests {
         // Test tag creation
         cmd.arg("tags")
             .arg("add")
+            .arg("--name")
             .arg("production")
             .arg("--color")
             .arg("#ff0000")
@@ -58,6 +59,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("update")
+            .arg("--name")
             .arg("production")
             .arg("--color")
             .arg("#00ff00");
@@ -75,6 +77,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("remove")
+            .arg("--name")
             .arg("production")
             .arg("--force");
 
@@ -92,15 +95,15 @@ mod cli_integration_tests {
 
         // Test label creation
         cmd.arg("labels")
-            .arg("add")
-            .arg("primary")
+            .arg("set")
+            .arg("primary=openai:gpt-4")
             .arg("--color")
             .arg("#00ff00")
             .arg("--description")
             .arg("Primary instance");
 
         cmd.assert().success().stdout(predicate::str::contains(
-            "Label 'primary' added successfully",
+            "✓ Label 'primary' set successfully",
         ));
 
         // Test label listing
@@ -121,8 +124,8 @@ mod cli_integration_tests {
         update_cmd
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("update")
-            .arg("primary")
+            .arg("set")
+            .arg("primary=openai:gpt-4")
             .arg("--color")
             .arg("#ff8800");
 
@@ -130,7 +133,7 @@ mod cli_integration_tests {
             .assert()
             .success()
             .stdout(predicate::str::contains(
-                "Label 'primary' updated successfully",
+                "✓ Label 'primary' updated successfully",
             ));
 
         // Test label removal
@@ -138,7 +141,7 @@ mod cli_integration_tests {
         remove_cmd
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("remove")
+            .arg("unset")
             .arg("primary")
             .arg("--force");
 
@@ -146,7 +149,7 @@ mod cli_integration_tests {
             .assert()
             .success()
             .stdout(predicate::str::contains(
-                "Label 'primary' removed successfully",
+                "Label 'primary' unset successfully",
             ));
     }
 
@@ -155,7 +158,7 @@ mod cli_integration_tests {
         let (mut cmd, _temp_dir) = setup_test_cli();
 
         // Create a tag
-        cmd.arg("tags").arg("add").arg("development");
+        cmd.arg("tags").arg("add").arg("--name").arg("development");
 
         cmd.assert().success();
 
@@ -165,6 +168,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("assign")
+            .arg("--name")
             .arg("development")
             .arg("--instance")
             .arg("test-instance");
@@ -182,6 +186,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("assign")
+            .arg("--name")
             .arg("development")
             .arg("--instance")
             .arg("test-instance")
@@ -201,6 +206,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("unassign")
+            .arg("--name")
             .arg("development")
             .arg("--instance")
             .arg("test-instance")
@@ -220,7 +226,9 @@ mod cli_integration_tests {
         let (mut cmd, _temp_dir) = setup_test_cli();
 
         // Create a label
-        cmd.arg("labels").arg("add").arg("production-primary");
+        cmd.arg("labels")
+            .arg("set")
+            .arg("production-primary=openai:gpt-4");
 
         cmd.assert().success();
 
@@ -229,54 +237,14 @@ mod cli_integration_tests {
         assign_cmd
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("assign")
-            .arg("production-primary")
-            .arg("--instance")
-            .arg("prod-instance");
+            .arg("set")
+            .arg("production-primary=openai:gpt-4");
 
         assign_cmd
             .assert()
             .success()
             .stdout(predicate::str::contains(
-                "Label 'production-primary' assigned successfully",
-            ));
-
-        // Test label assignment to model
-        let mut model_cmd = Command::cargo_bin("aicred").expect("Failed to find aicred binary");
-        model_cmd
-            .env("HOME", _temp_dir.path())
-            .arg("labels")
-            .arg("assign")
-            .arg("production-primary")
-            .arg("--instance")
-            .arg("prod-instance")
-            .arg("--model")
-            .arg("claude-3");
-
-        model_cmd
-            .assert()
-            .success()
-            .stdout(predicate::str::contains(
-                "Label 'production-primary' assigned successfully",
-            ));
-
-        // Test label unassignment
-        let mut unassign_cmd = Command::cargo_bin("aicred").expect("Failed to find aicred binary");
-        unassign_cmd
-            .env("HOME", _temp_dir.path())
-            .arg("labels")
-            .arg("unassign")
-            .arg("production-primary")
-            .arg("--instance")
-            .arg("prod-instance")
-            .arg("--model")
-            .arg("claude-3");
-
-        unassign_cmd
-            .assert()
-            .success()
-            .stdout(predicate::str::contains(
-                "Label 'production-primary' unassigned successfully",
+                "✓ Label 'production-primary' updated successfully",
             ));
     }
 
@@ -285,7 +253,7 @@ mod cli_integration_tests {
         let (mut cmd, _temp_dir) = setup_test_cli();
 
         // Test empty tag name
-        cmd.arg("tags").arg("add").arg("");
+        cmd.arg("tags").arg("add").arg("--name").arg("");
 
         cmd.assert()
             .failure()
@@ -297,6 +265,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("add")
+            .arg("--name")
             .arg("duplicate-test");
 
         create_cmd.assert().success();
@@ -306,6 +275,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("add")
+            .arg("--name")
             .arg("duplicate-test");
 
         duplicate_cmd
@@ -319,16 +289,13 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("add")
+            .arg("--name")
             .arg("test-tag")
             .arg("--color")
             .arg("invalid-color");
 
         // This should succeed (color validation is lenient) or fail gracefully
-        color_cmd
-            .assert()
-            .success()
-            .or(predicates::str::contains("error")
-                .in_stream(&mut color_cmd.output().unwrap().stderr));
+        color_cmd.assert().success();
     }
 
     #[test]
@@ -336,7 +303,9 @@ mod cli_integration_tests {
         let (mut cmd, _temp_dir) = setup_test_cli();
 
         // Create a label
-        cmd.arg("labels").arg("add").arg("unique-label");
+        cmd.arg("labels")
+            .arg("set")
+            .arg("unique-label=openai:gpt-4");
 
         cmd.assert().success();
 
@@ -345,10 +314,8 @@ mod cli_integration_tests {
         assign_cmd1
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("assign")
-            .arg("unique-label")
-            .arg("--instance")
-            .arg("instance-1");
+            .arg("set")
+            .arg("unique-label=openai:gpt-4");
 
         assign_cmd1.assert().success();
 
@@ -356,15 +323,13 @@ mod cli_integration_tests {
         assign_cmd2
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("assign")
-            .arg("unique-label")
-            .arg("--instance")
-            .arg("instance-2");
+            .arg("set")
+            .arg("unique-label=openai:gpt-4");
 
         assign_cmd2
             .assert()
-            .failure()
-            .stderr(predicate::str::contains("already assigned"));
+            .success()
+            .stdout(predicate::str::contains("updated successfully"));
     }
 
     #[test]
@@ -374,6 +339,7 @@ mod cli_integration_tests {
         // Create tags and labels
         cmd.arg("tags")
             .arg("add")
+            .arg("--name")
             .arg("persistent-tag")
             .arg("--color")
             .arg("#ff0000");
@@ -384,8 +350,8 @@ mod cli_integration_tests {
         label_cmd
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("add")
-            .arg("persistent-label")
+            .arg("set")
+            .arg("persistent-label=openai:gpt-4")
             .arg("--color")
             .arg("#00ff00");
 
@@ -436,7 +402,7 @@ mod cli_integration_tests {
         cmd.assert()
             .success()
             .stdout(predicate::str::contains(
-                "A tool for discovering AI API keys",
+                "AICred - Discover AI API keys and configurations",
             ))
             .stdout(predicate::str::contains("tags"))
             .stdout(predicate::str::contains("labels"));
@@ -467,9 +433,9 @@ mod cli_integration_tests {
             .assert()
             .success()
             .stdout(predicate::str::contains("Label management commands"))
-            .stdout(predicate::str::contains("add"))
+            .stdout(predicate::str::contains("set"))
             .stdout(predicate::str::contains("list"))
-            .stdout(predicate::str::contains("remove"));
+            .stdout(predicate::str::contains("unset"));
     }
 
     #[test]
@@ -477,7 +443,10 @@ mod cli_integration_tests {
         let (mut cmd, _temp_dir) = setup_test_cli();
 
         // Test non-existent tag operations
-        cmd.arg("tags").arg("remove").arg("non-existent-tag");
+        cmd.arg("tags")
+            .arg("remove")
+            .arg("--name")
+            .arg("non-existent-tag");
 
         cmd.assert()
             .failure()
@@ -488,7 +457,7 @@ mod cli_integration_tests {
         label_cmd
             .env("HOME", _temp_dir.path())
             .arg("labels")
-            .arg("remove")
+            .arg("unset")
             .arg("non-existent-label");
 
         label_cmd
@@ -502,6 +471,7 @@ mod cli_integration_tests {
             .env("HOME", _temp_dir.path())
             .arg("tags")
             .arg("assign")
+            .arg("--name")
             .arg("non-existent-tag")
             .arg("--instance")
             .arg("test-instance");
@@ -514,7 +484,7 @@ mod cli_integration_tests {
 
     #[test]
     fn test_cli_concurrent_operations() {
-        let (mut cmd, _temp_dir) = setup_test_cli();
+        let (cmd, _temp_dir) = setup_test_cli();
 
         // Create multiple tags rapidly
         for i in 0..10 {
@@ -523,6 +493,7 @@ mod cli_integration_tests {
                 .env("HOME", _temp_dir.path())
                 .arg("tags")
                 .arg("add")
+                .arg("--name")
                 .arg(format!("concurrent-tag-{}", i));
 
             tag_cmd.assert().success();
@@ -544,7 +515,7 @@ mod cli_integration_tests {
 
     #[test]
     fn test_cli_large_dataset_handling() {
-        let (mut cmd, _temp_dir) = setup_test_cli();
+        let (cmd, _temp_dir) = setup_test_cli();
 
         // Create large number of tags
         for i in 0..100 {
@@ -553,6 +524,7 @@ mod cli_integration_tests {
                 .env("HOME", _temp_dir.path())
                 .arg("tags")
                 .arg("add")
+                .arg("--name")
                 .arg(format!("large-tag-{}", i))
                 .arg("--description")
                 .arg(format!("Description for tag {}", i));

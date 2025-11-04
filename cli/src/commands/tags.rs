@@ -1,10 +1,8 @@
 //! Tag management commands for the aicred CLI.
 
-use aicred_core::models::{Tag, TagAssignment, TagAssignmentTarget};
+use aicred_core::models::{Tag, TagAssignment};
 use anyhow::Result;
 use colored::*;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 
 /// Load all tags from the configuration directory
 pub fn load_tags() -> Result<Vec<Tag>> {
@@ -269,7 +267,7 @@ pub fn handle_assign_tag(
     instance_id: Option<String>,
     model_id: Option<String>,
 ) -> Result<()> {
-    let mut tags = load_tags()?;
+    let tags = load_tags()?;
     let mut assignments = load_tag_assignments()?;
 
     // Find the tag

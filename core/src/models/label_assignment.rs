@@ -1,5 +1,6 @@
 //! Label assignment model for linking labels to provider instances or models with uniqueness constraints.
 
+use crate::utils::ProviderModelTuple;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,6 +16,8 @@ pub enum LabelAssignmentTarget {
         instance_id: String,
         model_id: String,
     },
+    /// Label is assigned to a specific provider:model tuple.
+    ProviderModelTuple { tuple: ProviderModelTuple },
 }
 
 impl LabelAssignmentTarget {
@@ -24,6 +27,7 @@ impl LabelAssignmentTarget {
         match self {
             LabelAssignmentTarget::ProviderInstance { instance_id } => instance_id,
             LabelAssignmentTarget::Model { instance_id, .. } => instance_id,
+            LabelAssignmentTarget::ProviderModelTuple { tuple } => &tuple.provider,
         }
     }
 
@@ -33,6 +37,7 @@ impl LabelAssignmentTarget {
         match self {
             LabelAssignmentTarget::ProviderInstance { .. } => None,
             LabelAssignmentTarget::Model { model_id, .. } => Some(model_id),
+            LabelAssignmentTarget::ProviderModelTuple { tuple } => Some(&tuple.model),
         }
     }
 
@@ -53,6 +58,37 @@ impl LabelAssignmentTarget {
                 },
                 Some(model),
             ) => target_instance == instance_id && target_model == model,
+            (LabelAssignmentTarget::ProviderModelTuple { tuple }, target_model_id) => {
+                // For provider:model tuple matching, we need to check both provider and model
+                // The tuple provider should match the instance_id, and tuple model should match the basename of the full model ID
+                match target_model_id {
+                    None => tuple.provider() == instance_id, // Provider-level match
+                    Some(model) => {
+                        // Check provider match
+                        if tuple.provider() != instance_id {
+                            return false;
+                        }
+
+                        // For model matching, check if there's a provider prefix
+                        if let Some(first_slash_pos) = model.find('/') {
+                            // Model has a provider prefix like "openai/gpt-4" or "claude/deepseek-v3.2-exp"
+                            let model_provider = &model[..first_slash_pos];
+                            let model_basename = &model[first_slash_pos + 1..];
+
+                            // The provider prefix must match our tuple provider
+                            if model_provider != tuple.provider() {
+                                return false;
+                            }
+
+                            // The basename must match our tuple model
+                            tuple.model() == model_basename
+                        } else {
+                            // No provider prefix, just match basename
+                            tuple.model() == model
+                        }
+                    }
+                }
+            }
             _ => false,
         }
     }
@@ -73,6 +109,9 @@ impl LabelAssignmentTarget {
                     model_id, instance_id
                 )
             }
+            LabelAssignmentTarget::ProviderModelTuple { tuple } => {
+                format!("provider:model tuple '{}'", tuple)
+            }
         }
     }
 }
@@ -84,8 +123,11 @@ pub struct LabelAssignment {
     /// Unique identifier for this assignment.
     pub id: String,
 
-    /// The label being assigned.
+    /// The label being assigned (hashed ID for uniqueness).
     pub label_id: String,
+
+    /// The original label name for display purposes.
+    pub label_name: String,
 
     /// The target to which the label is assigned.
     pub target: LabelAssignmentTarget,
@@ -104,11 +146,17 @@ pub struct LabelAssignment {
 impl LabelAssignment {
     /// Creates a new label assignment to a provider instance.
     #[must_use]
-    pub fn new_to_instance(id: String, label_id: String, instance_id: String) -> Self {
+    pub fn new_to_instance(
+        id: String,
+        label_id: String,
+        label_name: String,
+        instance_id: String,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id,
             label_id,
+            label_name,
             target: LabelAssignmentTarget::ProviderInstance { instance_id },
             metadata: None,
             created_at: now,
@@ -121,6 +169,7 @@ impl LabelAssignment {
     pub fn new_to_model(
         id: String,
         label_id: String,
+        label_name: String,
         instance_id: String,
         model_id: String,
     ) -> Self {
@@ -128,10 +177,31 @@ impl LabelAssignment {
         Self {
             id,
             label_id,
+            label_name,
             target: LabelAssignmentTarget::Model {
                 instance_id,
                 model_id,
             },
+            metadata: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    /// Creates a new label assignment to a provider:model tuple.
+    #[must_use]
+    pub fn new_to_provider_model_tuple(
+        id: String,
+        label_id: String,
+        label_name: String,
+        tuple: ProviderModelTuple,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id,
+            label_id,
+            label_name,
+            target: LabelAssignmentTarget::ProviderModelTuple { tuple },
             metadata: None,
             created_at: now,
             updated_at: now,
@@ -188,6 +258,14 @@ impl LabelAssignment {
                     return Err("Model ID cannot be empty".to_string());
                 }
             }
+            LabelAssignmentTarget::ProviderModelTuple { tuple } => {
+                if tuple.provider().is_empty() {
+                    return Err("Provider ID cannot be empty".to_string());
+                }
+                if tuple.model().is_empty() {
+                    return Err("Model ID cannot be empty".to_string());
+                }
+            }
         }
 
         Ok(())
@@ -203,6 +281,17 @@ impl LabelAssignment {
     #[must_use]
     pub fn targets_model(&self, instance_id: &str, model_id: &str) -> bool {
         self.target.matches(instance_id, Some(model_id))
+    }
+
+    /// Checks if this assignment targets a specific provider:model tuple.
+    #[must_use]
+    pub fn targets_provider_model_tuple(&self, tuple: &ProviderModelTuple) -> bool {
+        match &self.target {
+            LabelAssignmentTarget::ProviderModelTuple {
+                tuple: target_tuple,
+            } => target_tuple == tuple,
+            _ => false,
+        }
     }
 
     /// Gets the target description for logging/debugging.
@@ -235,11 +324,13 @@ mod tests {
         let assignment = LabelAssignment::new_to_instance(
             "assignment-1".to_string(),
             "label-1".to_string(),
+            "Test Label".to_string(),
             "instance-1".to_string(),
         );
 
         assert_eq!(assignment.id, "assignment-1");
         assert_eq!(assignment.label_id, "label-1");
+        assert_eq!(assignment.label_name, "Test Label");
         assert!(assignment.targets_instance("instance-1"));
         assert!(!assignment.targets_instance("instance-2"));
         assert!(assignment.metadata.is_none());
@@ -251,12 +342,14 @@ mod tests {
         let assignment = LabelAssignment::new_to_model(
             "assignment-2".to_string(),
             "label-2".to_string(),
+            "Test Model Label".to_string(),
             "instance-1".to_string(),
             "model-1".to_string(),
         );
 
         assert_eq!(assignment.id, "assignment-2");
         assert_eq!(assignment.label_id, "label-2");
+        assert_eq!(assignment.label_name, "Test Model Label");
         assert!(assignment.targets_instance("instance-1"));
         assert!(assignment.targets_model("instance-1", "model-1"));
         assert!(!assignment.targets_model("instance-1", "model-2"));
@@ -273,6 +366,7 @@ mod tests {
         let assignment = LabelAssignment::new_to_instance(
             "assignment-3".to_string(),
             "label-3".to_string(),
+            "Metadata Label".to_string(),
             "instance-2".to_string(),
         )
         .with_metadata(metadata);
@@ -293,12 +387,14 @@ mod tests {
         let assignment1 = LabelAssignment::new_to_instance(
             "assignment-1".to_string(),
             "unique-label".to_string(),
+            "Unique Label".to_string(),
             "instance-1".to_string(),
         );
 
         let assignment2 = LabelAssignment::new_to_model(
             "assignment-2".to_string(),
             "unique-label".to_string(),
+            "Unique Label".to_string(),
             "instance-2".to_string(),
             "model-1".to_string(),
         );
@@ -306,6 +402,7 @@ mod tests {
         let assignment3 = LabelAssignment::new_to_instance(
             "assignment-3".to_string(),
             "different-label".to_string(),
+            "Different Label".to_string(),
             "instance-1".to_string(),
         );
 
@@ -366,6 +463,7 @@ mod tests {
         let valid_assignment = LabelAssignment::new_to_instance(
             "valid-assignment".to_string(),
             "valid-label".to_string(),
+            "Valid Label".to_string(),
             "valid-instance".to_string(),
         );
         assert!(valid_assignment.validate().is_ok());
@@ -373,6 +471,7 @@ mod tests {
         let empty_id_assignment = LabelAssignment::new_to_instance(
             String::new(),
             "valid-label".to_string(),
+            "Valid Label".to_string(),
             "valid-instance".to_string(),
         );
         assert!(empty_id_assignment.validate().is_err());
@@ -380,6 +479,7 @@ mod tests {
         let empty_label_id_assignment = LabelAssignment::new_to_instance(
             "valid-id".to_string(),
             String::new(),
+            "Valid Label".to_string(),
             "valid-instance".to_string(),
         );
         assert!(empty_label_id_assignment.validate().is_err());
@@ -387,6 +487,7 @@ mod tests {
         let empty_instance_assignment = LabelAssignment::new_to_instance(
             "valid-id".to_string(),
             "valid-label".to_string(),
+            "Valid Label".to_string(),
             String::new(),
         );
         assert!(empty_instance_assignment.validate().is_err());
@@ -394,9 +495,97 @@ mod tests {
         let empty_model_assignment = LabelAssignment::new_to_model(
             "valid-id".to_string(),
             "valid-label".to_string(),
+            "Valid Label".to_string(),
             "valid-instance".to_string(),
             String::new(),
         );
         assert!(empty_model_assignment.validate().is_err());
+    }
+
+    #[test]
+    fn test_provider_model_tuple_assignment_matching() {
+        use crate::utils::ProviderModelTuple;
+
+        // Create a provider:model tuple assignment
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let assignment = LabelAssignment::new_to_provider_model_tuple(
+            "assignment-1".to_string(),
+            "label-1".to_string(),
+            "Test Label".to_string(),
+            tuple.clone(),
+        );
+
+        // Test matching with full model ID (with provider prefix)
+        assert!(assignment.targets_model("openai", "openai/gpt-4"));
+        assert!(!assignment.targets_model("openai", "openai/gpt-4-turbo")); // Different model should not match
+
+        // Test matching with basename only
+        assert!(assignment.targets_model("openai", "gpt-4"));
+        assert!(!assignment.targets_model("instance-1", "gpt-4-turbo")); // Different model should not match
+
+        // Test provider-level matching - should match instances with the same provider
+        assert!(assignment.targets_instance("openai")); // Should match the provider from the tuple
+        assert!(!assignment.targets_instance("anthropic")); // Should not match different provider
+    }
+
+    #[test]
+    fn test_provider_model_tuple_assignment_with_complex_model_names() {
+        use crate::utils::ProviderModelTuple;
+
+        // Test with complex model names that have multiple slashes
+        let tuple = ProviderModelTuple::parse("openrouter:deepseek-v3.2-exp").unwrap();
+        let assignment = LabelAssignment::new_to_provider_model_tuple(
+            "assignment-1".to_string(),
+            "label-1".to_string(),
+            "Complex Label".to_string(),
+            tuple.clone(),
+        );
+
+        // Test various model ID formats
+        assert!(assignment.targets_model("openrouter", "openrouter/deepseek-v3.2-exp")); // Matching provider prefix
+        assert!(assignment.targets_model("openrouter", "deepseek-v3.2-exp")); // Basename only
+
+        // Should not match different models or providers
+        assert!(!assignment.targets_model("openrouter", "openrouter/deepseek-v3.2-beta")); // Different model
+        assert!(!assignment.targets_model("openrouter", "deepseek/deepseek-v3.2-exp")); // Different provider prefix
+        assert!(!assignment.targets_model("openrouter", "claude/deepseek-v3.2-exp"));
+        // Different provider prefix
+    }
+
+    #[test]
+    fn test_label_assignment_target_description() {
+        use crate::utils::ProviderModelTuple;
+
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let tuple_target = LabelAssignmentTarget::ProviderModelTuple { tuple };
+
+        assert_eq!(
+            tuple_target.description(),
+            "provider:model tuple 'openai:gpt-4'"
+        );
+    }
+
+    #[test]
+    fn test_label_assignment_target_methods() {
+        use crate::utils::ProviderModelTuple;
+
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let tuple_target = LabelAssignmentTarget::ProviderModelTuple {
+            tuple: tuple.clone(),
+        };
+
+        // Test instance_id() returns the provider
+        assert_eq!(tuple_target.instance_id(), "openai");
+
+        // Test model_id() returns the model
+        assert_eq!(tuple_target.model_id(), Some("gpt-4"));
+
+        // Test matches() with various scenarios
+        assert!(tuple_target.matches("openai", None)); // Provider-level match
+        assert!(tuple_target.matches("openai", Some("gpt-4"))); // Exact match
+        assert!(tuple_target.matches("openai", Some("openai/gpt-4"))); // Full model ID match with matching provider prefix
+        assert!(!tuple_target.matches("openai", Some("anthropic/gpt-4"))); // Different provider prefix should not match
+        assert!(!tuple_target.matches("anthropic", Some("gpt-4"))); // Different provider
+        assert!(!tuple_target.matches("openai", Some("claude-3"))); // Different model
     }
 }

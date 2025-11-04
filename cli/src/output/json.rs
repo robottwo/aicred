@@ -11,8 +11,6 @@ pub fn output_json(result: &ScanResult, _verbose: bool) -> Result<()> {
 
 /// Enhance scan result with tag and label information
 fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Value> {
-    use serde_json::{json, Value};
-
     let mut enhanced = serde_json::to_value(result)?;
 
     // Add tags and labels information to each config instance

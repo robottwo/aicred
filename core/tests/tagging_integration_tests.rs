@@ -4,9 +4,7 @@
 //! serialization, validation, and business logic.
 
 use aicred_core::models::{Label, LabelAssignment, Tag, TagAssignment};
-use chrono::Utc;
 use std::collections::HashMap;
-use tempfile::TempDir;
 
 #[cfg(test)]
 mod integration_tests {
@@ -92,6 +90,7 @@ mod integration_tests {
         let instance_assignment = LabelAssignment::new_to_instance(
             "assignment-1".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-1".to_string(),
         );
 
@@ -103,6 +102,7 @@ mod integration_tests {
         let model_assignment = LabelAssignment::new_to_model(
             "assignment-2".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-1".to_string(),
             "claude-3".to_string(),
         );
@@ -119,18 +119,21 @@ mod integration_tests {
         let assignment1 = LabelAssignment::new_to_instance(
             "assignment-1".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-1".to_string(),
         );
 
         let assignment2 = LabelAssignment::new_to_instance(
             "assignment-2".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-2".to_string(),
         );
 
         let assignment3 = LabelAssignment::new_to_instance(
             "assignment-3".to_string(),
             "different-label-id".to_string(),
+            "Different Label".to_string(),
             "instance-1".to_string(),
         );
 
@@ -384,11 +387,13 @@ mod integration_tests {
         let assignment1 = LabelAssignment::new_to_instance(
             "assignment-1".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-1".to_string(),
         );
         let assignment2 = LabelAssignment::new_to_instance(
             "assignment-2".to_string(),
             label.id.clone(),
+            label.name.clone(),
             "instance-2".to_string(),
         );
 

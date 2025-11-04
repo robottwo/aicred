@@ -1,6 +1,4 @@
-use aicred_core::models::{
-    Confidence, Environment, Model, ProviderInstance, ProviderKey, ValidationStatus,
-};
+use aicred_core::models::{Model, ProviderInstance};
 use aicred_core::plugins::PluginRegistry;
 use aicred_core::providers::anthropic::AnthropicPlugin;
 use aicred_core::{scan, ScanOptions};

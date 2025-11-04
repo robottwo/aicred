@@ -1,11 +1,12 @@
 //! Label model for unique identifiers that can only be applied to one provider/model combination at a time.
 
+use crate::utils::ProviderModelTuple;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// A label is a unique identifier that can only be applied to one provider/model combination at a time.
-/// Labels enforce uniqueness across all targets in the system.
+/// Labels enforce uniqueness across all targets in the system and are scoped to specific provider:model tuples.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Label {
     /// Unique identifier for this label.
@@ -21,6 +22,11 @@ pub struct Label {
     /// Optional color for UI display purposes.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+
+    /// The provider:model tuple this label is scoped to.
+    /// If None, the label applies to all provider:model combinations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider_model_tuple: Option<ProviderModelTuple>,
 
     /// Additional metadata for this label.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -43,10 +49,19 @@ impl Label {
             name,
             description: None,
             color: None,
+            provider_model_tuple: None,
             metadata: None,
             created_at: now,
             updated_at: now,
         }
+    }
+
+    /// Creates a new label with a provider:model tuple scope.
+    #[must_use]
+    pub fn with_provider_model_tuple(mut self, tuple: ProviderModelTuple) -> Self {
+        self.provider_model_tuple = Some(tuple);
+        self.updated_at = Utc::now();
+        self
     }
 
     /// Creates a new label with a description.
@@ -91,6 +106,12 @@ impl Label {
         self.updated_at = Utc::now();
     }
 
+    /// Sets the provider:model tuple for this label.
+    pub fn set_provider_model_tuple(&mut self, tuple: Option<ProviderModelTuple>) {
+        self.provider_model_tuple = tuple;
+        self.updated_at = Utc::now();
+    }
+
     /// Gets metadata value by key.
     #[must_use]
     pub fn get_metadata(&self, key: &str) -> Option<&String> {
@@ -132,11 +153,28 @@ impl Label {
         true
     }
 
+    /// Checks if this label can be assigned to a specific provider:model tuple.
+    #[must_use]
+    pub fn can_assign_to_tuple(&self, tuple: &ProviderModelTuple) -> bool {
+        // If no tuple is specified for the label, it can be assigned to any tuple
+        if let Some(ref label_tuple) = self.provider_model_tuple {
+            label_tuple == tuple
+        } else {
+            true
+        }
+    }
+
     /// Gets the uniqueness constraint for this label.
-    /// Labels are unique across all provider/model combinations.
+    /// Labels are unique across all provider/model combinations, but scoped to their tuple if specified.
     #[must_use]
     pub fn uniqueness_scope(&self) -> &'static str {
         "global"
+    }
+
+    /// Gets the provider:model tuple this label is scoped to, if any.
+    #[must_use]
+    pub fn get_provider_model_tuple(&self) -> Option<&ProviderModelTuple> {
+        self.provider_model_tuple.as_ref()
     }
 }
 
@@ -245,5 +283,98 @@ mod tests {
 
         assert!(label.can_assign_to("any-target"));
         assert_eq!(label.uniqueness_scope(), "global");
+    }
+    fn test_label_with_provider_model_tuple() {
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let tuple_clone = tuple.clone();
+        let label = Label::new("label-1".to_string(), "Production GPT-4".to_string())
+            .with_provider_model_tuple(tuple_clone);
+
+        assert_eq!(label.provider_model_tuple, Some(tuple.clone()));
+        assert!(label.can_assign_to_tuple(&tuple));
+    }
+
+    #[test]
+    fn test_label_provider_model_tuple_scope() {
+        let tuple1 = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let tuple2 = ProviderModelTuple::parse("anthropic:claude-3").unwrap();
+
+        let label = Label::new("label-1".to_string(), "Production".to_string())
+            .with_provider_model_tuple(tuple1.clone());
+
+        // Should be able to assign to the same tuple
+        assert!(label.can_assign_to_tuple(&tuple1));
+
+        // Should not be able to assign to a different tuple
+        assert!(!label.can_assign_to_tuple(&tuple2));
+    }
+
+    #[test]
+    fn test_label_without_provider_model_tuple() {
+        let label = Label::new("label-1".to_string(), "Global Label".to_string());
+
+        // Should be None when not specified
+        assert_eq!(label.provider_model_tuple, None);
+
+        // Should be able to assign to any tuple
+        let tuple1 = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let tuple2 = ProviderModelTuple::parse("anthropic:claude-3").unwrap();
+
+        assert!(label.can_assign_to_tuple(&tuple1));
+        assert!(label.can_assign_to_tuple(&tuple2));
+    }
+
+    #[test]
+    fn test_label_set_provider_model_tuple() {
+        let mut label = Label::new("label-1".to_string(), "Test Label".to_string());
+
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        label.set_provider_model_tuple(Some(tuple.clone()));
+
+        assert_eq!(label.provider_model_tuple, Some(tuple.clone()));
+
+        // Clear the tuple
+        label.set_provider_model_tuple(None);
+        assert_eq!(label.provider_model_tuple, None);
+    }
+
+    #[test]
+    fn test_label_get_provider_model_tuple() {
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let label = Label::new("label-1".to_string(), "Test Label".to_string())
+            .with_provider_model_tuple(tuple.clone());
+
+        let retrieved_tuple = label.get_provider_model_tuple().unwrap();
+        assert_eq!(retrieved_tuple, &tuple);
+    }
+
+    #[test]
+    fn test_label_validation_with_provider_model_tuple() {
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let label = Label::new("valid-label".to_string(), "Valid Label".to_string())
+            .with_provider_model_tuple(tuple);
+
+        assert!(label.validate().is_ok());
+    }
+
+    #[test]
+    fn test_label_serialization_with_provider_model_tuple() {
+        use serde_json;
+
+        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let label = Label::new("test-label".to_string(), "Test Label".to_string())
+            .with_provider_model_tuple(tuple.clone())
+            .with_description("A test label".to_string())
+            .with_color("#FF0000".to_string());
+
+        // Test JSON serialization/deserialization
+        let json = serde_json::to_string(&label).unwrap();
+        let deserialized: Label = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.id, label.id);
+        assert_eq!(deserialized.name, label.name);
+        assert_eq!(deserialized.provider_model_tuple, Some(tuple));
+        assert_eq!(deserialized.description, label.description);
+        assert_eq!(deserialized.color, label.color);
     }
 }

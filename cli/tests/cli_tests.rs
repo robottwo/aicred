@@ -17,6 +17,11 @@ fn set_test_home_envs(cmd: &mut Command, home: &std::path::Path) {
     cmd.env("USERPROFILE", home);
 }
 
+/// Helper function to get home path as string for CLI arguments
+fn home_path_str(home: &std::path::Path) -> &str {
+    home.to_str().unwrap()
+}
+
 #[test]
 fn test_version_command() {
     let mut cmd = Command::cargo_bin("aicred").unwrap();
@@ -162,17 +167,7 @@ display_name: "OpenRouter Instance"
 provider_type: "openrouter"
 base_url: "https://openrouter.ai/api/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-or-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "test.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-or-test-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -205,17 +200,7 @@ display_name: "OpenAI Instance"
 provider_type: "openai"
 base_url: "https://api.openai.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "test.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-test-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -228,17 +213,7 @@ display_name: "Anthropic Instance"
 provider_type: "anthropic"
 base_url: "https://api.anthropic.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-ant-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "test.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-ant-test-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -794,17 +769,7 @@ display_name: "OpenAI Instance"
 provider_type: "openai"
 base_url: "https://api.openai.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "openai.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-test-key"
 models:
   - model_id: "gpt-4"
     name: "gpt-4"
@@ -845,17 +810,7 @@ display_name: "Anthropic Instance"
 provider_type: "anthropic"
 base_url: "https://api.anthropic.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-ant-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "anthropic.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-ant-test-key"
 models:
   - model_id: "claude-3-opus"
     name: "claude-3-opus"
@@ -951,17 +906,7 @@ display_name: "Test Direct ID Instance"
 provider_type: "openai"
 base_url: "https://api.openai.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-test-direct-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "test.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-test-direct-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -996,17 +941,7 @@ display_name: "Test Direct Values Instance"
 provider_type: "anthropic"
 base_url: "https://api.anthropic.com/v1"
 active: true
-keys:
-  - id: "default"
-    api_key: "sk-ant-direct-test-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "test.yaml"
-    line_number: 1
-    confidence: "High"
-    environment: "Production"
-    validation_status: "Unknown"
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-ant-direct-test-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -1128,17 +1063,7 @@ id: "existing-openai-instance"
 display_name: "OpenAI Instance"
 provider_type: "openai"
 base_url: "https://api.openai.com/v1"
-keys:
-  - id: "default"
-    api_key: "sk-existing-key"
-    discovered_at: "2023-01-01T00:00:00Z"
-    source: "openai.yaml"
-    line_number: 1
-    confidence: High
-    environment: Production
-    validation_status: Unknown
-    created_at: "2023-01-01T00:00:00Z"
-    updated_at: "2023-01-01T00:00:00Z"
+api_key: "sk-existing-key"
 models:
   - model_id: "gpt-4"
     name: "gpt-4"
@@ -1596,7 +1521,7 @@ display_name: "Custom Home Instance"
 provider_type: "openai"
 base_url: "https://api.openai.com/v1"
 active: true
-keys: []
+api_key: "sk-custom-key"
 models: []
 created_at: "2023-01-01T00:00:00Z"
 updated_at: "2023-01-01T00:00:00Z"
@@ -1614,4 +1539,280 @@ updated_at: "2023-01-01T00:00:00Z"
     cmd.assert()
         .success()
         .stdout(predicate::str::contains("Custom Home Instance"));
+}
+
+// Label management integration tests
+
+#[test]
+fn test_labels_add_and_assign_positional_syntax() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    fs::create_dir_all(&config_dir).unwrap();
+
+    // Set a label using the new simplified syntax
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "thinking=openrouter:deepseek-v3.2-exp",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Verify the label was set by checking the labels list
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("thinking"));
+}
+
+#[test]
+fn test_labels_assign_with_tuple_flag() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    fs::create_dir_all(&config_dir).unwrap();
+
+    // Set a label using the new simplified syntax
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "fast=openai:gpt-4",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Verify the assignment was created by checking label assignments list
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("fast"));
+}
+
+#[test]
+fn test_labels_assign_with_name_flag() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    let labels_dir = config_dir.join("labels");
+    fs::create_dir_all(&labels_dir).unwrap();
+
+    // Set a label using the new simplified syntax
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "creative=anthropic:claude-3-opus",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Verify the assignment was created
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("creative"));
+}
+
+#[test]
+fn test_labels_list_command() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    let labels_dir = config_dir.join("labels");
+    fs::create_dir_all(&labels_dir).unwrap();
+
+    // Set multiple labels (implicitly creates them)
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "fast=groq:llama3-8b",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "accurate=openai:gpt-4",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "cheap=anthropic:claude-3-haiku",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // List all labels
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("fast"))
+        .stdout(predicate::str::contains("accurate"))
+        .stdout(predicate::str::contains("cheap"));
+}
+
+#[test]
+fn test_labels_assign_multiple_to_same_tuple() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    let labels_dir = config_dir.join("labels");
+    fs::create_dir_all(&labels_dir).unwrap();
+
+    // Set multiple labels to the same tuple (implicitly creates them)
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "fast=groq:llama3-8b",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "cheap=groq:llama3-8b",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Verify both assignments were created
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("fast"))
+        .stdout(predicate::str::contains("cheap"));
+}
+
+#[test]
+fn test_labels_assign_error_handling() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    let labels_dir = config_dir.join("labels");
+    fs::create_dir_all(&labels_dir).unwrap();
+
+    // Try to set a label with invalid tuple format
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "test-label=invalid-tuple-format",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().failure();
+
+    // Try to set a label without any arguments
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "set", "--home", home_path_str(temp_home.path())]);
+    cmd.assert().failure();
+
+    // Try to unset a non-existent label
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "unset",
+        "nonexistent",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().failure();
+}
+
+#[test]
+fn test_labels_remove_command() {
+    let temp_home = TempDir::new().unwrap();
+    let config_dir = temp_home.path().join(".config").join("aicred");
+    let labels_dir = config_dir.join("labels");
+    fs::create_dir_all(&labels_dir).unwrap();
+
+    // Set the label (implicitly creates it)
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "set",
+        "temporary=openai:gpt-4",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Unset the label
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&[
+        "labels",
+        "unset",
+        "temporary",
+        "--force",
+        "--home",
+        home_path_str(temp_home.path()),
+    ]);
+    cmd.assert().success();
+
+    // Verify the label was removed
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    set_test_home_envs(&mut cmd, temp_home.path());
+    cmd.args(&["labels", "list", "--home", home_path_str(temp_home.path())]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("temporary").not());
+}
+
+#[test]
+fn test_labels_help_commands() {
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    cmd.arg("labels").arg("--help");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Label management commands"));
+
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    cmd.args(&["labels", "set", "--help"]);
+    cmd.assert().success().stdout(predicate::str::contains(
+        "Set (create or update) a label assignment",
+    ));
+
+    let mut cmd = Command::cargo_bin("aicred").unwrap();
+    cmd.args(&["labels", "unset", "--help"]);
+    cmd.assert().success().stdout(predicate::str::contains(
+        "Unset (remove) a label assignment",
+    ));
 }
