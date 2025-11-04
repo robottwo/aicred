@@ -116,7 +116,7 @@ pub fn handle_scan(
 
     // Output results based on format
     match format.as_str() {
-        "json" => crate::output::json::output_json(&result, verbose)?,
+        "json" => crate::output::json::output_json(&result, verbose, None)?,
         "ndjson" => crate::output::ndjson::output_ndjson(&result, verbose)?,
         "table" => crate::output::table::output_table(&result, verbose)?,
         "summary" => crate::output::summary::output_summary(&result, verbose)?,

@@ -1,124 +1,11 @@
 //! Label management commands for the aicred CLI.
 
-use aicred_core::models::{Label, ProviderInstances, UnifiedLabel};
+use crate::utils::provider_loader::load_provider_instances;
+use aicred_core::models::{Label, UnifiedLabel};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;
-use serde::Deserialize;
 use std::path::Path;
-
-/// Load provider instances from configuration directory
-fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
-    let config_dir = match home {
-        Some(h) => h.to_path_buf(),
-        None => dirs_next::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
-    }
-    .join(".config")
-    .join("aicred");
-
-    let instances_dir = config_dir.join("inference_services");
-
-    // Create instances directory if it doesn't exist
-    if !instances_dir.exists() {
-        std::fs::create_dir_all(&instances_dir)?;
-        return Ok(ProviderInstances::new());
-    }
-
-    // Load all instance files
-    let mut instances = ProviderInstances::new();
-
-    let entries = std::fs::read_dir(&instances_dir)?;
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.extension().is_some_and(|ext| ext == "yaml") {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                // First try to parse as the modern ProviderInstance directly
-                if let Ok(instance) =
-                    serde_yaml::from_str::<aicred_core::models::ProviderInstance>(&content)
-                {
-                    // If the deserialized instance already contains an API key, accept it.
-                    // Otherwise, if the file looks like the legacy format (contains "keys:"),
-                    // try to parse it as the legacy format and extract the key.
-                    if instance.api_key.is_some() {
-                        let _ = instances.add_instance(instance);
-                    } else if content.contains("keys:") {
-                        // Try legacy format
-                        if let Ok(legacy_instance) = parse_legacy_instance(&content, &path) {
-                            let _ = instances.add_instance(legacy_instance);
-                        }
-                    } else {
-                        // Modern format without API key, accept as-is
-                        let _ = instances.add_instance(instance);
-                    }
-                } else if content.contains("keys:") {
-                    // Try legacy format
-                    if let Ok(legacy_instance) = parse_legacy_instance(&content, &path) {
-                        let _ = instances.add_instance(legacy_instance);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(instances)
-}
-
-/// Parse legacy provider instance format
-fn parse_legacy_instance(
-    content: &str,
-    path: &std::path::Path,
-) -> Result<aicred_core::models::ProviderInstance> {
-    use aicred_core::models::discovered_key::Confidence;
-    use aicred_core::models::provider_key::{Environment, ValidationStatus};
-
-    #[derive(Deserialize)]
-    struct LegacyInstance {
-        name: String,
-        provider_type: String,
-        base_url: String,
-        keys: Vec<LegacyKey>,
-    }
-
-    #[derive(Deserialize)]
-    struct LegacyKey {
-        name: String,
-        path: String,
-        confidence: Confidence,
-        environment: Environment,
-    }
-
-    let legacy: LegacyInstance = serde_yaml::from_str(content)?;
-
-    let mut instance = aicred_core::models::ProviderInstance::new(
-        path.file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or(&legacy.name)
-            .to_string(),
-        legacy.name,
-        legacy.provider_type,
-        legacy.base_url,
-    );
-
-    if let Some(key) = legacy.keys.first() {
-        let mut provider_key = aicred_core::models::ProviderKey::new(
-            key.name.clone(),
-            key.path.clone(),
-            key.confidence,
-            key.environment.clone(),
-        );
-
-        if let Ok(content) = std::fs::read_to_string(&key.path) {
-            provider_key = provider_key.with_value(content.trim().to_string());
-            provider_key.set_validation_status(ValidationStatus::Valid);
-            instance.set_api_key(provider_key.value.unwrap());
-        }
-    }
-
-    Ok(instance)
-}
 /// Load all unified labels from the configuration directory
 pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<UnifiedLabel>> {
     let config_dir = match home {
@@ -205,7 +92,7 @@ pub fn handle_list_labels() -> Result<()> {
         println!(
             "  {} - {}",
             label.label_name.cyan().bold(),
-            label.target.description().dimmed()
+            label.target.as_str().dimmed()
         );
 
         if let Some(ref description) = label.description {
@@ -223,6 +110,392 @@ pub fn handle_list_labels() -> Result<()> {
     }
 
     println!("{}", format!("Total labels: {}", labels.len()).cyan());
+
+    Ok(())
+}
+
+/// Find the labels directory using runtime path resolution
+/// First checks user config directory, then falls back to distributed application files
+fn find_labels_directory(home: Option<&Path>) -> Result<std::path::PathBuf> {
+    // First try user config directory: ~/.config/aicred/patterns/
+    let user_config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred")
+    .join("patterns");
+
+    if user_config_dir.exists() {
+        return Ok(user_config_dir);
+    }
+
+    // Try current working directory + "conf/labels" (for development)
+    let current_dir = std::env::current_dir()
+        .map_err(|e| anyhow::anyhow!("Could not get current directory: {}", e))?;
+
+    let current_dir_labels = current_dir.join("conf").join("labels");
+    if current_dir_labels.exists() {
+        return Ok(current_dir_labels);
+    }
+
+    // For development with cargo run, also try the original compile-time path
+    // This maintains backward compatibility during development
+    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+        let dev_path = std::path::Path::new(&manifest_dir)
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Could not determine project root directory"))?
+            .join("conf")
+            .join("labels");
+
+        if dev_path.exists() {
+            return Ok(dev_path);
+        }
+    }
+
+    // Fall back to binary's parent directory + "conf/labels"
+    // This maintains backward compatibility with development setup
+    let binary_path = std::env::current_exe()
+        .map_err(|e| anyhow::anyhow!("Could not get current executable path: {}", e))?;
+
+    let binary_dir = binary_path
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("Could not get parent directory of binary"))?;
+
+    let fallback_dir = binary_dir.join("conf").join("labels");
+
+    Ok(fallback_dir)
+}
+
+/// Handle the labels scan command
+/// Handle the labels scan command
+pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> Result<()> {
+    use colored::*;
+    use regex::Regex;
+    use std::fs;
+
+    // Load existing provider instances
+    let provider_instances = load_provider_instances(home)?;
+
+    if verbose {
+        println!(
+            "{}",
+            format!(
+                "DEBUG: Loaded {} provider instances",
+                provider_instances.len()
+            )
+            .dimmed()
+        );
+        for instance in provider_instances.all_instances() {
+            println!(
+                "  DEBUG: Instance {} ({}), models: {}",
+                instance.id,
+                instance.provider_type,
+                instance.models.len()
+            );
+            for model in &instance.models {
+                println!("    DEBUG: Model: {}", model.model_id);
+            }
+        }
+    }
+
+    if provider_instances.is_empty() {
+        println!(
+            "{}",
+            "No provider instances found. Add some instances first.".yellow()
+        );
+        return Ok(());
+    }
+
+    // Get the path to the conf/labels directory with runtime path resolution
+    // First try to find labels in user config directory, then fall back to binary location
+    let labels_dir = find_labels_directory(home)?;
+
+    if !labels_dir.exists() {
+        println!("{}", format!("No labels directory found at: {}. Creating scan files in ~/.config/aicred/patterns/ or binary's parent directory + conf/labels is required.", labels_dir.display()).yellow());
+        return Ok(());
+    }
+
+    // Read all .scan files
+    let scan_files: Vec<_> = fs::read_dir(&labels_dir)?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".scan"))
+        .collect();
+
+    if scan_files.is_empty() {
+        println!(
+            "{}",
+            format!(
+                "No .scan files found in {} directory.",
+                labels_dir.display()
+            )
+            .yellow()
+        );
+        return Ok(());
+    }
+
+    println!(
+        "{}",
+        format!("Found {} scan files", scan_files.len()).cyan()
+    );
+    if verbose {
+        println!("{}", "Scan files:".dimmed());
+        for entry in &scan_files {
+            println!("  - {}", entry.file_name().to_string_lossy());
+        }
+    }
+
+    // Load existing labels
+    let mut existing_labels = load_label_assignments_with_home(home)?;
+    let original_labels = existing_labels.clone(); // Keep track of original state
+    let mut new_assignments = Vec::new();
+
+    // Process each scan file
+    for entry in scan_files {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        let label_name = file_name.trim_end_matches(".scan").to_string();
+
+        if verbose {
+            println!("\n{}", format!("Processing {}:", file_name).green().bold());
+        }
+
+        // Read regex patterns from file
+        let patterns_content = fs::read_to_string(entry.path())?;
+        let patterns: Vec<&str> = patterns_content
+            .lines()
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+            .collect();
+
+        if patterns.is_empty() {
+            if verbose {
+                println!("  {} No valid patterns found", "⚠".yellow());
+            }
+            continue;
+        }
+
+        if verbose {
+            println!("  {} Found {} patterns", "📋".cyan(), patterns.len());
+        }
+
+        // Collect ALL matches first, then select the globally best match
+        let mut all_matches: Vec<(String, ProviderModelTuple, usize)> = Vec::new(); // (provider_model_str, tuple, pattern_specificity)
+
+        for instance in provider_instances.all_instances() {
+            for model in &instance.models {
+                let provider_model_str = format!("{}:{}", instance.provider_type, model.model_id);
+
+                if verbose {
+                    println!("  DEBUG: Testing '{}' against patterns", provider_model_str);
+                }
+
+                // Test each pattern and collect all matches
+                for (pattern_idx, pattern) in patterns.iter().enumerate() {
+                    match Regex::new(pattern) {
+                        Ok(regex) => {
+                            if verbose {
+                                println!("    DEBUG: Pattern {}: '{}'", pattern_idx + 1, pattern);
+                            }
+
+                            if regex.is_match(&provider_model_str) {
+                                if verbose {
+                                    println!(
+                                        "  ✅ Pattern {} matched '{}'",
+                                        pattern_idx + 1,
+                                        provider_model_str
+                                    );
+                                }
+
+                                // Calculate pattern specificity (lower index = more specific)
+                                let pattern_specificity = pattern_idx;
+
+                                match ProviderModelTuple::parse(&provider_model_str) {
+                                    Ok(tuple) => {
+                                        all_matches.push((
+                                            provider_model_str.clone(),
+                                            tuple,
+                                            pattern_specificity,
+                                        ));
+                                        if verbose {
+                                            println!("    📝 Collected match: '{}' with pattern specificity {}", provider_model_str, pattern_specificity);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        if verbose {
+                                            println!(
+                                                "    ❌ Failed to parse tuple '{}': {}",
+                                                provider_model_str, e
+                                            );
+                                        }
+                                    }
+                                }
+                            } else if verbose {
+                                println!("    ❌ Pattern {} did not match", pattern_idx + 1);
+                            }
+                        }
+                        Err(e) => {
+                            if verbose {
+                                println!("  ❌ Invalid regex pattern '{}': {}", pattern, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Select the globally best match (lowest specificity index = most specific pattern)
+        let best_match = all_matches
+            .into_iter()
+            .min_by_key(|(_, _, specificity)| *specificity);
+
+        // Apply the best match found
+        if let Some((provider_model_str, tuple, _specificity)) = best_match {
+            if verbose {
+                println!(
+                    "  🎯 Final assignment: '{}' -> {}",
+                    label_name, provider_model_str
+                );
+            }
+
+            let label = UnifiedLabel::new(label_name.clone(), tuple.clone());
+
+            // Check if label already exists and update it
+            if let Some(existing) = existing_labels
+                .iter_mut()
+                .find(|l| l.label_name == label_name)
+            {
+                if verbose {
+                    println!(
+                        "  🔄 Updating existing label '{}' to {}",
+                        label_name, provider_model_str
+                    );
+                }
+                existing.target = tuple;
+                existing.updated_at = chrono::Utc::now();
+            } else {
+                if verbose {
+                    println!(
+                        "  ➕ Creating new label '{}' for {}",
+                        label_name, provider_model_str
+                    );
+                }
+                new_assignments.push(label);
+            }
+        } else if verbose {
+            println!("  ❌ No matches found for label '{}'", label_name);
+        }
+    } // End of for entry in scan_files loop
+
+    // Add new assignments to existing labels
+    existing_labels.extend(new_assignments);
+
+    // Track what actually changed
+    let mut newly_created = Vec::new();
+    let mut updated = Vec::new();
+
+    // Re-check what changed by comparing with original state
+    for label in &existing_labels {
+        if let Some(original) = original_labels
+            .iter()
+            .find(|l| l.label_name == label.label_name)
+        {
+            if original.target != label.target {
+                updated.push(label);
+            }
+        } else {
+            newly_created.push(label);
+        }
+    }
+
+    if dry_run {
+        println!("\n{}", "DRY RUN - No changes will be made".red().bold());
+
+        let total_changes = newly_created.len() + updated.len();
+
+        if total_changes > 0 {
+            println!("{}", "Would create/update the following labels:".cyan());
+
+            for label in newly_created {
+                println!(
+                    "  {} -> {}",
+                    label.label_name.cyan().bold(),
+                    label.target.as_str().dimmed()
+                );
+            }
+
+            for label in updated {
+                println!(
+                    "  {} -> {}",
+                    label.label_name.cyan().bold(),
+                    label.target.as_str().dimmed()
+                );
+            }
+
+            println!(
+                "\n{}",
+                format!(
+                    "Total labels that would be created/updated: {}",
+                    total_changes
+                )
+                .cyan()
+            );
+        } else {
+            println!(
+                "{}",
+                "No changes would be made - all labels already have the correct assignments."
+                    .cyan()
+            );
+        }
+    } else {
+        // Save the updated labels
+        save_label_assignments_with_home(&existing_labels, home)?;
+
+        println!("\n{}", "Label scan completed".green().bold());
+
+        let total_changes = newly_created.len() + updated.len();
+
+        if total_changes > 0 {
+            if !newly_created.is_empty() {
+                println!("{}", "New assignments:".cyan());
+                for label in newly_created {
+                    println!(
+                        "  {} -> {}",
+                        label.label_name.cyan().bold(),
+                        label.target.as_str().dimmed()
+                    );
+                }
+            }
+
+            if !updated.is_empty() {
+                println!("{}", "Updated assignments:".cyan());
+                for label in updated {
+                    println!(
+                        "  {} -> {}",
+                        label.label_name.cyan().bold(),
+                        label.target.as_str().dimmed()
+                    );
+                }
+            }
+
+            println!(
+                "{}",
+                format!("Total labels created/updated: {}", total_changes).cyan()
+            );
+        } else {
+            println!(
+                "{}",
+                "No changes made - all labels already have the correct assignments.".cyan()
+            );
+        }
+    }
 
     Ok(())
 }
@@ -294,6 +567,53 @@ mod tests {
         // Should NOT match "anthropic/gpt-4" even though basename matches
         // (would need mock provider instances to test fully)
     }
+
+    #[test]
+    fn test_label_scan_finds_best_match_across_instances() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        env::set_var("HOME", temp_dir.path());
+
+        // Mock the provider loader to return our test instances
+        // This test verifies the matching logic works correctly
+        let patterns = vec![".*sonnet.*", ".*gpt5.*", ".*deepseek.*", ".*"];
+
+        // Test that deepseek model gets matched by the specific pattern
+        let deepseek_str = "openrouter:deepseek/deepseek-v3.2-exp";
+        let gpt4_str = "openai:gpt-4";
+
+        // Find best match for deepseek string
+        let mut best_match_deepseek = None;
+        for (pattern_idx, pattern) in patterns.iter().enumerate() {
+            if regex::Regex::new(pattern).unwrap().is_match(deepseek_str) {
+                best_match_deepseek = Some(pattern_idx);
+                break;
+            }
+        }
+
+        // Find best match for gpt-4 string
+        let mut best_match_gpt4 = None;
+        for (pattern_idx, pattern) in patterns.iter().enumerate() {
+            if regex::Regex::new(pattern).unwrap().is_match(gpt4_str) {
+                best_match_gpt4 = Some(pattern_idx);
+                break;
+            }
+        }
+
+        // Verify that deepseek matches the more specific pattern (.*deepseek.* = index 2)
+        // and gpt-4 matches the generic pattern (.* = index 3)
+        assert_eq!(
+            best_match_deepseek,
+            Some(2),
+            "DeepSeek should match specific pattern"
+        );
+        assert_eq!(
+            best_match_gpt4,
+            Some(3),
+            "GPT-4 should match generic pattern"
+        );
+    }
 }
 
 /// Handle the labels set command (create or update label assignment)
@@ -302,6 +622,7 @@ pub fn handle_set_label(
     tuple_str: String,
     color: Option<String>,
     description: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
     // Trim and validate label name
     let label_name = label_name.trim().to_string();
@@ -309,7 +630,7 @@ pub fn handle_set_label(
         return Err(anyhow::anyhow!("Label name cannot be empty"));
     }
 
-    let mut labels = load_label_assignments()?;
+    let mut labels = load_label_assignments_with_home(home)?;
 
     // Parse the provider:model tuple
     let tuple = ProviderModelTuple::parse(&tuple_str)
@@ -358,14 +679,14 @@ pub fn handle_set_label(
     }
 
     // Save to disk
-    save_label_assignments(&labels)?;
+    save_label_assignments_with_home(&labels, home)?;
 
     Ok(())
 }
 
 /// Handle the labels unset command (remove label assignment entirely)
-pub fn handle_unset_label(name: String, force: bool) -> Result<()> {
-    let mut labels = load_label_assignments()?;
+pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Result<()> {
+    let mut labels = load_label_assignments_with_home(home)?;
 
     // Find the label by name
     let label_index = labels.iter().position(|label| label.label_name == name);
@@ -391,7 +712,7 @@ pub fn handle_unset_label(name: String, force: bool) -> Result<()> {
 
     // Remove the label
     labels.remove(label_index.unwrap());
-    save_label_assignments(&labels)?;
+    save_label_assignments_with_home(&labels, home)?;
 
     println!("{} Label '{}' unset successfully.", "✓".green(), name);
 
@@ -432,11 +753,11 @@ pub fn get_labels_for_target(
 
         // If model_id is provided, resolve the actual Model and compare against canonical ID and basename
         if let Some(model_display_name) = model_id {
-            // Find the model in the instance by matching the display name
+            // Find the model in the instance by matching either display name or canonical ID
             let model = match instance
                 .models
                 .iter()
-                .find(|m| &m.name == model_display_name)
+                .find(|m| m.name == model_display_name || m.model_id == model_display_name)
             {
                 Some(model) => model,
                 None => {

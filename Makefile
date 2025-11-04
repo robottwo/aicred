@@ -201,18 +201,21 @@ package-linux: build-all
 	mkdir -p dist/linux
 	cp target/release/aicred dist/linux/
 	cp target/release/libaicred_ffi.so dist/linux/
+	cp -r conf dist/linux/
 
 .PHONY: package-macos
 package-macos: build-all
 	mkdir -p dist/macos
 	cp target/release/aicred dist/macos/
 	cp target/release/libaicred_ffi.dylib dist/macos/
+	cp -r conf dist/macos/
 
 .PHONY: package-windows
 package-windows: build-all
 	mkdir -p dist/windows
 	cp target/release/aicred.exe dist/windows/
 	cp target/release/aicred_ffi.dll dist/windows/
+	xcopy /E /I conf dist\windows\conf
 # Platform-specific targets
 .PHONY: build-platform
 

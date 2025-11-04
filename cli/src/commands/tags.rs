@@ -6,7 +6,7 @@ use colored::*;
 use std::path::Path;
 
 /// Load all tags from the configuration directory
-pub fn load_tags_with_home(home: Option<&Path>) -> Result<Vec<Tag>> {
+pub fn load_tags(home: Option<&Path>) -> Result<Vec<Tag>> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -33,13 +33,8 @@ pub fn load_tags_with_home(home: Option<&Path>) -> Result<Vec<Tag>> {
     Ok(tags)
 }
 
-/// Load all tags from the configuration directory
-pub fn load_tags() -> Result<Vec<Tag>> {
-    load_tags_with_home(None)
-}
-
 /// Save tags to the configuration directory
-pub fn save_tags_with_home(tags: &[Tag], home: Option<&Path>) -> Result<()> {
+pub fn save_tags(tags: &[Tag], home: Option<&Path>) -> Result<()> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -64,13 +59,8 @@ pub fn save_tags_with_home(tags: &[Tag], home: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-/// Save tags to the configuration directory
-pub fn save_tags(tags: &[Tag]) -> Result<()> {
-    save_tags_with_home(tags, None)
-}
-
 /// Load all tag assignments from the configuration directory
-pub fn load_tag_assignments_with_home(home: Option<&Path>) -> Result<Vec<TagAssignment>> {
+pub fn load_tag_assignments(home: Option<&Path>) -> Result<Vec<TagAssignment>> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -97,16 +87,8 @@ pub fn load_tag_assignments_with_home(home: Option<&Path>) -> Result<Vec<TagAssi
     Ok(assignments)
 }
 
-/// Load all tag assignments from the configuration directory
-pub fn load_tag_assignments() -> Result<Vec<TagAssignment>> {
-    load_tag_assignments_with_home(None)
-}
-
 /// Save tag assignments to the configuration directory
-pub fn save_tag_assignments_with_home(
-    assignments: &[TagAssignment],
-    home: Option<&Path>,
-) -> Result<()> {
+pub fn save_tag_assignments(assignments: &[TagAssignment], home: Option<&Path>) -> Result<()> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -131,11 +113,6 @@ pub fn save_tag_assignments_with_home(
     Ok(())
 }
 
-/// Save tag assignments to the configuration directory
-pub fn save_tag_assignments(assignments: &[TagAssignment]) -> Result<()> {
-    save_tag_assignments_with_home(assignments, None)
-}
-
 /// Generate a unique tag ID
 fn generate_tag_id(name: &str) -> String {
     use sha2::{Digest, Sha256};
@@ -146,8 +123,8 @@ fn generate_tag_id(name: &str) -> String {
 }
 
 /// Handle the tags list command
-pub fn handle_list_tags() -> Result<()> {
-    let tags = load_tags()?;
+pub fn handle_list_tags(home: Option<&Path>) -> Result<()> {
+    let tags = load_tags(home)?;
 
     if tags.is_empty() {
         println!("{}", "No tags configured.".yellow());
@@ -185,8 +162,9 @@ pub fn handle_add_tag(
     name: String,
     color: Option<String>,
     description: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
-    let mut tags = load_tags()?;
+    let mut tags = load_tags(home)?;
 
     // Check if tag with this name already exists
     if tags.iter().any(|tag| tag.name == name) {
@@ -212,7 +190,7 @@ pub fn handle_add_tag(
     tags.push(tag);
 
     // Save to disk
-    save_tags(&tags)?;
+    save_tags(&tags, home)?;
 
     println!("{} Tag '{}' added successfully.", "✓".green(), name);
 
@@ -220,9 +198,9 @@ pub fn handle_add_tag(
 }
 
 /// Handle the tags remove command
-pub fn handle_remove_tag(name: String, force: bool) -> Result<()> {
-    let mut tags = load_tags()?;
-    let mut assignments = load_tag_assignments()?;
+pub fn handle_remove_tag(name: String, force: bool, home: Option<&Path>) -> Result<()> {
+    let mut tags = load_tags(home)?;
+    let mut assignments = load_tag_assignments(home)?;
 
     // Find the tag
     let tag_index = tags.iter().position(|tag| tag.name == name);
@@ -263,12 +241,12 @@ pub fn handle_remove_tag(name: String, force: bool) -> Result<()> {
     // Remove tag assignments if force is used or user confirmed
     if assigned_count > 0 {
         assignments.retain(|assignment| assignment.tag_id != tag.id);
-        save_tag_assignments(&assignments)?;
+        save_tag_assignments(&assignments, home)?;
     }
 
     // Remove the tag
     tags.remove(tag_index.unwrap());
-    save_tags(&tags)?;
+    save_tags(&tags, home)?;
 
     println!(
         "{} Tag '{}' removed successfully.",
@@ -288,8 +266,9 @@ pub fn handle_update_tag(
     name: String,
     color: Option<String>,
     description: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
-    let mut tags = load_tags()?;
+    let mut tags = load_tags(home)?;
 
     // Find the tag
     let tag_index = tags.iter().position(|tag| tag.name == name);
@@ -314,7 +293,7 @@ pub fn handle_update_tag(
     }
 
     // Save to disk
-    save_tags(&tags)?;
+    save_tags(&tags, home)?;
 
     println!(
         "{} Tag '{}' updated successfully.",
@@ -330,9 +309,10 @@ pub fn handle_assign_tag(
     tag_name: String,
     instance_id: Option<String>,
     model_id: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
-    let tags = load_tags()?;
-    let mut assignments = load_tag_assignments()?;
+    let tags = load_tags(home)?;
+    let mut assignments = load_tag_assignments(home)?;
 
     // Find the tag
     let tag = tags
@@ -397,7 +377,7 @@ pub fn handle_assign_tag(
     }
 
     assignments.push(assignment);
-    save_tag_assignments(&assignments)?;
+    save_tag_assignments(&assignments, home)?;
 
     println!(
         "{} Tag '{}' assigned successfully.",
@@ -413,9 +393,10 @@ pub fn handle_unassign_tag(
     tag_name: String,
     instance_id: Option<String>,
     model_id: Option<String>,
+    home: Option<&Path>,
 ) -> Result<()> {
-    let tags = load_tags()?;
-    let mut assignments = load_tag_assignments()?;
+    let tags = load_tags(home)?;
+    let mut assignments = load_tag_assignments(home)?;
 
     // Find the tag
     let tag = tags
@@ -457,7 +438,7 @@ pub fn handle_unassign_tag(
         ));
     }
 
-    save_tag_assignments(&assignments)?;
+    save_tag_assignments(&assignments, home)?;
 
     println!(
         "{} Tag '{}' unassigned successfully.",
@@ -469,9 +450,13 @@ pub fn handle_unassign_tag(
 }
 
 /// Get tags assigned to a specific instance or model
-pub fn get_tags_for_target(instance_id: &str, model_id: Option<&str>) -> Result<Vec<Tag>> {
-    let tags = load_tags()?;
-    let assignments = load_tag_assignments()?;
+pub fn get_tags_for_target(
+    instance_id: &str,
+    model_id: Option<&str>,
+    home: Option<&Path>,
+) -> Result<Vec<Tag>> {
+    let tags = load_tags(home)?;
+    let assignments = load_tag_assignments(home)?;
 
     let mut result = Vec::new();
 

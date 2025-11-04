@@ -14,7 +14,7 @@ pub fn output_ndjson(result: &ScanResult, _verbose: bool) -> Result<()> {
         // Add tags and labels to provider instances
         for provider_instance in enhanced_instance.provider_instances.all_instances_mut() {
             // Get tags for this provider instance
-            if let Ok(tags) = get_tags_for_target(&instance.instance_id, None) {
+            if let Ok(tags) = get_tags_for_target(&instance.instance_id, None, None) {
                 if !tags.is_empty() {
                     // Add tags to provider instance metadata or create a new field
                     if provider_instance.metadata.is_none() {
@@ -49,7 +49,9 @@ pub fn output_ndjson(result: &ScanResult, _verbose: bool) -> Result<()> {
             // Add tags and labels to models
             for model in &mut provider_instance.models {
                 // Get tags for this model
-                if let Ok(tags) = get_tags_for_target(&instance.instance_id, Some(&model.name)) {
+                if let Ok(tags) =
+                    get_tags_for_target(&instance.instance_id, Some(&model.name), None)
+                {
                     if !tags.is_empty() {
                         if model.metadata.is_none() {
                             model.metadata = Some(std::collections::HashMap::new());

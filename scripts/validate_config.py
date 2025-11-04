@@ -477,7 +477,7 @@ class ConfigValidator:
                     if instance_id not in instance_ids:
                         self.errors.append(f"Assignment references unknown instance: {instance_id}")
                 elif "model" in target:
-                    instance_id = target.get("instance_id")
+                    instance_id = target["model"].get("instance_id")
                     if instance_id and instance_id not in instance_ids:
                         self.errors.append(f"Assignment references unknown instance: {instance_id}")
                         
