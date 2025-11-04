@@ -5,7 +5,10 @@ use aicred_core::models::{Label, UnifiedLabel};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;
+use std::io::Write;
 use std::path::Path;
+use tempfile::NamedTempFile;
+use tracing::{debug, error, info};
 /// Load all unified labels from the configuration directory
 pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<UnifiedLabel>> {
     let config_dir = match home {
@@ -63,7 +66,41 @@ pub fn save_label_assignments_with_home(
 
     let labels_file = config_dir.join("labels.yaml");
     let content = serde_yaml::to_string(labels)?;
-    std::fs::write(&labels_file, content)?;
+
+    // Atomic file write pattern: create temp file, write, flush, sync, then rename
+    debug!("Starting atomic write to labels.yaml");
+
+    // Create a temporary file in the same directory as the target file
+    let temp_file = NamedTempFile::new_in(&config_dir)?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // Write the content to the temporary file
+    {
+        let mut file = temp_file.as_file();
+        file.write_all(content.as_bytes())?;
+        file.flush()?;
+
+        // Ensure data is written to disk
+        if let Err(e) = file.sync_all() {
+            error!("Failed to sync temporary file to disk: {}", e);
+            return Err(e.into());
+        }
+    }
+
+    debug!("Temporary file written and synced successfully");
+
+    // Atomically rename the temporary file to the target file
+    if let Err(e) = std::fs::rename(&temp_path, &labels_file) {
+        error!("Failed to rename temporary file to labels.yaml: {}", e);
+        // Clean up the temporary file on error
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(e.into());
+    }
+
+    info!(
+        "Successfully saved label assignments atomically to {:?}",
+        labels_file
+    );
 
     Ok(())
 }
@@ -220,8 +257,14 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
     let labels_dir = find_labels_directory(home)?;
 
     if !labels_dir.exists() {
-        println!("{}", format!("Labels directory not found: {}", labels_dir.display()).yellow());
-        println!("{}", "Create the directory and add .scan pattern files to enable label scanning.".dimmed());
+        println!(
+            "{}",
+            format!("Labels directory not found: {}", labels_dir.display()).yellow()
+        );
+        println!(
+            "{}",
+            "Create the directory and add .scan pattern files to enable label scanning.".dimmed()
+        );
         return Ok(());
     }
 
@@ -352,10 +395,43 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
             }
         }
 
-        // Select the globally best match (lowest specificity index = most specific pattern)
-        let best_match = all_matches
-            .into_iter()
-            .min_by_key(|(_, _, specificity)| *specificity);
+        // Select the globally best match deterministically
+        // First by specificity (lower = more specific), then by lexicographic provider_model_str
+        let mut best_match = None;
+
+        if !all_matches.is_empty() {
+            // Sort by (specificity, provider_model_str) for deterministic selection
+            all_matches.sort_by(|a, b| {
+                // First compare by specificity (lower is better)
+                let specificity_cmp = a.2.cmp(&b.2);
+                if specificity_cmp != std::cmp::Ordering::Equal {
+                    specificity_cmp
+                } else {
+                    // Then compare by provider_model_str for stable tie-breaking
+                    a.0.cmp(&b.0)
+                }
+            });
+
+            // Check for ties at the best specificity level
+            let best_specificity = all_matches[0].2;
+            let ties: Vec<_> = all_matches
+                .iter()
+                .take_while(|m| m.2 == best_specificity)
+                .collect();
+
+            if ties.len() > 1 && verbose {
+                println!(
+                    "  ⚠️  Warning: {} entries tied for best specificity (index {}):",
+                    ties.len(),
+                    best_specificity
+                );
+                for tie in &ties {
+                    println!("    - {} (will select first lexicographically)", tie.0);
+                }
+            }
+
+            best_match = Some(all_matches.into_iter().next().unwrap());
+        }
 
         // Apply the best match found
         if let Some((provider_model_str, tuple, _specificity)) = best_match {

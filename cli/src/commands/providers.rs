@@ -219,34 +219,42 @@ pub fn handle_list_instances(
     println!("\n{}", "Configured Provider Instances:".green().bold());
 
     let all_instances = instances.all_instances();
-    let filtered_instances: Vec<&ProviderInstance> =
-        all_instances
-            .into_iter()
-            .filter(|instance| {
-                let type_match = provider_type
-                    .as_ref()
-                    .is_none_or(|pt| instance.provider_type == *pt);
-                let active_match = !active_only || instance.active;
+    let filtered_instances: Vec<&ProviderInstance> = all_instances
+        .into_iter()
+        .filter(|instance| {
+            let type_match = provider_type
+                .as_ref()
+                .is_none_or(|pt| instance.provider_type == *pt);
+            let active_match = !active_only || instance.active;
 
-                // Tag filtering
-                let tag_match = tag.as_ref().is_none_or(|tag_name| {
-                    match crate::commands::tags::get_tags_for_target(&instance.id, None, None) {
+            // Tag filtering
+            let tag_match =
+                tag.as_ref().is_none_or(
+                    |tag_name| match crate::commands::tags::get_tags_for_target(
+                        &instance.id,
+                        None,
+                        home.as_deref(),
+                    ) {
                         Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
                         Err(_) => false,
-                    }
-                });
+                    },
+                );
 
-                // Label filtering
-                let label_match = label.as_ref().is_none_or(|label_name| {
-                    match crate::commands::labels::get_labels_for_target(&instance.id, None, None) {
-                        Ok(labels) => labels.iter().any(|l| l.name == *label_name),
-                        Err(_) => false,
-                    }
-                });
+            // Label filtering
+            let label_match = label.as_ref().is_none_or(|label_name| {
+                match crate::commands::labels::get_labels_for_target(
+                    &instance.id,
+                    None,
+                    home.as_deref(),
+                ) {
+                    Ok(labels) => labels.iter().any(|l| l.name == *label_name),
+                    Err(_) => false,
+                }
+            });
 
-                type_match && active_match && tag_match && label_match
-            })
-            .collect();
+            type_match && active_match && tag_match && label_match
+        })
+        .collect();
 
     if filtered_instances.is_empty() {
         println!("{}", "No instances match the specified criteria.".yellow());
@@ -568,6 +576,16 @@ pub fn handle_update_instance(
 pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bool) -> Result<()> {
     let instances = load_provider_instances(home.as_deref())?;
 
+    // Add debug logging to validate the home parameter issue
+    if home.is_some() {
+        tracing::debug!(
+            "handle_list_models called with custom home directory: {:?}",
+            home
+        );
+    } else {
+        tracing::debug!("handle_list_models called with default home directory (None)");
+    }
+
     let instance = instances
         .get_instance(&id)
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
@@ -831,7 +849,7 @@ pub fn handle_list_models(
                     |tag_name| match crate::commands::tags::get_tags_for_target(
                         &instance.id,
                         Some(model.model_id.as_str()),
-                        None,
+                        home.as_deref(),
                     ) {
                         Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
                         Err(_) => false,
@@ -843,7 +861,7 @@ pub fn handle_list_models(
                 match crate::commands::labels::get_labels_for_target(
                     &instance.id,
                     Some(model.model_id.as_str()),
-                    None,
+                    home.as_deref(),
                 ) {
                     Ok(labels) => labels.iter().any(|l| l.name == *label_name),
                     Err(_) => false,
@@ -925,7 +943,7 @@ pub fn handle_list_models(
             if let Ok(tags) = crate::commands::tags::get_tags_for_target(
                 &instance.id,
                 Some(model.model_id.as_str()),
-                None,
+                home.as_deref(),
             ) {
                 if !tags.is_empty() {
                     println!("  Tags:");
@@ -944,7 +962,7 @@ pub fn handle_list_models(
             if let Ok(labels) = crate::commands::labels::get_labels_for_target(
                 &instance.id,
                 Some(model.model_id.as_str()),
-                None,
+                home.as_deref(),
             ) {
                 if !labels.is_empty() {
                     println!("  Labels:");
@@ -993,7 +1011,7 @@ pub fn handle_list_models(
             let labels = match crate::commands::labels::get_labels_for_target(
                 &instance.id,
                 Some(model.model_id.as_str()),
-                None,
+                home.as_deref(),
             ) {
                 Ok(labels) => labels
                     .iter()
@@ -1006,7 +1024,7 @@ pub fn handle_list_models(
             let tags = match crate::commands::tags::get_tags_for_target(
                 &instance.id,
                 Some(model.model_id.as_str()),
-                None,
+                home.as_deref(),
             ) {
                 Ok(tags) => tags
                     .iter()

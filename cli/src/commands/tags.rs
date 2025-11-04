@@ -350,11 +350,9 @@ pub fn handle_assign_tag(
     // Check if assignment already exists
     let assignment_exists = assignments.iter().any(|assignment| {
         assignment.tag_id == tag.id
-            && assignment.targets_instance(&target_instance_id)
-            && assignment.targets_model(
-                &target_instance_id,
-                target_model_id.as_deref().unwrap_or(""),
-            )
+            && assignment
+                .target
+                .matches(&target_instance_id, target_model_id.as_deref())
     });
 
     if assignment_exists {
@@ -424,11 +422,9 @@ pub fn handle_unassign_tag(
     let original_count = assignments.len();
     assignments.retain(|assignment| {
         !(assignment.tag_id == tag.id
-            && assignment.targets_instance(&target_instance_id)
-            && assignment.targets_model(
-                &target_instance_id,
-                target_model_id.as_deref().unwrap_or(""),
-            ))
+            && assignment
+                .target
+                .matches(&target_instance_id, target_model_id.as_deref()))
     });
 
     if assignments.len() == original_count {
