@@ -21,8 +21,10 @@ fn enhance_result_with_tags_labels(result: &ScanResult) -> Result<serde_json::Va
                     if let Some(providers_array) = provider_instances.as_array_mut() {
                         for provider in providers_array.iter_mut() {
                             // Extract instance ID first
-                            let instance_id =
-                                provider.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                            let instance_id = provider
+                                .get("instance_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("");
 
                             // Get tags and labels for this instance
                             let tags = get_tags_for_instance(instance_id)?;
