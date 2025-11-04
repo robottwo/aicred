@@ -15,15 +15,17 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
         );
 
         if verbose {
-            // Verbose mode: show settings column
+            // Verbose mode: show settings and tags/labels columns
             println!(
-                "{:<15} {:<40} {:<25} {:<30}",
+                "{:<15} {:<40} {:<25} {:<20} {:<15} {:<20}",
                 "Provider".bold(),
                 "Source".bold(),
                 "Models".bold(),
+                "Tags".bold(),
+                "Labels".bold(),
                 "Settings".bold()
             );
-            println!("{}", "-".repeat(115));
+            println!("{}", "-".repeat(140));
 
             for instance in &result.config_instances {
                 for provider_instance in instance.provider_instances() {
@@ -38,6 +40,25 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                         truncate_string(&model_names.join(", "), 25)
                     };
 
+                    // Get tags and labels for this instance
+                    let tags = get_tags_for_instance(&provider_instance.id)?;
+                    let labels = get_labels_for_instance(&provider_instance.id)?;
+
+                    let tags_display = if tags.is_empty() {
+                        "-".dimmed().to_string()
+                    } else {
+                        let tag_names: Vec<String> = tags.iter().map(|t| t.name.clone()).collect();
+                        truncate_string(&tag_names.join(", "), 20)
+                    };
+
+                    let labels_display = if labels.is_empty() {
+                        "-".dimmed().to_string()
+                    } else {
+                        let label_names: Vec<String> =
+                            labels.iter().map(|l| l.name.clone()).collect();
+                        truncate_string(&label_names.join(", "), 15)
+                    };
+
                     let settings_display = if let Some(metadata) = &provider_instance.metadata {
                         if metadata.is_empty() {
                             "-".dimmed().to_string()
@@ -47,17 +68,19 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                                 .map(|(k, v)| format!("{}={}", k, v))
                                 .collect::<Vec<_>>()
                                 .join(", ");
-                            truncate_string(&settings_str, 30)
+                            truncate_string(&settings_str, 20)
                         }
                     } else {
                         "-".dimmed().to_string()
                     };
 
                     println!(
-                        "{:<15} {:<40} {:<25} {:<30}",
+                        "{:<15} {:<40} {:<25} {:<20} {:<15} {:<20}",
                         provider_instance.provider_type.cyan(),
                         truncate_path(&instance.config_path.display().to_string(), 40),
                         models_display,
+                        tags_display,
+                        labels_display,
                         settings_display
                     );
 
@@ -67,6 +90,32 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                             println!("  API Key: {}", "********".yellow());
                         }
                     }
+
+                    // Show tags and labels details if verbose
+                    if !tags.is_empty() {
+                        println!("  Tags:");
+                        for tag in &tags {
+                            let tag_display = if let Some(ref color) = tag.color {
+                                format!("{} ({})", tag.name, color)
+                            } else {
+                                tag.name.clone()
+                            };
+                            println!("    {}", tag_display);
+                        }
+                    }
+
+                    if !labels.is_empty() {
+                        println!("  Labels:");
+                        for label in &labels {
+                            let label_display = if let Some(ref color) = label.color {
+                                format!("{} ({})", label.name, color)
+                            } else {
+                                label.name.clone()
+                            };
+                            println!("    {}", label_display);
+                        }
+                    }
+
                     if let Some(metadata) = &provider_instance.metadata {
                         if !metadata.is_empty() {
                             println!("  Settings:");
@@ -78,14 +127,16 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                 }
             }
         } else {
-            // Normal mode: hide settings column
+            // Normal mode: show tags and labels columns
             println!(
-                "{:<15} {:<40} {:<35}",
+                "{:<15} {:<40} {:<25} {:<20} {:<15}",
                 "Provider".bold(),
                 "Source".bold(),
-                "Models".bold()
+                "Models".bold(),
+                "Tags".bold(),
+                "Labels".bold()
             );
-            println!("{}", "-".repeat(95));
+            println!("{}", "-".repeat(120));
 
             for instance in &result.config_instances {
                 for provider_instance in instance.provider_instances() {
@@ -97,14 +148,35 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                             .iter()
                             .map(|m| m.name.clone())
                             .collect();
-                        truncate_string(&model_names.join(", "), 35)
+                        truncate_string(&model_names.join(", "), 25)
+                    };
+
+                    // Get tags and labels for this instance
+                    let tags = get_tags_for_instance(&provider_instance.id)?;
+                    let labels = get_labels_for_instance(&provider_instance.id)?;
+
+                    let tags_display = if tags.is_empty() {
+                        "-".dimmed().to_string()
+                    } else {
+                        let tag_names: Vec<String> = tags.iter().map(|t| t.name.clone()).collect();
+                        truncate_string(&tag_names.join(", "), 20)
+                    };
+
+                    let labels_display = if labels.is_empty() {
+                        "-".dimmed().to_string()
+                    } else {
+                        let label_names: Vec<String> =
+                            labels.iter().map(|l| l.name.clone()).collect();
+                        truncate_string(&label_names.join(", "), 15)
                     };
 
                     println!(
-                        "{:<15} {:<40} {:<35}",
+                        "{:<15} {:<40} {:<25} {:<20} {:<15}",
                         provider_instance.provider_type.cyan(),
                         truncate_path(&instance.config_path.display().to_string(), 40),
-                        models_display
+                        models_display,
+                        tags_display,
+                        labels_display
                     );
                 }
             }
@@ -124,22 +196,17 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
         println!("{}", "-".repeat(95));
 
         for instance in &result.config_instances {
-            // Count unique providers and models from the keys associated with this instance
+            // Count unique providers and models from the provider instances
             let mut providers = std::collections::HashSet::new();
             let mut models = std::collections::HashSet::new();
 
-            // Get all keys from the main result that match this instance's source
-            let instance_path = instance.config_path.display().to_string();
-            for key in &result.keys {
-                if key.source == instance_path {
-                    providers.insert(key.provider.clone());
+            // Count from actual provider instances
+            for provider_instance in instance.provider_instances() {
+                providers.insert(provider_instance.provider_type.clone());
 
-                    // Count models (ModelId value type)
-                    if matches!(key.value_type, aicred_core::ValueType::ModelId) {
-                        if let Some(model_id) = key.full_value() {
-                            models.insert(model_id.to_string());
-                        }
-                    }
+                // Count all models configured in this provider instance
+                for model in &provider_instance.models {
+                    models.insert(model.name.clone());
                 }
             }
 
@@ -209,4 +276,20 @@ fn truncate_string(s: &str, max_len: usize) -> String {
     }
     let truncated: String = s.chars().take(max_len.saturating_sub(3)).collect();
     format!("{}...", truncated)
+}
+
+/// Get tags for a specific instance
+fn get_tags_for_instance(
+    instance_id: &str,
+) -> Result<Vec<aicred_core::models::Tag>, anyhow::Error> {
+    use crate::commands::tags::get_tags_for_target;
+    get_tags_for_target(instance_id, None, None)
+}
+
+/// Get labels for a specific instance
+fn get_labels_for_instance(
+    instance_id: &str,
+) -> Result<Vec<aicred_core::models::Label>, anyhow::Error> {
+    use crate::commands::labels::get_labels_for_target;
+    get_labels_for_target(instance_id, None, None)
 }

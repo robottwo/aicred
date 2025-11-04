@@ -1880,9 +1880,25 @@ fn test_instance_id_generation() {
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
 
-    // Instance ID should be based on provider name and file name
-    assert!(instance.id.contains("openai"));
-    assert!(instance.id.contains("my-config-json"));
+    // Instance ID should be a 4-character hash based on provider name and file path
+    assert_eq!(
+        instance.id.len(),
+        4,
+        "Instance ID should be 4 characters long"
+    );
+    assert!(
+        instance.id.chars().all(|c| c.is_ascii_hexdigit()),
+        "Instance ID should be a valid hex string"
+    );
+
+    // Verify consistency: same inputs should produce same hash
+    let instances2 = scanner
+        .build_instances_from_keys(&keys, "/test/my.config.json", None)
+        .unwrap();
+    assert_eq!(
+        instance.id, instances2[0].id,
+        "Same inputs should produce same instance ID"
+    );
 }
 
 #[test]

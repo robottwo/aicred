@@ -13,7 +13,7 @@
 #![allow(unused_imports)]
 #![allow(unused_comparisons)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use colored::*;
 use std::path::PathBuf;
@@ -21,13 +21,20 @@ use tracing_subscriber::EnvFilter;
 
 mod commands;
 mod output;
+mod utils;
 
 use commands::{
+    labels::{handle_label_scan, handle_list_labels, handle_set_label, handle_unset_label},
     providers::{
-        handle_add_instance, handle_get_instance, handle_list_instances, handle_providers,
-        handle_remove_instance, handle_update_instance, handle_validate_instances,
+        handle_add_instance, handle_get_instance, handle_list_instances, handle_list_models,
+        handle_providers, handle_remove_instance, handle_update_instance,
+        handle_validate_instances,
     },
     scan::handle_scan,
+    tags::{
+        handle_add_tag, handle_assign_tag, handle_list_tags, handle_remove_tag,
+        handle_unassign_tag, handle_update_tag,
+    },
 };
 
 /// AICred - Discover AI API keys and configurations
@@ -109,6 +116,24 @@ enum Commands {
         command: Option<InstanceCommands>,
     },
 
+    /// Tag management commands
+    Tags {
+        #[command(subcommand)]
+        command: Option<TagCommands>,
+    },
+
+    /// Label management commands
+    Labels {
+        #[command(subcommand)]
+        command: Option<LabelCommands>,
+    },
+
+    /// Model management commands
+    Models {
+        #[command(subcommand)]
+        command: Option<ModelCommands>,
+    },
+
     /// Show version information
     Version,
 }
@@ -128,6 +153,14 @@ enum InstanceCommands {
         /// Show only active instances
         #[arg(long)]
         active_only: bool,
+
+        /// Filter by tag name
+        #[arg(long)]
+        tag: Option<String>,
+
+        /// Filter by label name
+        #[arg(long)]
+        label: Option<String>,
     },
 
     /// Add a new provider instance
@@ -221,6 +254,148 @@ enum InstanceCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum TagCommands {
+    /// List all tags
+    List,
+
+    /// Add a new tag
+    Add {
+        /// Tag name
+        #[arg(short = 'n', long)]
+        name: String,
+
+        /// Tag color (hex code)
+        #[arg(short = 'c', long)]
+        color: Option<String>,
+
+        /// Tag description
+        #[arg(short = 'd', long)]
+        description: Option<String>,
+    },
+
+    /// Remove a tag
+    Remove {
+        /// Tag name to remove
+        #[arg(short = 'n', long)]
+        name: String,
+
+        /// Force removal without confirmation
+        #[arg(long)]
+        force: bool,
+    },
+
+    /// Update a tag
+    Update {
+        /// Tag name to update
+        #[arg(short = 'n', long)]
+        name: String,
+
+        /// New tag color
+        #[arg(short = 'c', long)]
+        color: Option<String>,
+
+        /// New tag description
+        #[arg(short = 'd', long)]
+        description: Option<String>,
+    },
+
+    /// Assign a tag to an instance or model
+    Assign {
+        /// Tag name to assign
+        #[arg(short = 'n', long)]
+        name: String,
+
+        /// Instance ID
+        #[arg(short = 'i', long)]
+        instance: Option<String>,
+
+        /// Model ID (requires instance ID)
+        #[arg(short = 'm', long)]
+        model: Option<String>,
+    },
+
+    /// Unassign a tag from an instance or model
+    Unassign {
+        /// Tag name to unassign
+        #[arg(short = 'n', long)]
+        name: String,
+
+        /// Instance ID
+        #[arg(short = 'i', long)]
+        instance: Option<String>,
+
+        /// Model ID (requires instance ID)
+        #[arg(short = 'm', long)]
+        model: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum LabelCommands {
+    /// List all label assignments
+    List,
+
+    /// Set (create or update) a label assignment
+    Set {
+        /// Label assignment in format: label=provider:model
+        #[arg(index = 1, required = true)]
+        assignment: String,
+
+        /// Label color (hex code)
+        #[arg(short = 'c', long)]
+        color: Option<String>,
+
+        /// Label description
+        #[arg(short = 'd', long)]
+        description: Option<String>,
+    },
+
+    /// Unset (remove) a label assignment
+    Unset {
+        /// Label name to remove
+        #[arg(index = 1, required = true)]
+        name: String,
+
+        /// Force removal without confirmation
+        #[arg(long)]
+        force: bool,
+    },
+
+    /// Scan for label assignments based on regex patterns in conf/labels/*.scan files
+    Scan {
+        /// Dry run - show what would be assigned without making changes
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Verbose output - show detailed matching information
+        #[arg(long, short = 'v')]
+        verbose: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ModelCommands {
+    /// List all models with their configurations
+    List {
+        /// Show detailed information
+        #[arg(long, short = 'v')]
+        verbose: bool,
+
+        /// Filter by provider type (e.g., openai, anthropic)
+        #[arg(long)]
+        provider_type: Option<String>,
+
+        /// Filter by tag name
+        #[arg(long)]
+        tag: Option<String>,
+
+        /// Filter by label name
+        #[arg(long)]
+        label: Option<String>,
+    },
+}
+
 fn main() -> Result<()> {
     // Initialize tracing with environment filter
     tracing_subscriber::fmt()
@@ -276,7 +451,7 @@ fn main() -> Result<()> {
             }
             (None, None) => {
                 // Default to list when no subcommand and no ID is provided
-                handle_list_instances(cli.home.map(PathBuf::from), false, None, false)
+                handle_list_instances(cli.home.map(PathBuf::from), false, None, false, None, None)
             }
             (
                 _,
@@ -284,12 +459,16 @@ fn main() -> Result<()> {
                     verbose,
                     provider_type,
                     active_only,
+                    tag,
+                    label,
                 }),
             ) => handle_list_instances(
                 cli.home.map(PathBuf::from),
                 verbose,
                 provider_type,
                 active_only,
+                tag,
+                label,
             ),
             (
                 _,
@@ -321,6 +500,100 @@ fn main() -> Result<()> {
             (_, Some(InstanceCommands::Validate { id, all_errors })) => {
                 handle_validate_instances(id, all_errors)
             }
+        },
+        Commands::Tags { command } => match command {
+            Some(TagCommands::List) => handle_list_tags(cli.home.map(PathBuf::from).as_deref()),
+            Some(TagCommands::Add {
+                name,
+                color,
+                description,
+            }) => handle_add_tag(
+                name,
+                color,
+                description,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            Some(TagCommands::Remove { name, force }) => {
+                handle_remove_tag(name, force, cli.home.map(PathBuf::from).as_deref())
+            }
+            Some(TagCommands::Update {
+                name,
+                color,
+                description,
+            }) => handle_update_tag(
+                name,
+                color,
+                description,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            Some(TagCommands::Assign {
+                name,
+                instance,
+                model,
+            }) => handle_assign_tag(
+                name,
+                instance,
+                model,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            Some(TagCommands::Unassign {
+                name,
+                instance,
+                model,
+            }) => handle_unassign_tag(
+                name,
+                instance,
+                model,
+                cli.home.map(PathBuf::from).as_deref(),
+            ),
+            None => handle_list_tags(cli.home.map(PathBuf::from).as_deref()),
+        },
+        Commands::Labels { command } => match command {
+            Some(LabelCommands::List) => handle_list_labels(),
+            Some(LabelCommands::Set {
+                assignment,
+                color,
+                description,
+            }) => {
+                // Parse assignment format: label=provider:model
+                let parts: Vec<&str> = assignment.split('=').collect();
+                if parts.len() != 2 {
+                    return Err(anyhow::anyhow!(
+                        "Assignment format must be 'label=provider:model', e.g., 'thinking=openrouter:deepseek-v3.2-exp'"
+                    ));
+                }
+                let label_name = parts[0].trim().to_string();
+                let tuple_str = parts[1].trim().to_string();
+                handle_set_label(
+                    label_name,
+                    tuple_str,
+                    color,
+                    description,
+                    cli.home.map(PathBuf::from).as_deref(),
+                )
+            }
+            Some(LabelCommands::Unset { name, force }) => {
+                handle_unset_label(name, force, cli.home.map(PathBuf::from).as_deref())
+            }
+            Some(LabelCommands::Scan { dry_run, verbose }) => {
+                handle_label_scan(dry_run, verbose, cli.home.map(PathBuf::from).as_deref())
+            }
+            None => handle_list_labels(),
+        },
+        Commands::Models { command } => match command {
+            Some(ModelCommands::List {
+                verbose,
+                provider_type,
+                tag,
+                label,
+            }) => handle_list_models(
+                cli.home.map(PathBuf::from),
+                verbose,
+                provider_type,
+                tag,
+                label,
+            ),
+            None => handle_list_models(cli.home.map(PathBuf::from), false, None, None, None),
         },
         Commands::Version => handle_version(),
     }

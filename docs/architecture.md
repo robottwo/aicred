@@ -862,4 +862,415 @@ This architecture provides a solid foundation for a secure, extensible, and cros
 - Scanner plugins can discover keys for multiple providers
 - Provider plugins focus on key validation and scoring
 - More flexible and extensible plugin system
+## Tagging and Labeling System Architecture
+
+Version 0.2.0 introduces a comprehensive tagging and labeling system for organizing and categorizing provider instances and models. This system provides flexible organization while maintaining simplicity and performance.
+
+### Design Philosophy
+
+The tagging and labeling system follows these core principles:
+
+1. **Simplicity**: Easy to understand and use for both users and developers
+2. **Flexibility**: Supports various organization patterns and use cases
+3. **Performance**: Efficient storage and retrieval of tag/label information
+4. **Backward Compatibility**: Existing configurations continue to work unchanged
+5. **Extensibility**: Easy to extend with new features and capabilities
+
+### Core Architecture Components
+
+#### Tag System Architecture
+
+Tags are designed for categorization and organization:
+
+```rust
+// Tag: Non-unique identifier for categorization
+pub struct Tag {
+    pub id: String,                    // Unique identifier (auto-generated)
+    pub name: String,                  // Human-readable name
+    pub description: Option<String>,   // Optional description
+    pub color: Option<String>,         // Optional color for UI display
+    pub metadata: Option<HashMap<String, String>>, // Additional metadata
+    pub created_at: DateTime<Utc>,     // Creation timestamp
+    pub updated_at: DateTime<Utc>,     // Last update timestamp
+}
+
+// Tag Assignment: Links tags to targets
+pub struct TagAssignment {
+    pub id: String,                    // Unique assignment ID
+    pub tag_id: String,               // Reference to tag
+    pub target: TagAssignmentTarget,  // Target (instance or model)
+    pub metadata: Option<HashMap<String, String>>, // Assignment metadata
+    pub created_at: DateTime<Utc>,    // Assignment timestamp
+    pub updated_at: DateTime<Utc>,    // Last update timestamp
+}
+```
+
+**Key Characteristics:**
+- **Non-unique**: Multiple targets can have the same tag
+- **Flexible targeting**: Can be assigned to provider instances or specific models
+- **Rich metadata**: Supports additional information for both tags and assignments
+- **Efficient storage**: Optimized for quick lookups and assignments
+
+#### Label System Architecture
+
+Labels are designed for unique identification and designation:
+
+```rust
+// Label: Unique identifier for designation
+pub struct Label {
+    pub id: String,                    // Unique identifier (auto-generated)
+    pub name: String,                  // Human-readable name
+    pub description: Option<String>,   // Optional description
+    pub color: Option<String>,         // Optional color for UI display
+    pub metadata: Option<HashMap<String, String>>, // Additional metadata
+    pub created_at: DateTime<Utc>,     // Creation timestamp
+    pub updated_at: DateTime<Utc>,     // Last update timestamp
+}
+
+// Label Assignment: Links labels to targets with uniqueness constraints
+pub struct LabelAssignment {
+    pub id: String,                    // Unique assignment ID
+    pub label_id: String,             // Reference to label
+    pub target: LabelAssignmentTarget, // Target (instance or model)
+    pub metadata: Option<HashMap<String, String>>, // Assignment metadata
+    pub created_at: DateTime<Utc>,    // Assignment timestamp
+    pub updated_at: DateTime<Utc>,    // Last update timestamp
+}
+```
+
+**Key Characteristics:**
+- **Unique**: Only one target can have a specific label at a time
+- **Exclusive**: Enforces uniqueness across all targets
+- **Definitive**: Used for primary, backup, deprecated, etc.
+- **Safe**: Prevents accidental duplication of important designations
+
+### Target System Architecture
+
+Both tags and labels support assignment to different target types:
+
+```rust
+pub enum TagAssignmentTarget {
+    ProviderInstance { instance_id: String },
+    Model { instance_id: String, model_id: String },
+}
+
+pub enum LabelAssignmentTarget {
+    ProviderInstance { instance_id: String },
+    Model { instance_id: String, model_id: String },
+}
+```
+
+**Target Types:**
+- **Provider Instance**: Assignment to entire provider instance
+- **Model**: Assignment to specific model within a provider instance
+
+### Storage Architecture
+
+#### Configuration File Structure
+
+Tags and labels are stored in YAML files in the AICred configuration directory:
+
+```
+~/.config/aicred/
+├── tags.yaml              # Tag definitions
+├── tag_assignments.yaml   # Tag assignments
+├── labels.yaml            # Label definitions
+└── label_assignments.yaml # Label assignments
+```
+
+#### Storage Benefits
+
+- **Human-readable**: YAML format for easy editing and debugging
+- **Version control friendly**: Text format works well with Git
+- **Portable**: Easy to backup, restore, and migrate
+- **No database overhead**: Simple file-based storage for performance
+
+### CLI Architecture
+
+#### Command Structure
+
+The CLI provides comprehensive tag and label management:
+
+```rust
+// Tag commands
+aicred tags list                    // List all tags
+aicred tags add --name "..."        // Add new tag
+aicred tags update --name "..."     // Update existing tag
+aicred tags remove --name "..."     // Remove tag
+aicred tags assign --name "..."     // Assign tag to target
+aicred tags unassign --name "..."   // Unassign tag from target
+
+// Label commands
+aicred labels list                  // List all labels
+aicred labels add --name "..."      // Add new label
+aicred labels update --name "..."   // Update existing label
+aicred labels remove --name "..."   // Remove label
+aicred labels assign --name "..."   // Assign label to target
+aicred labels unassign --name "..." // Unassign label from target
+```
+
+#### CLI Design Principles
+
+- **Consistent interface**: Similar command patterns for tags and labels
+- **Clear feedback**: Informative success and error messages
+- **Validation**: Input validation and constraint checking
+- **Safety**: Confirmation prompts for destructive operations
+
+### GUI Architecture
+
+#### Component Structure
+
+The Tauri GUI provides visual management:
+
+```
+gui/src/components/
+├── TagManagement.tsx        // Tag management interface
+├── LabelManagement.tsx      // Label management interface
+├── AssignmentModal.tsx      // Tag/label assignment modal
+├── TagAssignmentList.tsx    // Tag assignment display
+└── LabelAssignmentList.tsx  // Label assignment display
+```
+
+#### GUI Features
+
+- **Visual tag/label creation**: Color pickers and form validation
+- **Assignment management**: Easy assignment and unassignment
+- **Real-time updates**: Immediate feedback for all operations
+- **Responsive design**: Works on desktop and mobile devices
+
+### API Architecture
+
+#### Core Library Integration
+
+The tagging system integrates seamlessly with the core library:
+
+```rust
+// Tag operations
+pub fn load_tags() -> Result<Vec<Tag>>
+pub fn save_tags(tags: &[Tag]) -> Result<()>
+pub fn get_tags_for_target(instance_id: &str, model_id: Option<&str>) -> Result<Vec<Tag>>
+
+// Label operations
+pub fn load_labels() -> Result<Vec<Label>>
+pub fn save_labels(labels: &[Label]) -> Result<()>
+pub fn get_labels_for_target(instance_id: &str, model_id: Option<&str>) -> Result<Vec<Label>>
+```
+
+#### Language Bindings
+
+- **Python**: Tag/label management via CLI commands
+- **Go**: Tag/label management via CLI commands
+- **Rust**: Direct API access for advanced use cases
+
+### Validation and Constraints
+
+#### Tag Validation
+
+```rust
+impl Tag {
+    pub fn validate(&self) -> Result<(), String> {
+        // ID and name cannot be empty
+        // Name cannot exceed 100 characters
+        // Color cannot exceed 20 characters
+        // Description cannot exceed 500 characters
+        // Metadata values must be strings
+    }
+}
+```
+
+#### Label Validation
+
+```rust
+impl Label {
+    pub fn validate(&self) -> Result<(), String> {
+        // Same validation as tags
+        // Plus uniqueness constraint checking
+    }
+}
+```
+
+#### Assignment Validation
+
+```rust
+impl TagAssignment {
+    pub fn validate(&self) -> Result<(), String> {
+        // Assignment ID and tag ID cannot be empty
+        // Target must be valid (instance or model)
+        // Instance/model IDs cannot be empty
+    }
+}
+```
+
+### Performance Considerations
+
+#### Storage Efficiency
+
+- **Compact storage**: YAML format with minimal overhead
+- **Lazy loading**: Tags and labels loaded only when needed
+- **Efficient lookups**: Hash-based ID lookups for O(1) access
+
+#### Query Performance
+
+- **Fast filtering**: Efficient filtering by tag/label properties
+- **Assignment queries**: Optimized queries for assignment lookups
+- **Batch operations**: Support for bulk tag/label operations
+
+#### Memory Usage
+
+- **Streaming processing**: Large tag/label sets processed efficiently
+- **Garbage collection**: Automatic cleanup of unused assignments
+- **Memory mapping**: Efficient memory usage for large datasets
+
+### Security Architecture
+
+#### Data Protection
+
+- **No sensitive data**: Tags and labels contain no secrets
+- **Input validation**: All inputs validated for safety
+- **File permissions**: Configuration files have appropriate permissions
+
+#### Access Control
+
+- **Local access only**: Tag/label management requires local file system access
+- **No remote access**: No network-based tag/label management
+- **User isolation**: Each user manages their own tags/labels
+
+### Extensibility Architecture
+
+#### Plugin System Integration
+
+The tagging system integrates with the existing plugin architecture:
+
+```rust
+// Plugin can extend tag/label functionality
+pub trait TaggingPlugin: Send + Sync {
+    fn name(&self) -> &str;
+    fn validate_tag(&self, tag: &Tag) -> Result<(), String>;
+    fn validate_label(&self, label: &Label) -> Result<(), String>;
+}
+```
+
+#### Future Extension Points
+
+1. **Custom metadata types**: Support for structured metadata
+2. **Assignment rules**: Automatic assignment based on rules
+3. **Integration APIs**: External system integration
+4. **Reporting**: Tag/label usage analytics
+
+### Migration Architecture
+
+#### Backward Compatibility
+
+The system maintains full backward compatibility:
+
+- **Existing configurations**: Continue to work unchanged
+- **Gradual migration**: Optional migration to new features
+- **No breaking changes**: All existing APIs continue to work
+
+#### Migration Strategy
+
+```rust
+// Automatic compatibility layer
+pub struct CompatibilityLayer {
+    old_config: Option<OldProviderConfig>,
+    new_instances: Vec<ProviderInstance>,
+}
+
+impl CompatibilityLayer {
+    pub fn migrate_old_config(&mut self) -> Result<(), MigrationError> {
+        // Convert old multi-key config to new instance model
+        // Preserve all existing functionality
+        // Maintain data integrity
+    }
+}
+```
+
+### Error Handling Architecture
+
+#### Error Types
+
+```rust
+#[derive(Error, Debug)]
+pub enum TaggingError {
+    #[error("Tag not found: {0}")]
+    TagNotFound(String),
+    
+    #[error("Label already assigned: {0}")]
+    LabelAlreadyAssigned(String),
+    
+    #[error("Invalid assignment target: {0}")]
+    InvalidTarget(String),
+    
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+}
+```
+
+#### Error Recovery
+
+- **Graceful degradation**: System continues to work with partial failures
+- **Detailed error messages**: Clear guidance for error resolution
+- **Rollback capabilities**: Ability to undo failed operations
+
+### Testing Architecture
+
+#### Test Structure
+
+```
+core/tests/
+├── tagging_unit_tests.rs      // Unit tests for tag/label models
+├── tagging_integration_tests.rs // Integration tests for full workflow
+├── tagging_validation_tests.rs  // Validation and constraint tests
+└── tagging_performance_tests.rs // Performance and scalability tests
+```
+
+#### Test Coverage
+
+- **Model validation**: All validation logic tested
+- **Assignment operations**: All assignment scenarios tested
+- **Error handling**: All error conditions tested
+- **Performance**: Load and stress testing
+
+### Monitoring and Observability
+
+#### Metrics
+
+- **Tag/label counts**: Number of tags and labels configured
+- **Assignment statistics**: Assignment patterns and usage
+- **Performance metrics**: Operation timing and throughput
+- **Error rates**: Error frequency and types
+
+#### Logging
+
+- **Operation logging**: All tag/label operations logged
+- **Assignment tracking**: Assignment changes tracked
+- **Validation logging**: Validation failures logged
+- **Performance logging**: Operation timing logged
+
+### Deployment Architecture
+
+#### Configuration Management
+
+- **File-based configuration**: Simple file-based setup
+- **Environment-specific configs**: Support for different environments
+- **Backup and restore**: Easy backup and restore procedures
+- **Version control**: Configuration files work with version control
+
+#### Distribution
+
+- **Single binary**: All functionality in one executable
+- **No external dependencies**: Self-contained operation
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Minimal footprint**: Small installation size
+
+### Conclusion
+
+The tagging and labeling system architecture provides a robust, scalable, and user-friendly solution for organizing GenAI provider instances and models. The design emphasizes simplicity, performance, and extensibility while maintaining full backward compatibility with existing configurations.
+
+**Key Architectural Benefits:**
+- **Modular design**: Clear separation of concerns
+- **Performance optimized**: Efficient storage and retrieval
+- **User friendly**: Intuitive CLI and GUI interfaces
+- **Developer friendly**: Clean APIs and extensibility points
+- **Future proof**: Extensible architecture for future enhancements
 - Better support for application-specific configuration scanning

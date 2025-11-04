@@ -26,7 +26,9 @@ impl ProviderInstances {
     pub fn from_instances(instances: Vec<ProviderInstance>) -> Self {
         let mut collection = Self::new();
         for instance in instances {
-            let _ = collection.add_instance(instance);
+            if let Err(e) = collection.add_instance(instance) {
+                tracing::warn!("Failed to add instance: {}", e);
+            }
         }
         collection
     }

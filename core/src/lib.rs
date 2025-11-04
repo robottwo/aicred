@@ -61,6 +61,7 @@ pub mod plugins;
 pub mod providers;
 pub mod scanner;
 pub mod scanners;
+pub mod utils;
 
 pub use error::{Error, Result};
 pub use models::{
@@ -71,6 +72,7 @@ pub use parser::{ConfigParser, FileFormat};
 pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
 pub use scanner::{Scanner, ScannerConfig, DEFAULT_MAX_FILE_SIZE};
 pub use scanners::{register_builtin_scanners, ScannerPlugin, ScannerRegistry};
+pub use utils::provider_model_tuple::ProviderModelTuple;
 
 use std::path::PathBuf;
 use tracing::debug;

@@ -1,6 +1,4 @@
-use aicred_core::models::{
-    Confidence, Environment, Model, ProviderInstance, ProviderKey, ValidationStatus,
-};
+use aicred_core::models::{Model, ProviderInstance};
 use aicred_core::plugins::PluginRegistry;
 use aicred_core::providers::anthropic::AnthropicPlugin;
 use aicred_core::{scan, ScanOptions};
@@ -57,6 +55,7 @@ fn sanitize_provider_name(name: &str) -> String {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_scan(
     home: Option<String>,
     format: String,
@@ -117,7 +116,7 @@ pub fn handle_scan(
 
     // Output results based on format
     match format.as_str() {
-        "json" => crate::output::json::output_json(&result, verbose)?,
+        "json" => crate::output::json::output_json(&result, verbose, None)?,
         "ndjson" => crate::output::ndjson::output_ndjson(&result, verbose)?,
         "table" => crate::output::table::output_table(&result, verbose)?,
         "summary" => crate::output::summary::output_summary(&result, verbose)?,
@@ -147,10 +146,10 @@ fn create_full_model(model_id: &str) -> Model {
     let model = Model::new(model_id.to_string(), model_id.to_string());
 
     // Set default capabilities based on common model patterns
-    let mut capabilities = aicred_core::models::Capabilities::default();
-
-    // Enable text generation for most models
-    capabilities.text_generation = true;
+    let mut capabilities = aicred_core::models::Capabilities {
+        text_generation: true,
+        ..Default::default()
+    };
 
     // Set specific capabilities based on model name patterns
     let model_lower = model_id.to_lowercase();
@@ -194,6 +193,7 @@ fn save_model_config(model: &Model, models_dir: &std::path::Path) -> Result<Stri
 }
 
 /// Helper function to load a model from a config file
+#[allow(dead_code)]
 fn load_model_config(model_path: &std::path::Path) -> Result<Model> {
     let content = std::fs::read_to_string(model_path)?;
     let model: Model = serde_yaml::from_str(&content)?;
@@ -214,6 +214,7 @@ fn get_default_base_url(provider_name: &str) -> String {
 }
 
 /// Helper function to hash a value using SHA-256 (for API key filename generation)
+#[allow(dead_code)]
 fn hash_value(value: &str) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
@@ -428,6 +429,22 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     );
                                 }
                             }
+                            aicred_core::models::discovered_key::ValueType::BaseUrl => {
+                                if let Some(full_value) = key.full_value() {
+                                    _base_url = Some(full_value.to_string());
+                                    instance.base_url = full_value.to_string();
+                                    tracing::debug!("Found base_url: {}", full_value);
+                                }
+                            }
+                            aicred_core::models::discovered_key::ValueType::Temperature => {
+                                if let Some(full_value) = key.full_value() {
+                                    if let Ok(temp) = full_value.parse::<f32>() {
+                                        metadata_map
+                                            .insert("temperature".to_string(), temp.to_string());
+                                        tracing::debug!("Found temperature: {}", temp);
+                                    }
+                                }
+                            }
                             aicred_core::models::discovered_key::ValueType::Custom(
                                 ref custom_type,
                             ) => {
@@ -527,9 +544,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     }
 
                     // Check if this key already exists in the instance
-                    let key_exists = instance
-                        .get_api_key()
-                        .map_or(false, |existing_key| existing_key == &api_key_to_store);
+                    let key_exists = instance.get_api_key() == Some(&api_key_to_store);
 
                     // Only add the key if it doesn't already exist
                     if !key_exists {
@@ -638,9 +653,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     }
 
                     // Check if this key already exists in the instance
-                    let key_exists = instance
-                        .get_api_key()
-                        .map_or(false, |existing_key| existing_key == &api_key_placeholder);
+                    let key_exists = instance.get_api_key() == Some(&api_key_placeholder);
 
                     // Only add the key if it doesn't already exist
                     if !key_exists {

@@ -23,6 +23,7 @@ use crate::error::{Error, Result};
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::provider_key::{Environment, ValidationStatus};
 use crate::models::{ConfigInstance, DiscoveredKey, Model, ProviderInstance, ProviderKey};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -311,12 +312,20 @@ pub fn extract_env_keys_with_metadata(
                 let value = value_match.as_str().trim_matches('"').trim();
 
                 if !value.is_empty() {
+                    // Map special custom types to their proper ValueType variants
+                    let value_type = match *custom_type {
+                        "ModelId" => crate::models::discovered_key::ValueType::ModelId,
+                        "BaseUrl" => crate::models::discovered_key::ValueType::BaseUrl,
+                        "Temperature" => crate::models::discovered_key::ValueType::Temperature,
+                        _ => crate::models::discovered_key::ValueType::Custom(
+                            (*custom_type).to_string(),
+                        ),
+                    };
+
                     let discovered_key = DiscoveredKey::new(
                         (*provider).to_string(),
                         "env_file".to_string(),
-                        crate::models::discovered_key::ValueType::Custom(
-                            (*custom_type).to_string(),
-                        ),
+                        value_type,
                         crate::models::discovered_key::Confidence::High,
                         value.to_string(),
                     );
@@ -497,16 +506,13 @@ pub trait ScannerPluginExt: ScannerPlugin {
                 default_url
             });
 
-            // Create instance ID from provider name and source
-            let instance_id = format!(
-                "{}-{}",
-                provider_name.to_lowercase().replace(' ', "-"),
-                source_path
-                    .split('/')
-                    .next_back()
-                    .unwrap_or("default")
-                    .replace('.', "-")
-            );
+            // Create instance ID using SHA-256 hash for consistency
+            let instance_id_source = format!("{provider_name}:{source_path}");
+            let mut hasher = sha2::Sha256::new();
+            hasher.update(instance_id_source.as_bytes());
+            let hash_result = hasher.finalize();
+            let full_hash = format!("{hash_result:x}");
+            let instance_id = full_hash[..4].to_string();
 
             // Create the provider instance
             let mut instance = ProviderInstance::new(

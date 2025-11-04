@@ -9,6 +9,8 @@
 pub mod config_instance;
 pub mod config_validator;
 pub mod discovered_key;
+pub mod label;
+pub mod label_assignment;
 pub mod model;
 pub mod provider;
 pub mod provider_config;
@@ -16,12 +18,18 @@ pub mod provider_instance;
 pub mod provider_instances;
 pub mod provider_key;
 pub mod scan_result;
+pub mod tag;
+pub mod tag_assignment;
+/// Unified label model combining label metadata and assignment information.
+pub mod unified_label;
 
 #[cfg(test)]
 mod tests;
 
 pub use config_instance::ConfigInstance;
 pub use discovered_key::{Confidence, DiscoveredKey, ValueType};
+pub use label::Label;
+pub use label_assignment::{LabelAssignment, LabelAssignmentTarget};
 pub use model::{Capabilities, Model, TokenCost};
 pub use provider::{AuthMethod, Provider, RateLimit};
 #[deprecated(
@@ -33,3 +41,6 @@ pub use provider_instance::ProviderInstance;
 pub use provider_instances::ProviderInstances;
 pub use provider_key::{Environment, ProviderKey, ValidationStatus};
 pub use scan_result::{ScanResult, ScanSummary};
+pub use tag::Tag;
+pub use tag_assignment::{TagAssignment, TagAssignmentTarget};
+pub use unified_label::UnifiedLabel;

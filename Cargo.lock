@@ -30,6 +30,7 @@ dependencies = [
  "dirs-next",
  "hex",
  "predicates",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -75,6 +76,7 @@ dependencies = [
 name = "aicred-gui"
 version = "0.1.0"
 dependencies = [
+ "aicred",
  "aicred-core",
  "serde",
  "serde_json",

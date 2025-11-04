@@ -19,6 +19,7 @@
 - 🚀 **Multiple Interfaces**: Library, CLI, Python, Go, and GUI
 - 📊 **Rich Output**: JSON, NDJSON, table, and summary formats
 - 🎯 **Smart Detection**: High-confidence key identification
+- 🏷️ **Advanced Labeling**: Provider:model tuple scoping for precise label management
 
 ## Supported Providers
 
@@ -98,6 +99,7 @@ See detailed installation instructions in [docs/installation.md](docs/installati
 - [Architecture](docs/architecture.md)
 - [Installation Guide](docs/installation.md)
 - [User Guide](docs/user-guide.md)
+- [Provider-Model Tuple Guide](docs/provider-model-tuple-guide.md)
 - [API Reference](docs/api-reference.md)
 - [Plugin Development](docs/plugin-development.md)
 - [Security](docs/security.md)
