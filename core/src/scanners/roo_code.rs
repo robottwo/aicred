@@ -1,6 +1,6 @@
 //! Roo Code scanner for discovering API keys in `VSCode` extension configurations.
 
-use super::{ScanResult, ScannerPlugin, ScannerPluginExt};
+use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
@@ -213,6 +213,32 @@ impl ScannerPlugin for RooCodeScanner {
 
     fn parse_config(&self, path: &Path, content: &str) -> Result<ScanResult> {
         self.parse_config_with_registry(path, content, None)
+    }
+
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            EnvVarDeclaration::required(
+                "ROOCODE_API_KEY".to_string(),
+                "API key for Roo Code extension".to_string(),
+                "ApiKey".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "ROOCODE_BASE_URL".to_string(),
+                "Base URL for Roo Code API".to_string(),
+                "BaseUrl".to_string(),
+                Some("https://api.roocode.com/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "ROOCODE_MODEL_ID".to_string(),
+                "Model ID for Roo Code".to_string(),
+                "ModelId".to_string(),
+                Some("roocode-70b".to_string()),
+            ),
+        ]
+    }
+
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![]
     }
 }
 

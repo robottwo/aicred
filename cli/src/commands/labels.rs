@@ -577,7 +577,7 @@ mod tests {
 
         // Mock the provider loader to return our test instances
         // This test verifies the matching logic works correctly
-        let patterns = vec![".*sonnet.*", ".*gpt5.*", ".*deepseek.*", ".*"];
+        let patterns = [".*sonnet.*", ".*gpt5.*", ".*deepseek.*", ".*"];
 
         // Test that deepseek model gets matched by the specific pattern
         let deepseek_str = "openrouter:deepseek/deepseek-v3.2-exp";

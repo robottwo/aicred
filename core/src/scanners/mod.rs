@@ -27,6 +27,81 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+/// Environment variable declaration for scanner plugins.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnvVarDeclaration {
+    /// Name of the environment variable (e.g., `OPENAI_API_KEY`).
+    pub name: String,
+    /// Description of what this variable does.
+    pub description: String,
+    /// Type of value expected (e.g., "string", "number", "boolean").
+    pub value_type: String,
+    /// Whether this environment variable is required.
+    pub required: bool,
+    /// Default value if not provided (None if no default).
+    pub default_value: Option<String>,
+}
+
+impl EnvVarDeclaration {
+    /// Creates a new environment variable declaration.
+    #[must_use]
+    pub const fn new(
+        name: String,
+        description: String,
+        value_type: String,
+        required: bool,
+        default_value: Option<String>,
+    ) -> Self {
+        Self {
+            name,
+            description,
+            value_type,
+            required,
+            default_value,
+        }
+    }
+
+    /// Creates a new required environment variable declaration.
+    #[must_use]
+    pub const fn required(name: String, description: String, value_type: String) -> Self {
+        Self::new(name, description, value_type, true, None)
+    }
+
+    /// Creates a new optional environment variable declaration.
+    #[must_use]
+    pub const fn optional(
+        name: String,
+        description: String,
+        value_type: String,
+        default_value: Option<String>,
+    ) -> Self {
+        Self::new(name, description, value_type, false, default_value)
+    }
+}
+
+/// Label mapping for scanner plugins that associate labels with environment variable groups.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabelMapping {
+    /// Name of the label (e.g., "fast", "smart").
+    pub label_name: String,
+    /// Name of the environment variable group this label maps to.
+    pub env_var_group: String,
+    /// Description of what this label represents.
+    pub description: String,
+}
+
+impl LabelMapping {
+    /// Creates a new label mapping.
+    #[must_use]
+    pub const fn new(label_name: String, env_var_group: String, description: String) -> Self {
+        Self {
+            label_name,
+            env_var_group,
+            description,
+        }
+    }
+}
+
 /// Trait that all application scanner plugins must implement.
 pub trait ScannerPlugin: Send + Sync {
     /// Returns the name of this scanner (e.g., "ragit", "claude-desktop").
@@ -45,6 +120,18 @@ pub trait ScannerPlugin: Send + Sync {
 
     /// Validates that this scanner can handle the given file.
     fn can_handle_file(&self, path: &Path) -> bool;
+
+    /// Returns the environment variable schema for this scanner.
+    /// Default implementation returns empty vector for backward compatibility.
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        Vec::new()
+    }
+
+    /// Returns the label mappings for this scanner.
+    /// Default implementation returns empty vector for backward compatibility.
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        Vec::new()
+    }
 
     /// Scans for multiple instances of this application (e.g., multiple installations).
     /// # Errors

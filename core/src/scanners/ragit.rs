@@ -1,6 +1,6 @@
 //! Ragit scanner for discovering API keys in Ragit configuration files.
 
-use super::{ScanResult, ScannerPlugin};
+use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
@@ -84,6 +84,32 @@ impl ScannerPlugin for RagitScanner {
         self.scan_project_configs(Path::new("."), &mut instances)?;
 
         Ok(instances)
+    }
+
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            EnvVarDeclaration::required(
+                "RAGIT_API_KEY".to_string(),
+                "API key for Ragit application".to_string(),
+                "ApiKey".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "RAGIT_BASE_URL".to_string(),
+                "Base URL for Ragit API".to_string(),
+                "BaseUrl".to_string(),
+                Some("https://api.ragit.ai/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "RAGIT_MODEL_ID".to_string(),
+                "Model ID for Ragit".to_string(),
+                "ModelId".to_string(),
+                Some("ragit-70b".to_string()),
+            ),
+        ]
+    }
+
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![]
     }
 }
 

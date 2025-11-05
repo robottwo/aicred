@@ -89,6 +89,14 @@ dev-setup: deps
 		 echo "  brew install pytest  # macOS with Homebrew"; \
 		 echo "  pip install pytest  # In a virtual environment"); \
 	}
+	@command -v ruff >/dev/null 2>&1 || { \
+		echo "Installing ruff for Python linting and formatting..."; \
+		(pip3 install --user ruff 2>/dev/null) || \
+		(pip3 install ruff --break-system-packages 2>/dev/null) || \
+		(echo "Failed to install ruff automatically. Please install manually:"; \
+		 echo "  brew install ruff  # macOS with Homebrew"; \
+		 echo "  pip install ruff  # In a virtual environment"); \
+	}
 	@command -v cargo-watch >/dev/null 2>&1 || { echo "Installing cargo-watch..."; cargo install cargo-watch; }
 	@echo "Development environment setup complete!"
 
@@ -109,6 +117,7 @@ check-optional:
 	@command -v maturin >/dev/null 2>&1 && echo "✓ maturin found" || echo "✗ maturin missing (needed for Python bindings)"
 	@(command -v cargo-watch >/dev/null 2>&1 || [ -f ~/.cargo/bin/cargo-watch ]) && echo "✓ cargo-watch found" || echo "✗ cargo-watch missing (needed for watch target)"
 	@command -v pytest >/dev/null 2>&1 && echo "✓ pytest found" || echo "✗ pytest missing (needed for Python tests)"
+	@command -v ruff >/dev/null 2>&1 && echo "✓ ruff found" || echo "✗ ruff missing (needed for Python linting and formatting)"
 	@echo "Run 'make dev-setup' to install missing optional tools"
 
 .PHONY: deps
@@ -131,6 +140,14 @@ fmt-check:
 .PHONY: clippy
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
+
+.PHONY: lint
+lint: clippy fmt
+	@command -v ruff >/dev/null 2>&1 && { \
+		echo "Running ruff on Python code..."; \
+		ruff check --fix bindings/python; \
+		ruff format bindings/python; \
+	} || echo "Warning: ruff not found, skipping Python linting/formatting"
 
 .PHONY: check
 check:
@@ -325,6 +342,7 @@ help:
 	@echo "  fmt            - Format all code"
 	@echo "  fmt-check      - Check code formatting without making changes"
 	@echo "  clippy         - Run clippy linter"
+	@echo "  lint           - Run clippy, rustfmt, and ruff (full linting)"
 	@echo "  check          - Check code without building"
 	@echo ""
 	@echo "Testing targets:"

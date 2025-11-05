@@ -1,6 +1,6 @@
 //! `GSH` scanner for discovering API keys in `GSH` configuration files.
 
-use super::{ScanResult, ScannerPlugin, ScannerPluginExt};
+use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::provider_key::{Environment, ValidationStatus};
@@ -36,6 +36,62 @@ impl ScannerPlugin for GshScanner {
 
     fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>> {
         self.scan_instances_with_registry(home_dir, None)
+    }
+
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            // Fast model environment variables (3 total)
+            EnvVarDeclaration::required(
+                "GSH_FAST_MODEL_API_KEY".to_string(),
+                "API key for the fast model provider (typically Groq)".to_string(),
+                "string".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "GSH_FAST_MODEL_BASE_URL".to_string(),
+                "Base URL for the fast model provider API".to_string(),
+                "string".to_string(),
+                Some("https://api.groq.com/openai/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "GSH_FAST_MODEL_ID".to_string(),
+                "Model ID for the fast model".to_string(),
+                "string".to_string(),
+                Some("llama3-70b-8192".to_string()),
+            ),
+            // Slow model environment variables (3 total)
+            EnvVarDeclaration::required(
+                "GSH_SLOW_MODEL_API_KEY".to_string(),
+                "API key for the slow/smart model provider (typically OpenRouter)".to_string(),
+                "string".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "GSH_SLOW_MODEL_BASE_URL".to_string(),
+                "Base URL for the slow/smart model provider API".to_string(),
+                "string".to_string(),
+                Some("https://openrouter.ai/api/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "GSH_SLOW_MODEL_ID".to_string(),
+                "Model ID for the slow/smart model".to_string(),
+                "string".to_string(),
+                Some("anthropic/claude-3-opus".to_string()),
+            ),
+        ]
+    }
+
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![
+            LabelMapping::new(
+                "fast".to_string(),
+                "GSH_FAST_MODEL".to_string(),
+                "Fast model configuration for quick responses".to_string(),
+            ),
+            LabelMapping::new(
+                "smart".to_string(),
+                "GSH_SLOW_MODEL".to_string(),
+                "Smart model configuration for complex reasoning".to_string(),
+            ),
+        ]
     }
 }
 

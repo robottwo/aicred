@@ -1,6 +1,6 @@
 //! `Claude Desktop` scanner for discovering API keys in `Claude Desktop` configuration files.
 
-use super::{ScanResult, ScannerPlugin, ScannerPluginExt};
+use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
@@ -39,6 +39,32 @@ impl ScannerPlugin for ClaudeDesktopScanner {
 
     fn scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>> {
         self.scan_instances_with_registry(home_dir, None)
+    }
+
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            EnvVarDeclaration::required(
+                "CLAUDE_DESKTOP_API_KEY".to_string(),
+                "API key for Claude Desktop".to_string(),
+                "ApiKey".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "CLAUDE_DESKTOP_BASE_URL".to_string(),
+                "Base URL for Claude Desktop API".to_string(),
+                "BaseUrl".to_string(),
+                Some("https://api.anthropic.com/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "CLAUDE_DESKTOP_MODEL_ID".to_string(),
+                "Model ID for Claude Desktop".to_string(),
+                "ModelId".to_string(),
+                Some("claude-3-opus-20240229".to_string()),
+            ),
+        ]
+    }
+
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![]
     }
 }
 

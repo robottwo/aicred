@@ -140,6 +140,242 @@ aicred labels assign --name "Primary" --instance-id my-openai
 aicred labels assign --name "Fast-Model" --instance-id my-openai --model-id gpt-3.5-turbo
 
 # Unassign a label from a target
+### Environment Variable Commands
+
+The `wrap` and `setenv` commands provide seamless integration between your labeled provider instances and applications by automatically resolving labels to environment variables.
+
+#### Wrap Command
+
+The `wrap` command executes commands with environment variables automatically resolved from label mappings. This allows you to run applications with the correct API keys and configurations without manually setting environment variables.
+
+**Basic Usage:**
+```bash
+# Run a command with environment variables from resolved labels
+aicred wrap --labels fast -- python my_script.py
+
+# Use multiple labels (comma-separated)
+aicred wrap --labels fast,smart -- npm run dev
+
+# Dry run to preview environment variables without executing
+aicred wrap --labels fast --dry-run -- echo "Preview mode"
+```
+
+**Scanner-Specific Usage:**
+
+Different scanners generate different environment variable patterns. Specify the scanner type to match your application's expectations:
+
+```bash
+# GSH scanner (default) - generates GSH_* variables
+aicred wrap --scanner gsh --labels fast -- python app.py
+
+# Roo Code scanner - generates ROO_CODE_* variables
+aicred wrap --scanner roo-code --labels primary -- code .
+
+# Claude Desktop scanner - generates ANTHROPIC_* variables
+aicred wrap --scanner claude-desktop --labels smart -- claude-desktop
+
+# RAGIt scanner - generates RAGIT_* variables
+aicred wrap --scanner ragit --labels fast -- ragit query
+
+# LangChain scanner - generates LANGCHAIN_* variables
+aicred wrap --scanner langchain --labels smart -- python langchain_app.py
+```
+
+**Advanced Options:**
+```bash
+# Specify custom home directory for configuration
+aicred wrap --home /path/to/config --labels fast -- python app.py
+
+# Combine multiple options
+aicred wrap --scanner gsh --labels fast,smart --dry-run -- python app.py
+```
+
+**Dry Run Output Example:**
+```bash
+$ aicred wrap --labels fast --dry-run -- python app.py
+Environment variables that would be set:
+  GSH_FAST_MODEL=groq:llama3-70b-8192
+  GSH_FAST_API_KEY=gsk_...xyz
+  GSH_FAST_BASE_URL=https://api.groq.com/openai/v1
+```
+
+#### SetEnv Command
+
+The `setenv` command generates shell-specific export statements for environment variables, allowing you to source them into your current shell session or use them in scripts.
+
+**Basic Usage:**
+```bash
+# Generate bash/zsh format (default)
+aicred setenv --labels fast --format bash
+
+# Generate fish shell format
+aicred setenv --labels fast --format fish
+
+# Generate PowerShell format
+aicred setenv --labels fast --format powershell
+```
+
+**Output Formats:**
+
+**Bash/Zsh:**
+```bash
+$ aicred setenv --labels fast --format bash
+export GSH_FAST_MODEL='groq:llama3-70b-8192'
+export GSH_FAST_API_KEY='gsk_...'
+export GSH_FAST_BASE_URL='https://api.groq.com/openai/v1'
+
+# Source into current shell
+eval "$(aicred setenv --labels fast --format bash)"
+```
+
+**Fish Shell:**
+```bash
+$ aicred setenv --labels fast --format fish
+set -gx GSH_FAST_MODEL 'groq:llama3-70b-8192'
+set -gx GSH_FAST_API_KEY 'gsk_...'
+set -gx GSH_FAST_BASE_URL 'https://api.groq.com/openai/v1'
+
+# Source into current shell
+aicred setenv --labels fast --format fish | source
+```
+
+**PowerShell:**
+```powershell
+PS> aicred setenv --labels fast --format powershell
+$env:GSH_FAST_MODEL = 'groq:llama3-70b-8192'
+$env:GSH_FAST_API_KEY = 'gsk_...'
+$env:GSH_FAST_BASE_URL = 'https://api.groq.com/openai/v1'
+
+# Execute in current session
+aicred setenv --labels fast --format powershell | Invoke-Expression
+```
+
+**Multiple Labels:**
+```bash
+# Generate variables for multiple labels
+aicred setenv --labels fast,smart --format bash
+# Output:
+# export GSH_FAST_MODEL='groq:llama3-70b-8192'
+# export GSH_FAST_API_KEY='gsk_...'
+# export GSH_FAST_BASE_URL='https://api.groq.com/openai/v1'
+# export GSH_SMART_MODEL='openrouter:anthropic/claude-3-opus'
+# export GSH_SMART_API_KEY='sk-or-...'
+# export GSH_SMART_BASE_URL='https://openrouter.ai/api/v1'
+```
+
+**Scanner-Specific Variables:**
+```bash
+# GSH scanner variables
+aicred setenv --scanner gsh --labels fast --format bash
+# Generates: GSH_FAST_MODEL, GSH_FAST_API_KEY, GSH_FAST_BASE_URL
+
+# Roo Code scanner variables
+aicred setenv --scanner roo-code --labels primary --format bash
+# Generates: ROO_CODE_API_KEY, ROO_CODE_MODEL_ID, ROO_CODE_BASE_URL
+
+# Claude Desktop scanner variables
+aicred setenv --scanner claude-desktop --labels smart --format bash
+# Generates: ANTHROPIC_API_KEY, CLAUDE_MODEL_ID
+```
+
+**Dry Run Mode:**
+```bash
+# Preview variables with masked secrets
+aicred setenv --labels fast --dry-run
+# Output:
+# Environment variables that would be exported:
+#   GSH_FAST_MODEL=groq:llama3-70b-8192
+#   GSH_FAST_API_KEY=gsk_...xyz
+#   GSH_FAST_BASE_URL=https://api.groq.com/openai/v1
+```
+
+#### Label-to-Environment Variable Mapping
+
+When you assign labels to provider instances, the system automatically generates environment variables following scanner-specific patterns:
+
+**Standard Variable Pattern:**
+- `{SCANNER}_{LABEL}_MODEL` - The provider:model tuple (e.g., `GSH_FAST_MODEL=openai:gpt-4`)
+- `{SCANNER}_{LABEL}_API_KEY` - The API key for the provider (e.g., `GSH_FAST_API_KEY=sk-...`)
+- `{SCANNER}_{LABEL}_BASE_URL` - The base URL for the API (e.g., `GSH_FAST_BASE_URL=https://api.openai.com/v1`)
+- `{SCANNER}_{LABEL}_{METADATA_KEY}` - Any custom metadata from the provider instance
+
+**Scanner-Specific Environment Variables:**
+
+**GSH Scanner:**
+- `GSH_{LABEL}_MODEL` - Provider:model tuple
+- `GSH_{LABEL}_API_KEY` - API key
+- `GSH_{LABEL}_BASE_URL` - Base URL
+- `GSH_{LABEL}_TEMPERATURE` - Temperature setting (optional)
+- `GSH_{LABEL}_PARALLEL_TOOL_CALLS` - Parallel tool calls setting (optional)
+
+**Roo Code Scanner:**
+- `ROO_CODE_API_KEY` - Anthropic API key
+- `ROO_CODE_MODEL_ID` - Model identifier
+- `ROO_CODE_BASE_URL` - API base URL
+- `ROO_CODE_TEMPERATURE` - Temperature setting
+- `ROO_CODE_PARALLEL_TOOL_CALLS` - Parallel tool calls setting
+
+**Claude Desktop Scanner:**
+- `ANTHROPIC_API_KEY` - Anthropic API key
+- `CLAUDE_MODEL_ID` - Model identifier
+- `CLAUDE_BASE_URL` - API base URL
+
+**RAGIt Scanner:**
+- `RAGIT_API_KEY` - API key for RAG operations
+- `RAGIT_MODEL_ID` - Model identifier
+- `RAGIT_BASE_URL` - API base URL
+- `RAGIT_EMBEDDING_MODEL` - Embedding model (optional)
+
+**LangChain Scanner:**
+- `LANGCHAIN_API_KEY` - API key
+- `LANGCHAIN_MODEL_ID` - Model identifier
+- `LANGCHAIN_BASE_URL` - API base URL
+- `LANGCHAIN_TEMPERATURE` - Temperature setting
+- `LANGCHAIN_MAX_TOKENS` - Maximum tokens (optional)
+
+**Complete Workflow Example:**
+```bash
+# 1. Create a label for fast models
+aicred labels add --name "fast" --description "Fast model for quick tasks" --color "#00ff00"
+
+# 2. Assign label to a specific provider instance and model
+aicred labels assign --name "fast" --instance-id my-groq --model-id llama3-70b-8192
+
+# 3. Use the label in your application with wrap
+aicred wrap --labels fast -- python my_app.py
+
+# 4. Or generate environment variables for manual use
+aicred setenv --labels fast --format bash
+# Output:
+# export GSH_FAST_MODEL='groq:llama3-70b-8192'
+# export GSH_FAST_API_KEY='gsk_...'
+# export GSH_FAST_BASE_URL='https://api.groq.com/openai/v1'
+
+# 5. Source into your shell
+eval "$(aicred setenv --labels fast --format bash)"
+
+# 6. Now your application can use the environment variables
+python my_app.py  # Will use GSH_FAST_* variables
+```
+
+**Multi-Label Workflow:**
+```bash
+# Create multiple labels for different use cases
+aicred labels add --name "fast" --description "Fast model"
+aicred labels add --name "smart" --description "Smart model"
+
+# Assign to different models
+aicred labels assign --name "fast" --instance-id my-groq --model-id llama3-70b-8192
+aicred labels assign --name "smart" --instance-id my-openrouter --model-id anthropic/claude-3-opus
+
+# Use both labels in your application
+aicred wrap --labels fast,smart -- python multi_model_app.py
+
+# The application now has access to both:
+# GSH_FAST_MODEL, GSH_FAST_API_KEY, GSH_FAST_BASE_URL
+# GSH_SMART_MODEL, GSH_SMART_API_KEY, GSH_SMART_BASE_URL
+```
+
 aicred labels unassign --name "Primary" --instance-id my-openai
 ```
 
