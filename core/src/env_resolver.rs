@@ -65,9 +65,12 @@ impl EnvResolutionResult {
         self.variables.insert(key, value);
     }
 
-    /// Adds a resolved label
+    /// Adds a resolved label (with deduplication)
     pub fn add_resolved_label(&mut self, label: String) {
-        self.resolved_labels.push(label);
+        // Only add if not already present to avoid duplicates
+        if !self.resolved_labels.contains(&label) {
+            self.resolved_labels.push(label);
+        }
     }
 
     /// Adds an unresolved label
@@ -133,13 +136,18 @@ impl EnvResolver {
                 .iter()
                 .find(|l| l.label_name == mapping.label_name)
             {
-                // Found a matching label assignment
-                result.add_resolved_label(mapping.label_name.clone());
-
                 // Get the provider instance for this label
                 if let Some(instance) = label_to_instance.get(&label.label_name) {
                     // Resolve environment variables for this label
-                    self.resolve_label_vars(&mapping.env_var_group, instance, &mut result, dry_run);
+                    self.resolve_label_vars(
+                        &mapping.env_var_group,
+                        instance,
+                        &mut result,
+                        dry_run,
+                        label,
+                    );
+                    // Only mark as resolved after successful resolution
+                    result.add_resolved_label(mapping.label_name.clone());
                 } else {
                     result.add_unresolved_label(mapping.label_name.clone());
                 }
@@ -195,6 +203,7 @@ impl EnvResolver {
         instance: &ProviderInstance,
         result: &mut EnvResolutionResult,
         dry_run: bool,
+        label: &UnifiedLabel,
     ) {
         // Find all environment variables that belong to this group
         let group_vars: Vec<&EnvVarDeclaration> = self
@@ -204,7 +213,7 @@ impl EnvResolver {
             .collect();
 
         for var in group_vars {
-            let value = Self::resolve_variable_value(var, instance, dry_run);
+            let value = Self::resolve_variable_value(var, instance, dry_run, &label.target);
             if let Some(val) = value {
                 result.add_variable(var.name.clone(), val);
             } else if var.required && !dry_run {
@@ -275,6 +284,7 @@ impl EnvResolver {
         var: &EnvVarDeclaration,
         instance: &ProviderInstance,
         dry_run: bool,
+        target: &ProviderModelTuple,
     ) -> Option<String> {
         // Determine the value type based on the variable name
         if var.name.ends_with("_API_KEY") {
@@ -282,7 +292,7 @@ impl EnvResolver {
         } else if var.name.ends_with("_BASE_URL") {
             resolve_base_url(var, instance)
         } else if var.name.ends_with("_MODEL") || var.name.ends_with("_MODEL_ID") {
-            resolve_model_id(var, instance)
+            resolve_model_id(var, instance, target)
         } else if var.name.ends_with("_TEMPERATURE") {
             resolve_temperature(var, instance)
         } else if var.name.ends_with("_MAX_TOKENS") {
@@ -335,10 +345,17 @@ fn resolve_base_url(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Opt
 }
 
 /// Resolves model ID value
-fn resolve_model_id(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
-    // Try to find a model that matches the target from the label
-    // For now, use the first model as a fallback, but ideally we should
-    // pass the target information to this method
+fn resolve_model_id(
+    var: &EnvVarDeclaration,
+    instance: &ProviderInstance,
+    target: &ProviderModelTuple,
+) -> Option<String> {
+    // Use the specific model from the label's target
+    if !target.model.is_empty() {
+        return Some(format!("{}:{}", target.provider, target.model));
+    }
+
+    // Fall back to first model from instance if no specific target
     if let Some(model) = instance.models.first() {
         return Some(format!("{}:{}", instance.provider_type, model.model_id));
     }

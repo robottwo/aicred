@@ -199,7 +199,7 @@ fn test_wrap_command_multiple_labels() {
     );
     assert_eq!(
         resolution_result.variables.get("GSH_SMART_MODEL").unwrap(),
-        "openai:gpt-3.5-turbo"
+        "openai:gpt-4"
     );
 }
 
