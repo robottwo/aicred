@@ -128,18 +128,6 @@ fn test_wrap_command_multiple_labels() {
     let model1 = aicred_core::models::Model::new("gpt-4".to_string(), "gpt-4".to_string());
     instance1.add_model(model1);
 
-    let mut instance2 = ProviderInstance::new(
-        "test-instance-anthropic".to_string(),
-        "Test Instance Anthropic".to_string(),
-        "anthropic".to_string(),
-        "https://api.anthropic.com".to_string(),
-    );
-    instance2.set_api_key("test-anthropic-key".to_string());
-    // Add a model to instance2 so it can match the target
-    let model2 =
-        aicred_core::models::Model::new("claude-3-opus".to_string(), "claude-3-opus".to_string());
-    instance2.add_model(model2);
-
     // Create a new instance that can handle both labels (same provider)
     let mut instance1 = ProviderInstance::new(
         "test-instance-multi".to_string(),
@@ -306,12 +294,6 @@ fn test_wrap_command_custom_metadata() {
     assert!(result.is_ok());
     let resolution_result = result.unwrap();
 
-    // Debug: Print all variables
-    eprintln!("Generated variables:");
-    for (key, value) in &resolution_result.variables {
-        eprintln!("  {} = {}", key, value);
-    }
-
     // Should include custom metadata as environment variables
     assert!(resolution_result.variables.contains_key("GSH_CUSTOM_MODEL"));
     assert!(resolution_result
@@ -320,12 +302,6 @@ fn test_wrap_command_custom_metadata() {
     assert!(resolution_result
         .variables
         .contains_key("GSH_CUSTOM_MAX_TOKENS"));
-
-    // Remove debug output
-    // eprintln!("Generated variables:");
-    // for (key, value) in &resolution_result.variables {
-    //     eprintln!("  {} = {}", key, value);
-    // }
 
     if let Some(temp) = resolution_result.variables.get("GSH_CUSTOM_TEMPERATURE") {
         assert_eq!(temp, "0.7");
@@ -407,12 +383,18 @@ fn test_wrap_command_error_handling() {
     let result = env_resolver.resolve(false);
 
     // Should handle empty configuration gracefully
-    assert!(result.is_ok() || result.is_err());
+    assert!(
+        result.is_ok(),
+        "Expected resolver to succeed for empty configuration, but got: {:?}",
+        result.err()
+    );
 
-    if let Ok(resolution_result) = result {
-        // If it succeeds, it should have no variables
-        assert!(resolution_result.variables.is_empty());
-    }
+    let resolution_result = result.unwrap();
+    assert!(
+        resolution_result.variables.is_empty(),
+        "Expected no variables for empty configuration, but got: {:?}",
+        resolution_result.variables
+    );
 }
 
 #[test]
@@ -595,12 +577,6 @@ fn test_wrap_command_special_characters_in_labels() {
 
     assert!(result.is_ok());
     let resolution_result = result.unwrap();
-
-    // Debug: Print all generated variables
-    eprintln!("Generated variables for special characters test:");
-    for (key, var) in &resolution_result.variables {
-        eprintln!("  {} = {}", key, var);
-    }
 
     // Should handle special characters in label names
     assert!(resolution_result

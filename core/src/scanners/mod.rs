@@ -45,7 +45,8 @@ pub struct EnvVarDeclaration {
 impl EnvVarDeclaration {
     /// Creates a new environment variable declaration.
     #[must_use]
-    pub const fn new(
+    #[allow(clippy::missing_const_for_fn)] // Cannot be const because it takes owned String parameters
+    pub fn new(
         name: String,
         description: String,
         value_type: String,
@@ -63,13 +64,15 @@ impl EnvVarDeclaration {
 
     /// Creates a new required environment variable declaration.
     #[must_use]
-    pub const fn required(name: String, description: String, value_type: String) -> Self {
+    #[allow(clippy::missing_const_for_fn)] // Cannot be const because it takes owned String parameters
+    pub fn required(name: String, description: String, value_type: String) -> Self {
         Self::new(name, description, value_type, true, None)
     }
 
     /// Creates a new optional environment variable declaration.
     #[must_use]
-    pub const fn optional(
+    #[allow(clippy::missing_const_for_fn)] // Cannot be const because it takes owned String parameters
+    pub fn optional(
         name: String,
         description: String,
         value_type: String,
@@ -93,7 +96,8 @@ pub struct LabelMapping {
 impl LabelMapping {
     /// Creates a new label mapping.
     #[must_use]
-    pub const fn new(label_name: String, env_var_group: String, description: String) -> Self {
+    #[allow(clippy::missing_const_for_fn)] // Cannot be const because it takes owned String parameters
+    pub fn new(label_name: String, env_var_group: String, description: String) -> Self {
         Self {
             label_name,
             env_var_group,

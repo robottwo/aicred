@@ -1,8 +1,8 @@
 //! Wrap command implementation - executes commands with LLM environment variables
 
-use aicred_core::models::UnifiedLabel;
+use crate::commands::labels::load_label_assignments_with_home;
+use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::scanners::ScannerRegistry;
-use aicred_core::ProviderModelTuple;
 use anyhow::{anyhow, Result};
 use std::path::PathBuf;
 use std::process::Command;
@@ -60,11 +60,16 @@ pub fn handle_wrap(
     let env_schema = scanner.get_env_var_schema();
     let label_mappings = scanner.get_label_mappings();
 
-    // 4. Load labels and provider instances
-    let labels = load_labels()?;
+    // 4. Load labels and provider instances from user configuration
+    let labels = load_label_assignments_with_home(home_dir.as_deref())?;
 
-    // 5. Create provider instances from scanned configurations
-    let provider_instances = create_provider_instances()?;
+    // 5. Load provider instances from disk/config
+    let provider_instances_collection = load_provider_instances(home_dir.as_deref())?;
+    let provider_instances: Vec<_> = provider_instances_collection
+        .all_instances()
+        .iter()
+        .map(|inst| (*inst).clone())
+        .collect();
 
     // 6. Use EnvResolver to properly resolve environment variables
     let env_resolver = aicred_core::EnvResolverBuilder::new()
@@ -119,62 +124,4 @@ pub fn handle_wrap(
         .status()?;
 
     std::process::exit(status.code().unwrap_or(1));
-}
-
-/// Simple function to load labels (placeholder implementation)
-fn load_labels() -> Result<Vec<UnifiedLabel>> {
-    // For now, return hardcoded test labels
-    // In a real implementation, this would load from configuration
-    let labels = vec![
-        UnifiedLabel::new(
-            "fast".to_string(),
-            ProviderModelTuple::parse("groq:llama3-70b-8192")
-                .map_err(|e| anyhow::anyhow!("Failed to parse tuple: {}", e))?,
-        ),
-        UnifiedLabel::new(
-            "smart".to_string(),
-            ProviderModelTuple::parse("openrouter:anthropic/claude-3-opus")
-                .map_err(|e| anyhow::anyhow!("Failed to parse tuple: {}", e))?,
-        ),
-    ];
-    Ok(labels)
-}
-
-/// Create provider instances from scanned configurations
-fn create_provider_instances() -> Result<Vec<aicred_core::models::ProviderInstance>> {
-    // For now, return hardcoded test instances
-    // In a real implementation, this would scan for actual configurations
-    let mut instances = Vec::new();
-
-    // Create a Groq instance for the "fast" label
-    let mut groq_instance = aicred_core::models::ProviderInstance::new(
-        "groq-test-instance".to_string(),
-        "Groq Test Instance".to_string(),
-        "groq".to_string(),
-        "https://api.groq.com/openai/v1".to_string(),
-    );
-    groq_instance.set_api_key("gsk_test1234567890abcdef1234567890abcdef".to_string());
-    let groq_model = aicred_core::models::Model::new(
-        "llama3-70b-8192".to_string(),
-        "llama3-70b-8192".to_string(),
-    );
-    groq_instance.add_model(groq_model);
-    instances.push(groq_instance);
-
-    // Create an OpenRouter instance for the "smart" label
-    let mut openrouter_instance = aicred_core::models::ProviderInstance::new(
-        "openrouter-test-instance".to_string(),
-        "OpenRouter Test Instance".to_string(),
-        "openrouter".to_string(),
-        "https://openrouter.ai/api/v1".to_string(),
-    );
-    openrouter_instance.set_api_key("sk-or-v1_test1234567890abcdef1234567890abcdef".to_string());
-    let openrouter_model = aicred_core::models::Model::new(
-        "anthropic/claude-3-opus".to_string(),
-        "anthropic/claude-3-opus".to_string(),
-    );
-    openrouter_instance.add_model(openrouter_model);
-    instances.push(openrouter_instance);
-
-    Ok(instances)
 }
