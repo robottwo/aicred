@@ -1,7 +1,6 @@
 pub mod labels;
 pub mod providers;
 pub mod scan;
-pub mod setenv;
 pub mod tags;
 pub mod wrap;
 

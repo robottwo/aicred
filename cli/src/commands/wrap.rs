@@ -7,14 +7,17 @@ use anyhow::{anyhow, Result};
 use std::path::PathBuf;
 use std::process::Command;
 
-/// Handle the wrap command - execute a command with LLM environment variables
+/// Handle the wrap command - execute a command with LLM environment variables or generate shell exports
 pub fn handle_wrap(
     scanner_names: Option<Vec<String>>,
     dry_run: bool,
     command_args: Vec<String>,
     home_dir: Option<PathBuf>,
+    setenv: bool,
+    format: Option<String>,
 ) -> Result<()> {
-    if command_args.is_empty() && !dry_run {
+    // When using --setenv, we don't need a command
+    if command_args.is_empty() && !dry_run && !setenv {
         return Err(anyhow!("No command specified to wrap"));
     }
 
@@ -81,7 +84,12 @@ pub fn handle_wrap(
 
     let resolution_result = env_resolver.resolve(dry_run)?;
 
-    // 7. Handle dry run
+    // 7. Handle --setenv mode: generate shell export statements
+    if setenv {
+        return generate_shell_exports(resolution_result.variables, format, dry_run);
+    }
+
+    // 8. Handle dry run for wrap mode
     if dry_run {
         println!("Environment variables that would be set:");
         for (key, value) in &resolution_result.variables {
@@ -107,7 +115,7 @@ pub fn handle_wrap(
         return Ok(());
     }
 
-    // 8. Check for missing required variables in normal mode
+    // 9. Check for missing required variables in normal mode
     if !resolution_result.is_successful() {
         return Err(anyhow!(
             "Environment variable resolution failed. Missing required variables: {}",
@@ -115,7 +123,7 @@ pub fn handle_wrap(
         ));
     }
 
-    // 9. Execute command with resolved environment variables
+    // 10. Execute command with resolved environment variables
     let (cmd, args) = command_args.split_first().unwrap();
 
     let status = Command::new(cmd)
@@ -124,4 +132,83 @@ pub fn handle_wrap(
         .status()?;
 
     std::process::exit(status.code().unwrap_or(1));
+}
+
+/// Generate shell export statements for environment variables
+fn generate_shell_exports(
+    env_vars: std::collections::HashMap<String, String>,
+    format: Option<String>,
+    dry_run: bool,
+) -> Result<()> {
+    // Handle dry run mode
+    if dry_run {
+        println!("Environment variables that would be exported:");
+        for (key, value) in &env_vars {
+            // Mask sensitive values (API keys)
+            let display_value = if key.contains("API_KEY") && !value.is_empty() {
+                // Only show first 4 and last 4 chars if value is long enough
+                if value.len() >= 8 {
+                    format!("{}...{}", &value[..4], &value[value.len() - 4..])
+                } else {
+                    // For short values, mask completely for security
+                    "****".to_string()
+                }
+            } else {
+                value.clone()
+            };
+            println!("  {}={}", key, display_value);
+        }
+        return Ok(());
+    }
+
+    // Generate export statements based on format
+    let format_str = format.as_deref().unwrap_or("bash");
+    match format_str {
+        "bash" | "zsh" => {
+            for (key, value) in env_vars {
+                println!("export {}='{}'", key, escape_shell_value(&value, "bash"));
+            }
+        }
+        "fish" => {
+            for (key, value) in env_vars {
+                println!("set -gx {} '{}'", key, escape_shell_value(&value, "fish"));
+            }
+        }
+        "powershell" => {
+            for (key, value) in env_vars {
+                println!(
+                    "$env:{} = '{}'",
+                    key,
+                    escape_shell_value(&value, "powershell")
+                );
+            }
+        }
+        _ => {
+            return Err(anyhow!(
+                "Unsupported format: {}. Supported formats: bash, fish, powershell",
+                format_str
+            ))
+        }
+    }
+
+    Ok(())
+}
+
+/// Escape shell value based on the shell format
+fn escape_shell_value(value: &str, shell_type: &str) -> String {
+    match shell_type {
+        "bash" | "zsh" => {
+            // Escape single quotes in bash/zsh
+            value.replace("'", "'\\''")
+        }
+        "fish" => {
+            // Escape single quotes in fish
+            value.replace("'", "\\'")
+        }
+        "powershell" => {
+            // Escape single quotes in PowerShell
+            value.replace("'", "''")
+        }
+        _ => value.to_string(),
+    }
 }

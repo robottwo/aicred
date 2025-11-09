@@ -169,11 +169,13 @@ By Provider:
 - **Claude Desktop**: Desktop application configs
 - **Ragit**: RAG application configurations
 - **LangChain**: Application-specific configs
-### Wrap Command - Execute with Environment Variables
+### Wrap Command - Execute with Environment Variables or Generate Shell Exports
 
-The `wrap` command executes commands with environment variables automatically resolved from label mappings.
+The `wrap` command has two modes:
+1. **Execute mode** (default): Executes commands with environment variables automatically resolved from label mappings
+2. **Shell export mode** (`--setenv`): Generates shell-specific export statements for environment variables
 
-#### Basic Usage
+#### Execute Mode - Basic Usage
 
 ```bash
 # Run a command with environment variables from resolved labels
@@ -184,6 +186,22 @@ aicred wrap --labels fast,smart -- npm run dev
 
 # Dry run to preview environment variables without executing
 aicred wrap --labels fast --dry-run -- echo "Preview mode"
+```
+
+#### Shell Export Mode - Generate Export Statements
+
+```bash
+# Generate bash/zsh format (default)
+aicred wrap --setenv --labels fast --format bash
+
+# Generate fish shell format
+aicred wrap --setenv --labels fast --format fish
+
+# Generate PowerShell format
+aicred wrap --setenv --labels fast --format powershell
+
+# Preview with masked secrets
+aicred wrap --setenv --labels fast --dry-run
 ```
 
 #### Scanner-Specific Usage
@@ -211,11 +229,13 @@ aicred wrap --scanner langchain --labels smart -- python langchain_app.py
 
 - `--labels <LABELS>` - Comma-separated list of label names to resolve
 - `--scanner <SCANNER>` - Scanner type (gsh, roo-code, claude-desktop, ragit, langchain)
-- `--dry-run` - Preview environment variables without executing command
+- `--dry-run` - Preview environment variables without executing command or generating exports
+- `--setenv` - Generate shell export statements instead of executing command
+- `--format <FORMAT>` - Output format for shell exports (bash, fish, powershell) - only used with `--setenv`
 - `--home <PATH>` - Custom home directory for configuration
-- `-- <COMMAND>` - Command to execute (everything after `--`)
+- `-- <COMMAND>` - Command to execute (everything after `--`) - not needed with `--setenv`
 
-#### Examples
+#### Execute Mode Examples
 
 ```bash
 # Preview what environment variables would be set
@@ -235,80 +255,54 @@ aicred wrap --scanner roo-code --labels primary -- code .
 aicred wrap --home /path/to/config --labels fast -- python app.py
 ```
 
-### SetEnv Command - Generate Shell Export Statements
-
-The `setenv` command generates shell-specific export statements for environment variables.
-
-#### Basic Usage
-
-```bash
-# Generate bash/zsh format (default)
-aicred setenv --labels fast --format bash
-
-# Generate fish shell format
-aicred setenv --labels fast --format fish
-
-# Generate PowerShell format
-aicred setenv --labels fast --format powershell
-```
-
-#### Output Formats
+#### Shell Export Mode Examples
 
 **Bash/Zsh:**
 ```bash
-$ aicred setenv --labels fast --format bash
+$ aicred wrap --setenv --labels fast --format bash
 export GSH_FAST_MODEL='groq:llama3-70b-8192'
 export GSH_FAST_API_KEY='gsk_...'
 export GSH_FAST_BASE_URL='https://api.groq.com/openai/v1'
 
 # Source into current shell
-eval "$(aicred setenv --labels fast --format bash)"
+eval "$(aicred wrap --setenv --labels fast --format bash)"
 ```
 
 **Fish Shell:**
 ```bash
-$ aicred setenv --labels fast --format fish
+$ aicred wrap --setenv --labels fast --format fish
 set -gx GSH_FAST_MODEL 'groq:llama3-70b-8192'
 set -gx GSH_FAST_API_KEY 'gsk_...'
 set -gx GSH_FAST_BASE_URL 'https://api.groq.com/openai/v1'
 
 # Source into current shell
-aicred setenv --labels fast --format fish | source
+aicred wrap --setenv --labels fast --format fish | source
 ```
 
 **PowerShell:**
 ```powershell
-PS> aicred setenv --labels fast --format powershell
+PS> aicred wrap --setenv --labels fast --format powershell
 $env:GSH_FAST_MODEL = 'groq:llama3-70b-8192'
 $env:GSH_FAST_API_KEY = 'gsk_...'
 $env:GSH_FAST_BASE_URL = 'https://api.groq.com/openai/v1'
 
 # Execute in current session
-aicred setenv --labels fast --format powershell | Invoke-Expression
+aicred wrap --setenv --labels fast --format powershell | Invoke-Expression
 ```
 
-#### Command-Line Flags
-
-- `--labels <LABELS>` - Comma-separated list of label names to resolve
-- `--format <FORMAT>` - Output format (bash, fish, powershell)
-- `--scanner <SCANNER>` - Scanner type (gsh, roo-code, claude-desktop, ragit, langchain)
-- `--dry-run` - Preview variables with masked secrets
-- `--home <PATH>` - Custom home directory for configuration
-
-#### Examples
-
+**Additional Shell Export Examples:**
 ```bash
 # Generate for multiple labels
-aicred setenv --labels fast,smart --format bash
+aicred wrap --setenv --labels fast,smart --format bash
 
 # Preview with masked secrets
-aicred setenv --labels fast --dry-run
+aicred wrap --setenv --labels fast --dry-run
 
 # Use specific scanner
-aicred setenv --scanner roo-code --labels primary --format bash
+aicred wrap --setenv --scanner roo-code --labels primary --format bash
 
 # Generate for fish shell
-aicred setenv --labels fast --format fish | source
+aicred wrap --setenv --labels fast --format fish | source
 ```
 
 ### Environment Variable Mapping
@@ -379,14 +373,14 @@ aicred labels assign --name "fast" --instance-id my-groq --model-id llama3-70b-8
 aicred wrap --labels fast -- python my_app.py
 
 # 4. Or generate environment variables for manual use
-aicred setenv --labels fast --format bash
+aicred wrap --setenv --labels fast --format bash
 # Output:
 # export GSH_FAST_MODEL='groq:llama3-70b-8192'
 # export GSH_FAST_API_KEY='gsk_...'
 # export GSH_FAST_BASE_URL='https://api.groq.com/openai/v1'
 
 # 5. Source into your shell
-eval "$(aicred setenv --labels fast --format bash)"
+eval "$(aicred wrap --setenv --labels fast --format bash)"
 
 # 6. Now your application can use the environment variables
 python my_app.py  # Will use GSH_FAST_* variables

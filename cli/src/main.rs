@@ -31,7 +31,6 @@ use commands::{
         handle_validate_instances,
     },
     scan::handle_scan,
-    setenv::handle_setenv,
     tags::{
         handle_add_tag, handle_assign_tag, handle_list_tags, handle_remove_tag,
         handle_unassign_tag, handle_update_tag,
@@ -145,28 +144,21 @@ enum Commands {
         #[arg(long, short = 's')]
         scanner_names: Option<Vec<String>>,
 
-        /// Command and arguments to execute
+        /// Command and arguments to execute (not needed when using --setenv)
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         command: Vec<String>,
 
         /// Dry run - show environment variables without executing command
         #[arg(long)]
         dry_run: bool,
-    },
 
-    /// Generate shell export statements for LLM environment variables
-    SetEnv {
-        /// Scanner names to use (e.g., gsh, roo-code, claude-desktop)
-        #[arg(long, short = 's')]
-        scanner_names: Option<Vec<String>>,
+        /// Generate shell export statements instead of executing command
+        #[arg(long)]
+        setenv: bool,
 
-        /// Output format (bash, fish, powershell)
+        /// Output format for shell exports (bash, fish, powershell) - only used with --setenv
         #[arg(long)]
         format: Option<String>,
-
-        /// Dry run - show environment variables without generating exports
-        #[arg(long)]
-        dry_run: bool,
     },
 }
 
@@ -632,12 +624,16 @@ fn main() -> Result<()> {
             scanner_names,
             command,
             dry_run,
-        } => handle_wrap(scanner_names, dry_run, command, cli.home.map(PathBuf::from)),
-        Commands::SetEnv {
-            scanner_names,
+            setenv,
             format,
+        } => handle_wrap(
+            scanner_names,
             dry_run,
-        } => handle_setenv(scanner_names, format, dry_run, cli.home.map(PathBuf::from)),
+            command,
+            cli.home.map(PathBuf::from),
+            setenv,
+            format,
+        ),
     }
 }
 
