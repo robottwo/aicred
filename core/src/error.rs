@@ -42,6 +42,14 @@ pub enum Error {
     /// General configuration errors.
     #[error("Configuration error: {0}")]
     ConfigError(String),
+
+    /// API-related errors (e.g., authentication failures, rate limits).
+    #[error("API error: {0}")]
+    ApiError(String),
+
+    /// HTTP request errors.
+    #[error("HTTP error: {0}")]
+    HttpError(#[from] reqwest::Error),
 }
 
 /// Result type alias for the core library.

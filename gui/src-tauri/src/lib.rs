@@ -47,6 +47,8 @@ fn perform_scan(options: ScanOptions) -> Result<String, String> {
         max_file_size: options.max_file_size,
         only_providers: options.only_providers,
         exclude_providers: options.exclude_providers,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     match scan(&core_options) {

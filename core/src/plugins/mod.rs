@@ -5,16 +5,19 @@
 #![allow(clippy::significant_drop_tightening)]
 
 use crate::error::{Error, Result};
-use crate::models::ProviderInstance;
+use crate::models::{ModelMetadata, ProviderInstance};
 use crate::providers::{
     anthropic::AnthropicPlugin, groq::GroqPlugin, huggingface::HuggingFacePlugin,
     litellm::LiteLLMPlugin, ollama::OllamaPlugin, openai::OpenAIPlugin,
+    openrouter::OpenRouterPlugin,
 };
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 /// Trait that all provider plugins must implement.
+#[async_trait]
 pub trait ProviderPlugin: Send + Sync {
     /// Returns the name of this plugin.
     fn name(&self) -> &str;
@@ -148,6 +151,52 @@ pub trait ProviderPlugin: Send + Sync {
     /// Providers that support API-based model discovery should override this method.
     fn probe_models(&self, _api_key: &str) -> Result<Vec<String>> {
         // Default implementation - no API probing
+        Ok(Vec::new())
+    }
+
+    /// Asynchronously probes the provider API to fetch detailed model metadata.
+    ///
+    /// This method queries the provider's API to retrieve comprehensive information
+    /// about available models, including their capabilities, pricing, and architecture.
+    /// It is designed for use in async contexts and provides richer information than
+    /// the synchronous `probe_models` method.
+    ///
+    /// # Arguments
+    /// * `api_key` - The API key to use for authentication with the provider
+    /// * `base_url` - Optional custom base URL for the API endpoint. If None, uses the provider's default
+    ///
+    /// # Returns
+    /// * `Ok(Vec<ModelMetadata>)` - List of models with detailed metadata
+    /// * `Err(Error::ApiError)` - If authentication fails or the API returns an error
+    /// * `Err(Error::HttpError)` - If the network request fails
+    /// * `Err(Error::SerializationError)` - If the API response cannot be parsed
+    ///
+    /// # Default Implementation
+    /// Returns an empty vector, indicating no async API-based model discovery.
+    /// Providers that support async model probing should override this method.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use aicred_core::plugins::ProviderPlugin;
+    /// use aicred_core::models::ModelMetadata;
+    ///
+    /// async fn probe_provider(plugin: &dyn ProviderPlugin, api_key: &str) {
+    ///     match plugin.probe_models_async(api_key, None).await {
+    ///         Ok(models) => {
+    ///             for model in models {
+    ///                 println!("Found model: {} ({})", model.name, model.id);
+    ///             }
+    ///         }
+    ///         Err(e) => eprintln!("Failed to probe models: {}", e),
+    ///     }
+    /// }
+    /// ```
+    async fn probe_models_async(
+        &self,
+        _api_key: &str,
+        _base_url: Option<&str>,
+    ) -> Result<Vec<ModelMetadata>> {
+        // Default implementation - no async API probing
         Ok(Vec::new())
     }
 }
@@ -342,6 +391,7 @@ pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
     registry.register(Arc::new(GroqPlugin))?;
     registry.register(Arc::new(HuggingFacePlugin))?;
     registry.register(Arc::new(OllamaPlugin))?;
+    registry.register(Arc::new(OpenRouterPlugin))?;
 
     // Framework and tool plugins
     registry.register(Arc::new(LiteLLMPlugin))?;
@@ -410,5 +460,13 @@ mod tests {
 
         let score3 = plugin.confidence_score("sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
         assert!(score3 > 0.8);
+    }
+
+    #[tokio::test]
+    async fn test_default_probe_models_async() {
+        let plugin = CommonConfigPlugin;
+        let result = plugin.probe_models_async("test-key", None).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
     }
 }

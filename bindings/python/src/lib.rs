@@ -1298,6 +1298,8 @@ fn scan_py(
         max_file_size,
         only_providers,
         exclude_providers,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let result = core_scan(&options)

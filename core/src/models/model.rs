@@ -77,6 +77,55 @@ pub struct Model {
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
+impl From<crate::models::ModelMetadata> for Model {
+    fn from(metadata: crate::models::ModelMetadata) -> Self {
+        // Convert pricing to TokenCost
+        let cost = metadata.pricing.as_ref().map(|pricing| TokenCost {
+            input_cost_per_million: pricing.prompt.map(|p| p * 1_000_000.0),
+            output_cost_per_million: pricing.completion.map(|c| c * 1_000_000.0),
+            cached_input_cost_modifier: None,
+        });
+
+        // Convert architecture and other metadata to JSON for storage
+        let mut model_metadata = HashMap::new();
+
+        if let Some(pricing) = metadata.pricing {
+            if let Ok(pricing_json) = serde_json::to_value(&pricing) {
+                model_metadata.insert("pricing".to_string(), pricing_json);
+            }
+        }
+
+        if let Some(architecture) = metadata.architecture {
+            if let Ok(arch_json) = serde_json::to_value(&architecture) {
+                model_metadata.insert("architecture".to_string(), arch_json);
+            }
+        }
+
+        // Include any additional metadata from the source
+        if let Some(extra_metadata) = metadata.metadata {
+            for (key, value) in extra_metadata {
+                model_metadata.insert(key, value);
+            }
+        }
+
+        Self {
+            model_id: metadata.id,
+            name: metadata.name,
+            quantization: None,
+            context_window: metadata.context_length,
+            capabilities: None,
+            temperature: None,
+            tags: None,
+            cost,
+            metadata: if model_metadata.is_empty() {
+                None
+            } else {
+                Some(model_metadata)
+            },
+        }
+    }
+}
+
 impl Model {
     /// Creates a new model with required fields.
     #[must_use]

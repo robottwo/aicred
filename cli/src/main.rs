@@ -94,6 +94,14 @@ enum Commands {
         /// Update/create YAML configuration file with discovered providers and keys
         #[arg(long)]
         update: bool,
+
+        /// Disable probing provider instances for available models (probing is enabled by default)
+        #[arg(long)]
+        no_probe: bool,
+
+        /// Timeout for model probing in seconds (default: 30)
+        #[arg(long)]
+        probe_timeout: Option<u64>,
     },
 
     /// Show available providers and scanners
@@ -441,6 +449,8 @@ fn main() -> Result<()> {
             audit_log,
             verbose,
             update,
+            no_probe,
+            probe_timeout,
         } => handle_scan(
             scan_home.or(cli.home),
             format,
@@ -452,6 +462,8 @@ fn main() -> Result<()> {
             audit_log,
             verbose,
             update,
+            !no_probe, // Invert: probing is enabled by default unless --no-probe is specified
+            probe_timeout,
         ),
         Commands::Providers { verbose } => {
             // Set home directory if provided

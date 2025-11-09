@@ -40,6 +40,8 @@
 //!     max_file_size: 1024 * 1024, // 1MB
 //!     only_providers: None,
 //!     exclude_providers: None,
+//!     probe_models: false,
+//!     probe_timeout_secs: 30,
 //! };
 //!
 //! // Run the scan
@@ -92,6 +94,10 @@ pub struct ScanOptions {
     pub only_providers: Option<Vec<String>>,
     /// Exclude specific providers (optional).
     pub exclude_providers: Option<Vec<String>>,
+    /// Whether to probe provider instances for available models (default: false).
+    pub probe_models: bool,
+    /// Timeout for model probing in seconds (default: 30).
+    pub probe_timeout_secs: u64,
 }
 
 impl Default for ScanOptions {
@@ -102,6 +108,8 @@ impl Default for ScanOptions {
             max_file_size: DEFAULT_MAX_FILE_SIZE,
             only_providers: None,
             exclude_providers: None,
+            probe_models: false,
+            probe_timeout_secs: 30,
         }
     }
 }
@@ -278,6 +286,44 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
                 );
             }
         }
+    }
+
+    // Probe provider instances for available models if requested
+    if options.probe_models {
+        debug!("Probing provider instances for available models...");
+        let probe_stats = probe_provider_instances_async(
+            &mut result.config_instances,
+            &filtered_provider_registry,
+            options.probe_timeout_secs,
+        );
+
+        debug!(
+            "Probe complete: {}/{} instances probed successfully, {} models discovered",
+            probe_stats.probed_successfully,
+            probe_stats.total_instances,
+            probe_stats.total_models_discovered
+        );
+
+        // Add probe statistics to result metadata
+        let metadata = result
+            .metadata
+            .get_or_insert_with(std::collections::HashMap::new);
+        metadata.insert(
+            "probe_total_instances".to_string(),
+            serde_json::json!(probe_stats.total_instances),
+        );
+        metadata.insert(
+            "probe_successful".to_string(),
+            serde_json::json!(probe_stats.probed_successfully),
+        );
+        metadata.insert(
+            "probe_failures".to_string(),
+            serde_json::json!(probe_stats.probe_failures),
+        );
+        metadata.insert(
+            "probe_models_discovered".to_string(),
+            serde_json::json!(probe_stats.total_models_discovered),
+        );
     }
 
     // Apply selective redaction if needed
@@ -607,6 +653,201 @@ fn scan_with_scanners(
     }
 
     results
+}
+/// Statistics from probing provider instances.
+#[derive(Debug, Clone)]
+pub struct ProbeStatistics {
+    /// Total number of instances that were attempted to be probed.
+    pub total_instances: usize,
+    /// Number of instances successfully probed.
+    pub probed_successfully: usize,
+    /// Number of instances that failed to probe.
+    pub probe_failures: usize,
+    /// Total number of models discovered across all instances.
+    pub total_models_discovered: usize,
+}
+
+/// Probes provider instances asynchronously to discover available models.
+///
+/// This function takes a mutable slice of `ConfigInstance`s and attempts to probe
+/// each provider instance for available models using the provider's plugin.
+/// Probing is done concurrently with a timeout to ensure responsiveness.
+///
+/// # Arguments
+///
+/// * `instances` - Mutable slice of config instances to probe
+/// * `plugin_registry` - Registry containing provider plugins
+/// * `timeout_secs` - Timeout in seconds for each probe operation
+///
+/// # Returns
+///
+/// Returns `ProbeStatistics` containing information about the probing operation.
+///
+/// # Errors
+///
+/// This function handles all errors gracefully and logs them. It never returns an error.
+#[allow(clippy::too_many_lines)]
+fn probe_provider_instances_async(
+    instances: &mut [ConfigInstance],
+    plugin_registry: &PluginRegistry,
+    timeout_secs: u64,
+) -> ProbeStatistics {
+    use std::collections::HashMap;
+    use tokio::time::{timeout, Duration};
+
+    let mut stats = ProbeStatistics {
+        total_instances: 0,
+        probed_successfully: 0,
+        probe_failures: 0,
+        total_models_discovered: 0,
+    };
+
+    // Create a tokio runtime for async operations
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            tracing::error!("Failed to create tokio runtime for probing: {}", e);
+            return stats;
+        }
+    };
+
+    runtime.block_on(async {
+        // Collect all probe tasks with their instance IDs for later lookup
+        let mut probe_tasks = Vec::new();
+
+        for instance in instances.iter() {
+            for provider_instance in instance.provider_instances.all_instances() {
+                stats.total_instances += 1;
+
+                // Get the plugin for this provider
+                let Some(plugin) = plugin_registry.get(&provider_instance.provider_type) else {
+                    tracing::debug!(
+                        "No plugin found for provider: {}",
+                        provider_instance.provider_type
+                    );
+                    continue;
+                };
+
+                // Get API key if available
+                let Some(api_key) = &provider_instance.api_key else {
+                    tracing::debug!(
+                        "No API key available for provider instance: {}",
+                        provider_instance.id
+                    );
+                    continue;
+                };
+                let api_key = api_key.clone();
+
+                // Get base URL
+                let base_url = Some(provider_instance.base_url.as_str());
+
+                // Clone what we need for the async task
+                let plugin_clone = plugin.clone();
+                let api_key_clone = api_key.clone();
+                let base_url_clone = base_url.map(String::from);
+                let provider_name = provider_instance.provider_type.clone();
+                let instance_id = provider_instance.id.clone();
+                let provider_instance_id = provider_instance.id.clone();
+
+                // Spawn probe task with timeout
+                let task = tokio::spawn(async move {
+                    let probe_result = timeout(
+                        Duration::from_secs(timeout_secs),
+                        plugin_clone.probe_models_async(&api_key_clone, base_url_clone.as_deref()),
+                    )
+                    .await;
+
+                    (
+                        provider_instance_id,
+                        instance_id,
+                        provider_name,
+                        probe_result,
+                    )
+                });
+
+                probe_tasks.push(task);
+            }
+        }
+
+        // Wait for all probe tasks to complete and collect results
+        let mut probe_results = Vec::new();
+        for task in probe_tasks {
+            match task.await {
+                Ok(result) => probe_results.push(result),
+                Err(e) => {
+                    tracing::error!("Probe task panicked: {}", e);
+                    stats.probe_failures += 1;
+                }
+            }
+        }
+
+        // Now update the instances with the probe results
+        for (provider_instance_id, instance_id, provider_name, probe_result) in probe_results {
+            // Find the instance and provider instance to update
+            for instance in instances.iter_mut() {
+                if let Some(provider_instance) = instance
+                    .provider_instances
+                    .get_instance_mut(&provider_instance_id)
+                {
+                    // Update metadata
+                    let metadata = provider_instance.metadata.get_or_insert_with(HashMap::new);
+                    metadata.insert("probe_attempted".to_string(), "true".to_string());
+                    metadata.insert(
+                        "probe_timestamp".to_string(),
+                        chrono::Utc::now().to_rfc3339(),
+                    );
+
+                    match probe_result {
+                        Ok(Ok(models)) => {
+                            tracing::info!(
+                                "Successfully probed {} models from provider {} (instance: {})",
+                                models.len(),
+                                provider_name,
+                                instance_id
+                            );
+
+                            // Convert ModelMetadata to Model and store
+                            provider_instance.models =
+                                models.into_iter().map(std::convert::Into::into).collect();
+
+                            stats.probed_successfully += 1;
+                            stats.total_models_discovered += provider_instance.models.len();
+
+                            metadata.insert("probe_success".to_string(), "true".to_string());
+                            metadata.insert(
+                                "models_count".to_string(),
+                                provider_instance.models.len().to_string(),
+                            );
+                        }
+                        Ok(Err(e)) => {
+                            tracing::warn!(
+                                "Failed to probe provider {} (instance: {}): {}",
+                                provider_name,
+                                instance_id,
+                                e
+                            );
+                            stats.probe_failures += 1;
+                            metadata.insert("probe_success".to_string(), "false".to_string());
+                            metadata.insert("probe_error".to_string(), e.to_string());
+                        }
+                        Err(_) => {
+                            tracing::warn!(
+                                "Probe timeout for provider {} (instance: {})",
+                                provider_name,
+                                instance_id
+                            );
+                            stats.probe_failures += 1;
+                            metadata.insert("probe_success".to_string(), "false".to_string());
+                            metadata.insert("probe_error".to_string(), "timeout".to_string());
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    });
+
+    stats
 }
 
 /// Filters the scanner registry based on scan options.
