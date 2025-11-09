@@ -812,6 +812,102 @@ ProviderConfig methods:
 - [get_key(id: &str) -> Option<&ProviderKey>](core/src/models/provider_config.rs:50)
 - [from_old_format(...) -> Self](core/src/models/provider_config.rs:54) — Backward compatibility
 
+### Environment Variable Resolution - **NEW**
+
+The environment variable resolution system maps labels to environment variables for seamless integration with applications:
+
+#### EnvResolver and EnvResolverBuilder
+
+- [struct EnvResolver](core/src/env_resolver.rs:15) — Main resolver for label-to-environment variable mapping
+  - Resolves labels to provider instances and generates environment variables
+  - Supports dry-run mode for previewing variables without exposing secrets
+  - Handles multiple scanners and label mappings
+
+- [struct EnvResolverBuilder](core/src/env_resolver.rs:25) — Builder for creating EnvResolver instances
+  - `with_provider_instances(instances)` — Add provider instances for resolution
+  - `with_labels(labels)` — Add labels for mapping
+  - `build()` — Create the resolver instance
+
+#### EnvResolutionResult
+
+- [struct EnvResolutionResult](core/src/env_resolver.rs:75) — Results of environment variable resolution
+  - `variables: HashMap<String, String>` — Resolved environment variables
+  - `unresolved_labels: Vec<String>` — Labels that couldn't be resolved
+  - `missing_required: Vec<String>` — Required variables that are missing
+  - `dry_run: bool` — Whether this was a dry run execution
+
+#### LabelMapping and EnvVarDeclaration
+
+- [struct LabelMapping](core/src/env_resolver.rs:95) — Maps label names to environment variable prefixes
+  - `label_name: String` — The label name
+  - `env_prefix: String` — Environment variable prefix (e.g., "GSH" for GSH scanner)
+
+- [struct EnvVarDeclaration](core/src/env_resolver.rs:105) — Defines environment variable properties
+  - `name: String` — Variable name
+  - `description: String` — Variable description
+  - `value_type: String` — Type of value (model, api_key, base_url, metadata)
+  - `required: bool` — Whether the variable is required
+
+#### Environment Variable Generation
+
+The resolver generates environment variables following these patterns:
+- `{SCANNER}_{LABEL}_MODEL` — Provider:model tuple (e.g., `GSH_FAST_MODEL=openai:gpt-4`)
+- `{SCANNER}_{LABEL}_API_KEY` — API key for the provider
+- `{SCANNER}_{LABEL}_BASE_URL` — Base URL for the API
+- `{SCANNER}_{LABEL}_{METADATA_KEY}` — Custom metadata from provider instances
+
+#### Usage Example
+
+```rust
+use aicred_core::{EnvResolver, EnvResolverBuilder, UnifiedLabel, ProviderModelTuple};
+
+// Create provider instances
+let instances = vec![/* provider instances */];
+
+// Create labels
+let labels = vec![
+    UnifiedLabel {
+        label_name: "fast".to_string(),
+        target: ProviderModelTuple::parse("openai:gpt-4").unwrap(),
+        // ... other fields
+    }
+];
+
+// Build resolver and resolve
+let resolver = EnvResolverBuilder::new()
+    .with_provider_instances(instances)
+    .with_labels(labels)
+    .build();
+
+let result = resolver.resolve(false)?; // false = not dry run
+
+// Access resolved variables
+for (key, value) in &result.variables {
+    println!("{}={}", key, value);
+}
+```
+
+#### Scanner-Specific Label Mapping
+
+Each scanner plugin can define its own label mappings for environment variable generation:
+
+- [trait ScannerPlugin](core/src/scanners/mod.rs:18) includes label mapping methods
+- Built-in scanners (GSH, Roo Code, Claude Desktop, RAGIt, LangChain) provide default mappings
+- Custom scanners can override label mappings for specific use cases
+
+#### CLI Integration
+
+The environment variable resolution is exposed through CLI commands:
+
+- [wrap command](cli/src/commands/wrap.rs:1) — Execute commands with resolved environment variables
+- [setenv command](cli/src/commands/setenv.rs:1) — Generate environment variables in different shell formats
+
+Both commands support:
+- Multiple labels resolution
+- Dry-run mode for preview
+- Different scanner types
+- Custom environment variable prefixes
+
 **Note:** [`ProviderInstance`](core/src/models/provider_instance.rs:25) uses a simplified single-key model (`api_key: Option<String>`), while [`ProviderConfig`](core/src/models/provider_config.rs:11) maintains the multi-key model (`keys: Vec<ProviderKey>`). Conversions between these models preserve metadata. See the [Migration Guide](docs/migration-guide.md) for details on the refactoring.
 
 ### Plugin System
@@ -845,11 +941,185 @@ Scanner plugins handle discovery of keys and configurations:
   - `supported_providers(&self) -> Vec<String>` - Providers this scanner can find
   - `scan_provider_configs(&self, home_dir: &Path) -> Result<Vec<PathBuf>>` - Find provider configs
   - `scan_instances(&self, home_dir: &Path) -> Result<Vec<ConfigInstance>>` - Find app instances
+  - `get_env_var_schema(&self) -> Vec<EnvVarDeclaration>` - **NEW** Get environment variable schema
+  - `get_label_mappings(&self) -> Vec<LabelMapping>` - **NEW** Get label-to-env-var mappings
 - [struct ScannerRegistry](core/src/scanners/mod.rs:153) - **NEW**
   - `register(Arc<dyn ScannerPlugin>)`
   - `get(name) -> Option<Arc<dyn ScannerPlugin>>`
   - `list() -> Vec<String>`
   - `get_scanners_for_file(&Path) -> Vec<Arc<dyn ScannerPlugin>>`
+
+#### Environment Variable Schema - **NEW**
+
+Scanner plugins define environment variable schemas that specify what variables they expect:
+
+- [struct EnvVarDeclaration](core/src/scanners/mod.rs:32) - Environment variable declaration
+  - `name: String` - Variable name (e.g., "GSH_FAST_MODEL")
+  - `description: String` - What this variable does
+  - `value_type: String` - Type of value (e.g., "ApiKey", "BaseUrl", "ModelId")
+  - `required: bool` - Whether this variable is required
+  - `default_value: Option<String>` - Default value if not provided
+
+**Constructor Methods:**
+- `new(name, description, value_type, required, default_value) -> Self` - Create new declaration
+- `required(name, description, value_type) -> Self` - Create required variable
+- `optional(name, description, value_type, default_value) -> Self` - Create optional variable
+
+**Example Usage:**
+```rust
+use aicred_core::scanners::EnvVarDeclaration;
+
+// Required API key variable
+let api_key = EnvVarDeclaration::required(
+    "GSH_FAST_API_KEY".to_string(),
+    "API key for fast model".to_string(),
+    "ApiKey".to_string(),
+);
+
+// Optional temperature variable with default
+let temperature = EnvVarDeclaration::optional(
+    "GSH_FAST_TEMPERATURE".to_string(),
+    "Temperature setting for model".to_string(),
+    "string".to_string(),
+    Some("0.7".to_string()),
+);
+```
+
+#### Label Mapping Schema - **NEW**
+
+Scanner plugins define label mappings that associate labels with environment variable groups:
+
+- [struct LabelMapping](core/src/scanners/mod.rs:84) - Label-to-environment variable mapping
+  - `label_name: String` - Name of the label (e.g., "fast", "smart")
+  - `env_var_group: String` - Environment variable prefix (e.g., "GSH_FAST_MODEL")
+  - `description: String` - What this label represents
+
+**Constructor Method:**
+- `new(label_name, env_var_group, description) -> Self` - Create new mapping
+
+**Example Usage:**
+```rust
+use aicred_core::scanners::LabelMapping;
+
+// Map "fast" label to GSH_FAST_MODEL environment variables
+let fast_mapping = LabelMapping::new(
+    "fast".to_string(),
+    "GSH_FAST_MODEL".to_string(),
+    "Fast model configuration for quick tasks".to_string(),
+);
+
+// Map "smart" label to GSH_SMART_MODEL environment variables
+let smart_mapping = LabelMapping::new(
+    "smart".to_string(),
+    "GSH_SMART_MODEL".to_string(),
+    "Smart model configuration for complex tasks".to_string(),
+);
+```
+
+#### Scanner-Specific Environment Variables
+
+Each built-in scanner defines its own environment variable schema:
+
+**GSH Scanner:**
+```rust
+// Environment variables generated by GSH scanner
+GSH_{LABEL}_MODEL          // Provider:model tuple (e.g., "openai:gpt-4")
+GSH_{LABEL}_API_KEY        // API key for the provider
+GSH_{LABEL}_BASE_URL       // Base URL for API requests
+GSH_{LABEL}_TEMPERATURE    // Temperature setting (optional)
+GSH_{LABEL}_PARALLEL_TOOL_CALLS  // Parallel tool calls setting (optional)
+```
+
+**Roo Code Scanner:**
+```rust
+// Environment variables for Roo Code
+ROO_CODE_API_KEY           // Anthropic API key
+ROO_CODE_MODEL_ID          // Model identifier
+ROO_CODE_BASE_URL          // API base URL
+ROO_CODE_TEMPERATURE       // Temperature setting
+ROO_CODE_PARALLEL_TOOL_CALLS  // Parallel tool calls setting
+```
+
+**Claude Desktop Scanner:**
+```rust
+// Environment variables for Claude Desktop
+ANTHROPIC_API_KEY          // Anthropic API key
+CLAUDE_MODEL_ID            // Model identifier
+CLAUDE_BASE_URL            // API base URL
+```
+
+**RAGIt Scanner:**
+```rust
+// Environment variables for RAGIt
+RAGIT_API_KEY              // API key for RAG operations
+RAGIT_MODEL_ID             // Model identifier
+RAGIT_BASE_URL             // API base URL
+RAGIT_EMBEDDING_MODEL      // Embedding model (optional)
+```
+
+**LangChain Scanner:**
+```rust
+// Environment variables for LangChain
+LANGCHAIN_API_KEY          // API key
+LANGCHAIN_MODEL_ID         // Model identifier
+LANGCHAIN_BASE_URL         // API base URL
+LANGCHAIN_TEMPERATURE      // Temperature setting
+LANGCHAIN_MAX_TOKENS       // Maximum tokens (optional)
+```
+
+#### Implementing Custom Scanner with Environment Variables
+
+```rust
+use aicred_core::scanners::{ScannerPlugin, EnvVarDeclaration, LabelMapping};
+use std::path::{Path, PathBuf};
+
+struct MyCustomScanner;
+
+impl ScannerPlugin for MyCustomScanner {
+    fn name(&self) -> &str { "my-custom" }
+    fn app_name(&self) -> &str { "My Custom App" }
+    
+    // Define environment variable schema
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            EnvVarDeclaration::required(
+                "MYAPP_FAST_API_KEY".to_string(),
+                "API key for fast model".to_string(),
+                "ApiKey".to_string(),
+            ),
+            EnvVarDeclaration::required(
+                "MYAPP_FAST_MODEL".to_string(),
+                "Model identifier for fast model".to_string(),
+                "ModelId".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "MYAPP_FAST_TEMPERATURE".to_string(),
+                "Temperature setting".to_string(),
+                "string".to_string(),
+                Some("0.7".to_string()),
+            ),
+        ]
+    }
+    
+    // Define label mappings
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![
+            LabelMapping::new(
+                "fast".to_string(),
+                "MYAPP_FAST".to_string(),
+                "Fast model configuration".to_string(),
+            ),
+            LabelMapping::new(
+                "smart".to_string(),
+                "MYAPP_SMART".to_string(),
+                "Smart model configuration".to_string(),
+            ),
+        ]
+    }
+    
+    // ... other required methods
+}
+```
 
 ### Scanner Engine
 

@@ -31,10 +31,12 @@ use commands::{
         handle_validate_instances,
     },
     scan::handle_scan,
+    setenv::handle_setenv,
     tags::{
         handle_add_tag, handle_assign_tag, handle_list_tags, handle_remove_tag,
         handle_unassign_tag, handle_update_tag,
     },
+    wrap::handle_wrap,
 };
 
 /// AICred - Discover AI API keys and configurations
@@ -136,6 +138,36 @@ enum Commands {
 
     /// Show version information
     Version,
+
+    /// Wrap a command with LLM environment variables
+    Wrap {
+        /// Scanner names to use (e.g., gsh, roo-code, claude-desktop)
+        #[arg(long, short = 's')]
+        scanner_names: Option<Vec<String>>,
+
+        /// Command and arguments to execute
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        command: Vec<String>,
+
+        /// Dry run - show environment variables without executing command
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    /// Generate shell export statements for LLM environment variables
+    SetEnv {
+        /// Scanner names to use (e.g., gsh, roo-code, claude-desktop)
+        #[arg(long, short = 's')]
+        scanner_names: Option<Vec<String>>,
+
+        /// Output format (bash, fish, powershell)
+        #[arg(long)]
+        format: Option<String>,
+
+        /// Dry run - show environment variables without generating exports
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -596,6 +628,16 @@ fn main() -> Result<()> {
             None => handle_list_models(cli.home.map(PathBuf::from), false, None, None, None),
         },
         Commands::Version => handle_version(),
+        Commands::Wrap {
+            scanner_names,
+            command,
+            dry_run,
+        } => handle_wrap(scanner_names, dry_run, command, cli.home.map(PathBuf::from)),
+        Commands::SetEnv {
+            scanner_names,
+            format,
+            dry_run,
+        } => handle_setenv(scanner_names, format, dry_run, cli.home.map(PathBuf::from)),
     }
 }
 

@@ -1,6 +1,6 @@
 //! `LangChain` scanner for discovering API keys in `LangChain` configuration files.
 
-use super::{ScanResult, ScannerPlugin, ScannerPluginExt};
+use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::{Error, Result};
 use crate::models::discovered_key::{Confidence, ValueType};
 use crate::models::{ConfigInstance, DiscoveredKey};
@@ -114,6 +114,32 @@ impl ScannerPlugin for LangChainScanner {
         }
 
         Ok(result)
+    }
+
+    fn get_env_var_schema(&self) -> Vec<EnvVarDeclaration> {
+        vec![
+            EnvVarDeclaration::required(
+                "LANGCHAIN_API_KEY".to_string(),
+                "API key for LangChain application".to_string(),
+                "ApiKey".to_string(),
+            ),
+            EnvVarDeclaration::optional(
+                "LANGCHAIN_BASE_URL".to_string(),
+                "Base URL for LangChain API".to_string(),
+                "BaseUrl".to_string(),
+                Some("https://api.langchain.com/v1".to_string()),
+            ),
+            EnvVarDeclaration::optional(
+                "LANGCHAIN_MODEL_ID".to_string(),
+                "Model ID for LangChain".to_string(),
+                "ModelId".to_string(),
+                Some("langchain-70b".to_string()),
+            ),
+        ]
+    }
+
+    fn get_label_mappings(&self) -> Vec<LabelMapping> {
+        vec![]
     }
 }
 

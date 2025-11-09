@@ -54,6 +54,7 @@
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 
+pub mod env_resolver;
 pub mod error;
 pub mod models;
 pub mod parser;
@@ -63,10 +64,11 @@ pub mod scanner;
 pub mod scanners;
 pub mod utils;
 
+pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
 pub use error::{Error, Result};
 pub use models::{
     AuthMethod, Capabilities, Confidence, ConfigInstance, DiscoveredKey, Model, Provider,
-    RateLimit, ScanResult, ScanSummary, ValueType,
+    RateLimit, ScanResult, ScanSummary, UnifiedLabel, ValueType,
 };
 pub use parser::{ConfigParser, FileFormat};
 pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
@@ -150,7 +152,7 @@ impl ScanOptions {
     ///
     /// # Errors
     ///
-    /// Returns an error if the home directory cannot be determined.
+    /// Returns an error if the home directory cannot be determined from the system.
     pub fn get_home_dir(&self) -> Result<PathBuf> {
         self.home_dir.as_ref().map_or_else(
             || {
