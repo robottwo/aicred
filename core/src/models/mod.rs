@@ -12,6 +12,7 @@ pub mod discovered_key;
 pub mod label;
 pub mod label_assignment;
 pub mod model;
+pub mod model_metadata;
 pub mod provider;
 pub mod provider_config;
 pub mod provider_instance;
@@ -31,6 +32,7 @@ pub use discovered_key::{Confidence, DiscoveredKey, ValueType};
 pub use label::Label;
 pub use label_assignment::{LabelAssignment, LabelAssignmentTarget};
 pub use model::{Capabilities, Model, TokenCost};
+pub use model_metadata::{ModelArchitecture, ModelMetadata, ModelPricing};
 pub use provider::{AuthMethod, Provider, RateLimit};
 #[deprecated(
     since = "0.1.0",

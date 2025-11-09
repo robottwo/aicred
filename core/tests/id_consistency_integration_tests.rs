@@ -38,6 +38,8 @@ export GSH_SLOW_MODEL_ID="deepseek/deepseek-v3.2-exp"#;
         max_file_size: 1024 * 1024,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let scan_result = aicred_core::scan(&scan_options).unwrap();
@@ -201,6 +203,8 @@ fn test_complete_scan_update_workflow_with_id_validation() {
         max_file_size: 1024 * 1024,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let scan_result = aicred_core::scan(&scan_options).unwrap();

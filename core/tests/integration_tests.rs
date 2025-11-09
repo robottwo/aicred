@@ -45,6 +45,8 @@ ANTHROPIC_API_KEY=sk-ant-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
         max_file_size: 1_048_576,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     })
     .expect("scan should succeed");
 
@@ -89,6 +91,8 @@ OPENAI_API_KEY=sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
         max_file_size: 1_048_576,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     })
     .expect("scan should succeed");
 
@@ -159,6 +163,8 @@ fn test_application_scanner_integration() {
         max_file_size: 1_048_576,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     })
     .expect("scan should succeed");
 
@@ -185,6 +191,8 @@ fn test_anthropic_auto_model_detection() {
         max_file_size: 1_048_576,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     })
     .expect("scan should succeed");
 
@@ -284,6 +292,8 @@ fn test_anthropic_model_detection_without_api_key() {
         max_file_size: 1_048_576,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     })
     .expect("scan should succeed");
 

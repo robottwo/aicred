@@ -328,6 +328,8 @@ fn test_scanner_filtering_ignores_provider_filters() {
         max_file_size: 1024 * 1024,
         only_providers: Some(vec!["openai".to_string(), "anthropic".to_string()]),
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let result = aicred_core::scan(&scan_options);
@@ -347,6 +349,8 @@ fn test_scanner_filtering_ignores_provider_filters() {
         max_file_size: 1024 * 1024,
         only_providers: None,
         exclude_providers: Some(vec!["mock".to_string(), "another_mock".to_string()]),
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let result = aicred_core::scan(&scan_options_exclude);
@@ -366,6 +370,8 @@ fn test_scanner_filtering_ignores_provider_filters() {
         max_file_size: 1024 * 1024,
         only_providers: None,
         exclude_providers: None,
+        probe_models: false,
+        probe_timeout_secs: 30,
     };
 
     let result = aicred_core::scan(&scan_options_no_providers);

@@ -67,6 +67,8 @@ pub fn handle_scan(
     audit_log: Option<String>,
     verbose: bool,
     update: bool,
+    probe_models: bool,
+    probe_timeout: Option<u64>,
 ) -> Result<()> {
     // Determine home directory
     let home_dir = match home {
@@ -90,6 +92,8 @@ pub fn handle_scan(
         max_file_size: max_bytes_per_file,
         only_providers,
         exclude_providers,
+        probe_models,
+        probe_timeout_secs: probe_timeout.unwrap_or(30),
     };
 
     if dry_run {
@@ -252,20 +256,47 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // Step 1: We're no longer tracking existing instances to ensure consistent SHA-256 based IDs
 
     // Process config_instances first to extract ProviderInstance objects with API-probed models
+    // Build a map: (provider_type, source_path) -> models
+    // This matches how instance IDs are generated during scan: hash("{provider}:{source_path}")
+    let mut probed_models_by_source: std::collections::HashMap<
+        (String, String), // (provider_type, source_path)
+        Vec<aicred_core::models::Model>,
+    > = std::collections::HashMap::new();
+
     tracing::debug!(
         "Processing {} config instances to extract existing ProviderInstances",
         result.config_instances.len()
     );
+
+    // Extract probed models from each config instance
     for config_instance in &result.config_instances {
-        tracing::debug!(
-            "Config instance: {} at path: {} with {} provider instances",
-            config_instance.app_name,
-            config_instance.config_path_string(),
-            config_instance.provider_instances().len()
-        );
-        // Note: We're no longer using existing instances to ensure consistent SHA-256 based IDs
+        let source_path = config_instance.config_path.to_string_lossy().to_string();
+
+        for provider_instance in config_instance.provider_instances.all_instances() {
+            if !provider_instance.models.is_empty() {
+                let key = (provider_instance.provider_type.clone(), source_path.clone());
+                probed_models_by_source.insert(key.clone(), provider_instance.models.clone());
+
+                tracing::debug!(
+                    "Stored {} probed models for provider {} from source '{}' (instance {})",
+                    provider_instance.models.len(),
+                    provider_instance.provider_type,
+                    source_path,
+                    provider_instance.id
+                );
+                tracing::debug!(
+                    "  Map key: ({}, '{}')",
+                    provider_instance.provider_type,
+                    source_path
+                );
+            }
+        }
     }
-    tracing::debug!("Using SHA-256 based instance IDs for consistency");
+
+    tracing::debug!(
+        "Extracted probed models for {} (provider, source) combinations",
+        probed_models_by_source.len()
+    );
 
     // Step 2: Collect all keys by source file first
     for key in &result.keys {
@@ -381,6 +412,30 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         get_default_base_url(&provider_name),
                     );
                     new_instance.updated_at = now;
+
+                    // Check if we have probed models for this source
+                    let source_key = (provider_name.clone(), primary_key.source.clone());
+                    tracing::debug!(
+                        "  Looking up key: ({}, '{}')",
+                        provider_name,
+                        primary_key.source
+                    );
+                    if let Some(probed_models) = probed_models_by_source.get(&source_key) {
+                        tracing::info!(
+                            "Found {} probed models for {} (key hash {}), adding to new instance",
+                            probed_models.len(),
+                            provider_name,
+                            &primary_key.hash[..8]
+                        );
+                        new_instance.models = probed_models.clone();
+                    } else {
+                        tracing::debug!(
+                            "No probed models found for {} (instance {})",
+                            provider_name,
+                            instance_id
+                        );
+                    }
+
                     new_instance
                 };
 
@@ -496,6 +551,15 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         models_found.len()
                     );
 
+                    // Debug: Show the actual models that are being probed and found
+                    tracing::debug!(
+                        "Instance {} ({}): {} models from scanning, {} models from keys",
+                        instance_id,
+                        provider_name,
+                        existing_models,
+                        models_found.len()
+                    );
+
                     // Always include existing models from the ProviderInstance
                     // This handles the case where API-probed models exist but weren't converted to DiscoveredKey objects
                     for existing_model in &instance.models {
@@ -594,6 +658,25 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                             get_default_base_url(&provider_name),
                         );
                         new_instance.updated_at = now;
+
+                        // Check if we have probed models for this provider and instance
+                        let source_key = (provider_name.clone(), primary_key.source.clone());
+                        if let Some(probed_models) = probed_models_by_source.get(&source_key) {
+                            tracing::info!(
+                                "Found {} probed models for {} (instance {}), adding to new instance (redacted key)",
+                                probed_models.len(),
+                                provider_name,
+                                instance_id
+                            );
+                            new_instance.models = probed_models.clone();
+                        } else {
+                            tracing::debug!(
+                                "No probed models found for {} (instance {}) (redacted key)",
+                                provider_name,
+                                instance_id
+                            );
+                        }
+
                         new_instance
                     };
 
