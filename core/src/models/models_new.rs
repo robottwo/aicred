@@ -22,7 +22,7 @@ pub struct Model {
 }
 
 /// Model capabilities.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModelCapabilities {
     /// Supports chat/conversation
     pub chat: bool,
@@ -50,7 +50,7 @@ pub struct ModelPricing {
 }
 
 /// Extended model metadata.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModelMetadata {
     /// Model architecture (e.g., "transformer", "diffusion")
     pub architecture: Option<String>,

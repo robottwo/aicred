@@ -1,3 +1,7 @@
+//! Unified label model combining label metadata and assignment information.
+//!
+//! **Deprecated:** Use `labels_new::LabelWithAssignments` instead.
+
 use crate::utils::ProviderModelTuple;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

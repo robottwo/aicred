@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Metadata about an AI provider (e.g., OpenAI, Anthropic).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// Metadata about an AI provider (e.g., `OpenAI`, Anthropic).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Provider {
     /// Provider name (e.g., "openai", "anthropic")
     pub name: String,
@@ -35,7 +35,7 @@ pub enum AuthMethod {
 }
 
 /// Rate limiting configuration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RateLimit {
     /// Maximum requests per minute (if known)
     pub requests_per_minute: Option<u32>,
@@ -66,7 +66,7 @@ pub struct ProviderInstance {
 }
 
 /// Capabilities of a provider instance.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Capabilities {
     /// Supports chat/conversation endpoints
     pub chat: bool,

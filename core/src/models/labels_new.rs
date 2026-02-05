@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// A semantic label (e.g., "fast", "smart", "cheap").
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Label {
     /// Label name (unique identifier)
     pub name: String,
@@ -19,7 +19,7 @@ pub struct Label {
 }
 
 /// Assignment linking a label to a provider:model.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LabelAssignment {
     /// Label name being assigned
     pub label_name: String,
@@ -32,7 +32,7 @@ pub struct LabelAssignment {
 }
 
 /// Target of a label assignment.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum LabelTarget {
     /// Entire provider instance
@@ -54,8 +54,7 @@ impl LabelTarget {
     #[must_use]
     pub fn instance_id(&self) -> &str {
         match self {
-            Self::ProviderInstance { instance_id } => instance_id,
-            Self::ProviderModel { instance_id, .. } => instance_id,
+            Self::ProviderInstance { instance_id } | Self::ProviderModel { instance_id, .. } => instance_id,
         }
     }
     
@@ -81,19 +80,19 @@ pub struct LabelWithAssignments {
 impl LabelWithAssignments {
     /// Creates a new label with assignments
     #[must_use]
-    pub fn new(label: Label, assignments: Vec<LabelAssignment>) -> Self {
+    pub const fn new(label: Label, assignments: Vec<LabelAssignment>) -> Self {
         Self { label, assignments }
     }
     
     /// Checks if this label has any assignments
     #[must_use]
-    pub fn has_assignments(&self) -> bool {
+    pub const fn has_assignments(&self) -> bool {
         !self.assignments.is_empty()
     }
     
     /// Gets the number of assignments
     #[must_use]
-    pub fn assignment_count(&self) -> usize {
+    pub const fn assignment_count(&self) -> usize {
         self.assignments.len()
     }
 }

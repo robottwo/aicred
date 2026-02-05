@@ -58,19 +58,19 @@ impl CredentialValue {
     
     /// Creates a full credential value
     #[must_use]
-    pub fn full(key: String) -> Self {
+    pub const fn full(key: String) -> Self {
         Self::Full(key)
     }
     
     /// Checks if this is a redacted value
     #[must_use]
-    pub fn is_redacted(&self) -> bool {
+    pub const fn is_redacted(&self) -> bool {
         matches!(self, Self::Redacted { .. })
     }
     
     /// Gets the full value if available
     #[must_use]
-    pub fn as_full(&self) -> Option<&String> {
+    pub const fn as_full(&self) -> Option<&String> {
         match self {
             Self::Full(s) => Some(s),
             Self::Redacted { .. } => None,
@@ -154,7 +154,7 @@ impl std::fmt::Display for ValueType {
 }
 
 /// Environment where credential was discovered.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Environment {
     /// System-wide configuration
     SystemConfig,
@@ -170,7 +170,7 @@ pub enum Environment {
 }
 
 /// Validation status for a credential.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ValidationStatus {
     /// Not yet validated
     NotValidated,
