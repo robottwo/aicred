@@ -115,8 +115,8 @@ mod tests {
 
         // Verify metadata fields are captured
         let metadata = &instance.metadata;
-        assert_eq!(metadata.get("environment"), Some(&"staging".to_string());
-        assert_eq!(metadata.get("confidence"), Some(&"Very High".to_string());
+        assert_eq!(metadata.get("environment"), Some(&"staging".to_string()));
+        assert_eq!(metadata.get("confidence"), Some(&"Very High".to_string()));
         assert_eq!(
             metadata.get("validation_status"),
             Some(&"Unknown".to_string())
@@ -125,7 +125,7 @@ mod tests {
             metadata.get("source"),
             Some(&"/path/to/config.json".to_string())
         );
-        assert_eq!(metadata.get("line_number"), Some(&"42".to_string());
+        assert_eq!(metadata.get("line_number"), Some(&"42".to_string()));
         assert!(metadata.contains_key("discovered_at"));
         assert!(metadata.contains_key("key_metadata"));
 
@@ -208,9 +208,9 @@ mod tests {
             .metadata
             .as_ref()
             .expect("Metadata should be present");
-        assert_eq!(metadata.get("environment"), Some(&"production".to_string());
-        assert_eq!(metadata.get("confidence"), Some(&"Medium".to_string());
-        assert_eq!(metadata.get("source"), Some(&"/minimal/path".to_string());
+        assert_eq!(metadata.get("environment"), Some(&"production".to_string()));
+        assert_eq!(metadata.get("confidence"), Some(&"Medium".to_string()));
+        assert_eq!(metadata.get("source"), Some(&"/minimal/path".to_string()));
 
         // Verify optional fields are not present
         assert!(!metadata.contains_key("line_number"));
@@ -345,7 +345,7 @@ mod tests {
         // Verify key is restored
         assert_eq!(config.keys.len(), 1);
         let key = &config.keys[0];
-        assert_eq!(key.value, Some("sk-test-key-67890".to_string());
+        assert_eq!(key.value, Some("sk-test-key-67890".to_string()));
         assert_eq!(key.environment, Environment::Staging);
         assert_eq!(key.confidence, Confidence::High);
         assert_eq!(key.validation_status, ValidationStatus::Valid);
@@ -393,7 +393,7 @@ mod tests {
         // Verify key is created with defaults
         assert_eq!(config.keys.len(), 1);
         let key = &config.keys[0];
-        assert_eq!(key.value, Some("sk-simple-key".to_string());
+        assert_eq!(key.value, Some("sk-simple-key".to_string()));
         // Default values should be used
         assert_eq!(key.environment, Environment::Production);
         assert_eq!(key.confidence, Confidence::Medium);
@@ -433,7 +433,7 @@ mod tests {
         assert_eq!(round_trip_config.keys.len(), 1);
         let round_trip_key = &round_trip_config.keys[0];
 
-        assert_eq!(round_trip_key.value, Some("sk-round-trip-key".to_string());
+        assert_eq!(round_trip_key.value, Some("sk-round-trip-key".to_string()));
         assert_eq!(round_trip_key.environment, Environment::Staging);
         assert_eq!(round_trip_key.confidence, Confidence::VeryHigh);
         assert_eq!(round_trip_key.source, "/original/path.json");
@@ -467,7 +467,7 @@ mod tests {
 
         // Verify empty key is preserved
         assert_eq!(round_trip_config.keys.len(), 1);
-        assert_eq!(round_trip_config.keys[0].value, Some(String::new());
+        assert_eq!(round_trip_config.keys[0].value, Some(String::new()));
     }
 
     #[test]
@@ -532,8 +532,8 @@ mod tests {
         assert_eq!(instance.api_key, "sk-first-key".to_string());
 
         let metadata = &instance.metadata;
-        assert_eq!(metadata.get("environment"), Some(&"production".to_string());
-        assert_eq!(metadata.get("source"), Some(&"/path1".to_string());
+        assert_eq!(metadata.get("environment"), Some(&"production".to_string()));
+        assert_eq!(metadata.get("source"), Some(&"/path1".to_string()));
     }
 
     #[test]
@@ -563,7 +563,7 @@ mod tests {
         // Verify key is created with defaults for invalid values
         assert_eq!(config.keys.len(), 1);
         let key = &config.keys[0];
-        assert_eq!(key.value, Some("sk-test".to_string());
+        assert_eq!(key.value, Some("sk-test".to_string()));
         // Invalid environment should be treated as custom
         assert_eq!(
             key.environment,

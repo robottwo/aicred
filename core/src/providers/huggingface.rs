@@ -112,7 +112,7 @@ impl HuggingFacePlugin {
 mod tests {
     use super::*;
     use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+        discovered_key::Confidence, provider_key::{Environment, ValidationStatus}, ProviderInstance, ProviderKey,
     };
 
     #[test]
@@ -158,11 +158,8 @@ mod tests {
         instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
-        let model = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        instance.add_model(model);
+        
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -195,11 +192,8 @@ mod tests {
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        instance.add_model(model);
+        
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -218,16 +212,10 @@ mod tests {
         );
 
         // Add models
-        let model1 = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        let model2 = crate::models::Model::new(
-            "facebook/blenderbot-400M-distill".to_string(),
-            "BlenderBot 400M".to_string(),
-        );
-        instance.add_model(model1);
-        instance.add_model(model2);
+        
+        
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
+        instance.add_model("facebook/blenderbot-400M-distill".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);

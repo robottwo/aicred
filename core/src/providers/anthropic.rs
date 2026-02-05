@@ -292,12 +292,8 @@ mod tests {
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        let model2 =
-            crate::models::Model::new("claude-3-opus".to_string(), "Claude 3 Opus".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("claude-3-sonnet".to_string());
+        instance.add_model("claude-3-opus".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -422,12 +418,8 @@ mod tests {
         );
 
         // Add some pre-configured models
-        let model1 =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        let model2 =
-            crate::models::Model::new("claude-3-opus".to_string(), "Claude 3 Opus".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("claude-3-sonnet".to_string());
+        instance.add_model("claude-3-opus".to_string());
 
         // Should return the configured models regardless of API key status
         let instance_models = plugin.get_instance_models(&instance).unwrap();

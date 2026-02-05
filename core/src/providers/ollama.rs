@@ -151,8 +151,8 @@ mod tests {
         );
 
         // Add a model (Ollama doesn't require keys)
-        let model = crate::models::Model::new("llama2".to_string(), "Llama 2".to_string());
-        instance.add_model(model);
+        
+        instance.add_model("llama2".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -186,7 +186,7 @@ mod tests {
 
         // Add a model with empty ID
         let model = crate::models::Model::new(String::new(), "Empty Model".to_string());
-        instance.add_model(model);
+        instance.add_model("llama2".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -205,10 +205,8 @@ mod tests {
         );
 
         // Add models
-        let model1 = crate::models::Model::new("llama2".to_string(), "Llama 2".to_string());
-        let model2 = crate::models::Model::new("mistral".to_string(), "Mistral".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("llama2".to_string());
+        instance.add_model("mistral".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);

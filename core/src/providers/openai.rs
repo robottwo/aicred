@@ -192,7 +192,7 @@ impl OpenAIPlugin {
 mod tests {
     use super::*;
     use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
+        discovered_key::Confidence, provider_key::{Environment, ValidationStatus}, ProviderInstance, ProviderKey,
     };
     use std::path::Path;
 
@@ -236,11 +236,8 @@ mod tests {
         instance.set_api_key(key.value.unwrap_or_default());
 
         // Add a model
-        let model = crate::models::Model::new(
-            "text-embedding-3-small".to_string(),
-            "Text Embedding 3 Small".to_string(),
-        );
-        instance.add_model(model);
+        
+        instance.add_model("text-embedding-3-large".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -273,11 +270,8 @@ mod tests {
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "text-embedding-3-large".to_string(),
-            "Text Embedding 3 Large".to_string(),
-        );
-        instance.add_model(model);
+        
+        instance.add_model("text-embedding-3-large".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -296,14 +290,9 @@ mod tests {
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
-        let model2 = crate::models::Model::new(
-            "text-embedding-3-small".to_string(),
-            "Text Embedding 3 Small".to_string(),
-        );
-        instance.add_model(model1);
-        instance.add_model(model2);
+        
+        instance.add_model("gpt-3.5-turbo".to_string());
+        instance.add_model("text-embedding-3-small".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
