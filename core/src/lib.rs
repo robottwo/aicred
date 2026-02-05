@@ -98,7 +98,6 @@ pub mod models;
 pub mod parser;
 pub mod plugins;
 pub mod providers;
-pub mod scanner;
 pub mod scanners;
 pub mod utils;
 
@@ -132,8 +131,7 @@ pub use models::{
 
 pub use parser::{ConfigParser, FileFormat};
 pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
-pub use scanner::{Scanner, ScannerConfig, DEFAULT_MAX_FILE_SIZE};
-pub use scanners::{register_builtin_scanners, ScannerPlugin, ScannerRegistry};
+pub use scanners::{register_builtin_scanners, ScannerConfig, ScannerPlugin, ScannerRegistry, DEFAULT_MAX_FILE_SIZE};
 pub use utils::provider_model_tuple::ProviderModelTuple;
 
 use std::path::PathBuf;
@@ -267,10 +265,6 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
 
     // Filter scanners based on options
     let filtered_scanner_registry = filter_scanner_registry(&scanner_registry, options)?;
-
-    // Create scanner with provider registry only for key validation
-    let _scanner = Scanner::new(filtered_provider_registry.clone())
-        .with_scanner_registry(filtered_scanner_registry.clone());
 
     // Initialize result without scanning entire directory
     let scan_started_at = chrono::Utc::now();

@@ -7,6 +7,39 @@
 #![allow(clippy::unnecessary_wraps)]
 #![allow(clippy::too_many_lines)]
 
+/// Default maximum file size to scan (1MB).
+pub const DEFAULT_MAX_FILE_SIZE: usize = 1024 * 1024;
+
+/// Scanner configuration.
+#[derive(Debug, Clone)]
+pub struct ScannerConfig {
+    /// Maximum file size to scan in bytes.
+    pub max_file_size: usize,
+    /// Whether to follow symbolic links.
+    pub follow_symlinks: bool,
+    /// File extensions to include.
+    pub include_extensions: Option<Vec<String>>,
+    /// File extensions to exclude.
+    pub exclude_extensions: Option<Vec<String>>,
+    /// Specific files to exclude.
+    pub exclude_files: Option<Vec<String>>,
+    /// Whether to scan hidden files/directories.
+    pub scan_hidden: bool,
+}
+
+impl Default for ScannerConfig {
+    fn default() -> Self {
+        Self {
+            max_file_size: DEFAULT_MAX_FILE_SIZE,
+            follow_symlinks: false,
+            include_extensions: None,
+            exclude_extensions: Some(vec![".log".to_string(), ".tmp".to_string()]),
+            exclude_files: Some(vec![".DS_Store".to_string(), "Thumbs.db".to_string()]),
+            scan_hidden: true,
+        }
+    }
+}
+
 mod claude_desktop;
 mod gsh;
 mod langchain;
