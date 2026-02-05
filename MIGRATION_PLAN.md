@@ -1,139 +1,134 @@
-# Internal API Migration Plan
+# CLI Legacy Type Migration Plan
 
-**Goal:** Remove dual API support, use only new types internally while maintaining backward compatibility for external users.
+## Overview
+Migrate CLI from legacy types (DiscoveredKey, ProviderKey, ProviderConfig, Tag, TagAssignment, UnifiedLabel) to new API types.
 
-## Current State
+## Legacy → New API Mappings
 
-**New types (_new.rs files):**
-- credentials_new.rs - `DiscoveredCredential`, `CredentialValue`, etc.
-- labels_new.rs - `LabelNew`, `LabelAssignmentNew`, etc.
-- providers_new.rs - `ProviderNew`, `ProviderInstanceNew`, etc.
-- models_new.rs - `ModelNew`, `ModelMetadataNew`, etc.
-- scan_new.rs - (scan_result renamed)
+### 1. DiscoveredKey → DiscoveredCredential
+**File:** `cli/src/commands/scan.rs`
 
-**Old files to remove:**
-- discovered_key.rs → merged into credentials_new.rs
-- provider_key.rs → merged into credentials_new.rs
-- label.rs → merged into labels_new.rs
-- label_assignment.rs → merged into labels_new.rs
-- tag.rs → merged into labels_new.rs
-- tag_assignment.rs → merged into labels_new.rs
-- unified_label.rs → merged into labels_new.rs
-- provider.rs → replaced by providers_new.rs
-- provider_instance.rs → replaced by providers_new.rs
-- provider_instances.rs → replaced by providers_new.rs
-- model.rs → replaced by models_new.rs
-- model_metadata.rs → merged into models_new.rs
-- scan_result.rs → replaced by scan_new.rs
-- provider_config.rs → deprecated, remove
+| DiscoveredKey Field | DiscoveredCredential Field | Notes |
+|-------------------|------------------------|-------|
+| provider | provider | Direct mapping |
+| source | source_file | Direct mapping |
+| value_type | value_type | Direct mapping (same enum) |
+| confidence | confidence | Direct mapping (same enum) |
+| hash | - | Hash is stored in CredentialValue::Redacted |
+| discovered_at | discovered_at | Direct mapping |
+| line_number (u32) | source_line (Option<usize>) | Type change |
+| column_number | - | Not present in new type |
+| metadata | - | Not present in new type |
+| full_value (Option<String>) | value (CredentialValue) | Enum wrapper |
 
-## Migration Strategy
+**Migration Strategy:**
+- Replace `DiscoveredKey` usage with `DiscoveredCredential`
+- Convert `full_value()` to check `CredentialValue` enum
+- Convert `redacted_value()` to use CredentialValue methods
+- Update field access patterns
 
-### Step 1: Rename _new.rs files to canonical names
-```bash
-mv credentials_new.rs credentials.rs
-mv labels_new.rs labels.rs
-mv providers_new.rs providers.rs
-mv models_new.rs models.rs
-mv scan_new.rs scan.rs
-```
+### 2. ProviderKey → Remove
+**Files:** `cli/src/commands/providers.rs`
 
-### Step 2: Update new files - remove "New" suffix from type names
-In each renamed file, change:
-- `DiscoveredCredential` stays (already good)
-- `LabelNew` → `Label`
-- `LabelAssignmentNew` → `LabelAssignment`
-- `ProviderNew` → `Provider`
-- `ProviderInstanceNew` → `ProviderInstance`
-- `ModelNew` → `Model`
-- etc.
+**Migration Strategy:**
+- Remove ProviderKey temporary construction
+- Use direct string values for API keys
+- Update Confidence and Environment type imports from new location
 
-### Step 3: Update mod.rs exports
-```rust
-// Primary exports (new types)
-pub use credentials::{DiscoveredCredential, CredentialValue, ...};
-pub use labels::{Label, LabelAssignment, ...};
-pub use providers::{Provider, ProviderInstance, ProviderCollection, ...};
-pub use models::{Model, ModelMetadata, ...};
+### 3. ProviderConfig → Remove
+**Files:**
+- `cli/src/commands/providers.rs` (load_instances_from_providers)
+- `cli/src/utils/provider_loader.rs` (parsing logic)
 
-// Backward compatibility aliases
-#[deprecated(since = "0.2.0", note = "Use DiscoveredCredential")]
-pub type DiscoveredKey = DiscoveredCredential;
+**Migration Strategy:**
+- Remove ProviderConfig imports and usage
+- Simplify YAML parsing to only support ProviderInstance
+- Remove legacy format fallback code
+- Keep only direct ProviderInstance parsing
 
-#[deprecated(since = "0.2.0", note = "Use Label")]
-pub type Tag = Label;
+### 4. Tag → Label
+**Files:**
+- `cli/src/commands/tags.rs`
+- `cli/src/output/table.rs`
 
-// etc.
-```
+| Tag Field | Label Field | Notes |
+|----------|------------|-------|
+| id | name | ID removed, use name as identifier |
+| name | name | Direct mapping |
+| description | description | Direct mapping |
+| color | - | Removed from new type |
+| metadata | metadata | Direct mapping |
+| created_at | created_at | Direct mapping |
+| updated_at | - | Removed from new type |
 
-### Step 4: Update all internal imports
-Find and replace throughout core/src:
-- `models::discovered_key::` → `models::credentials::`
-- `DiscoveredKey` → `DiscoveredCredential`
-- `LabelNew` → `Label`
-- `ProviderInstanceNew` → `ProviderInstance`
-- `ModelNew` → `Model`
-- etc.
+**Migration Strategy:**
+- Replace Tag with Label
+- Remove id field generation (use name directly)
+- Remove color field (not in Label)
+- Remove updated_at field
+- Update validation logic
 
-### Step 5: Delete old files
-```bash
-rm discovered_key.rs provider_key.rs
-rm label.rs label_assignment.rs tag.rs tag_assignment.rs unified_label.rs
-rm provider.rs provider_instance.rs provider_instances.rs provider_config.rs
-rm model.rs model_metadata.rs
-rm scan_result.rs
-```
+### 5. TagAssignment → LabelAssignment
+**File:** `cli/src/commands/tags.rs`
 
-### Step 6: Update lib.rs exports
-Keep backward compatibility at the public API level:
-```rust
-// Primary exports (new names)
-pub use models::{
-    DiscoveredCredential,
-    Label,
-    LabelAssignment,
-    Provider,
-    ProviderInstance,
-    Model,
-    // ...
-};
+| TagAssignment Field | LabelAssignment Field | Notes |
+|-------------------|---------------------|-------|
+| id | - | Not in new type |
+| tag_id | label_name | Renamed |
+| target (TagAssignmentTarget) | target (LabelTarget) | Different enum |
+| metadata | - | Not in new type |
+| created_at | assigned_at | Renamed |
+| updated_at | - | Removed |
+| assigned_by | assigned_by | Direct mapping (new) |
 
-// Backward compatibility (deprecated)
-#[allow(deprecated)]
-pub use models::{
-    DiscoveredKey,  // = DiscoveredCredential
-    Tag,            // = Label
-    // ...
-};
-```
+**TagAssignmentTarget vs LabelTarget:**
+- `TagAssignmentTarget::ProviderInstance { instance_id }` → `LabelTarget::ProviderInstance { instance_id }`
+- `TagAssignmentTarget::Model { instance_id, model_id }` → `LabelTarget::ProviderModel { instance_id, model_id }`
 
-## Testing Strategy
+**Migration Strategy:**
+- Replace TagAssignment with LabelAssignment
+- Remove id field generation
+- Remove updated_at field
+- Update target enum usage
+- Update assignment matching logic
 
-After each step:
-1. `cargo build --package aicred-core`
-2. `cargo test --package aicred-core`
-3. Check for compilation errors
-4. Fix imports as needed
+### 6. UnifiedLabel → Label + LabelAssignment
+**File:** `cli/src/commands/labels.rs`
 
-## Rollback
+**UnifiedLabel combines:**
+- Label metadata (name, description, color, metadata)
+- Assignment information (target, created_at, updated_at)
 
-Each step is a separate commit. Can revert individually if needed.
+**Migration Strategy:**
+- Split UnifiedLabel into separate Label and LabelAssignment
+- Label stores: name, description, created_at, metadata
+- LabelAssignment stores: label_name, target, assigned_at, assigned_by
+- Update save/load logic to handle both types
+- Update CLI commands to work with separate types
 
-## Estimated Time
+## Implementation Order
 
-- Step 1: 5 minutes (rename files)
-- Step 2: 30-45 minutes (update type names in files)
-- Step 3: 15 minutes (update mod.rs)
-- Step 4: 1-2 hours (update all internal imports - lots of files)
-- Step 5: 5 minutes (delete old files)
-- Step 6: 15 minutes (update lib.rs)
+1. **Phase 1: Core Types Migration** (No file deletions)
+   - Migrate scan.rs (DiscoveredKey → DiscoveredCredential)
+   - Migrate tags.rs (Tag, TagAssignment → Label, LabelAssignment)
+   - Migrate labels.rs (UnifiedLabel → Label + LabelAssignment)
 
-**Total:** ~2-3 hours
+2. **Phase 2: Provider Migration**
+   - Migrate providers.rs (remove ProviderKey, ProviderConfig)
+   - Migrate provider_loader.rs (remove ProviderConfig parsing)
 
-## Benefits
+3. **Phase 3: Output Migration**
+   - Migrate table.rs (Tag → Label)
 
-- Single source of truth for each type
-- Cleaner codebase (no _new suffix)
-- Internal code uses canonical names
-- External users still get backward compatibility
-- Easier to eventually remove deprecated aliases in v0.3.0
+4. **Phase 4: Cleanup**
+   - Delete 6 legacy type files
+   - Remove exports from core/src/models/mod.rs
+   - Remove exports from core/src/lib.rs
+   - Verify compilation
+   - Run tests
+
+## Success Criteria
+- CLI compiles with 0 errors
+- 6 legacy files deleted
+- No backward compat exports in public API
+- Tests pass

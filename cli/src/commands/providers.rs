@@ -1,10 +1,5 @@
 use crate::utils::provider_loader::load_provider_instances;
-use aicred_core::models::{
-    ProviderCollection, ProviderInstance,
-};
-use aicred_core::{ProviderKey, ProviderConfig};
-use aicred_core::models::discovered_key::Confidence;
-use aicred_core::models::provider_key::{Environment, ValidationStatus};
+use aicred_core::models::{ProviderCollection, ProviderInstance};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -17,85 +12,6 @@ fn truncate_string(s: &str, max_len: usize) -> String {
     }
     let truncated: String = s.chars().take(max_len.saturating_sub(3)).collect();
     format!("{}...", truncated)
-}
-
-/// Load instances from legacy provider configurations
-#[allow(dead_code)]
-fn load_instances_from_providers(
-    providers_dir: &PathBuf,
-    instances: &mut ProviderCollection,
-) -> Result<()> {
-    if !providers_dir.exists() {
-        return Ok(());
-    }
-
-    let entries = std::fs::read_dir(providers_dir)?;
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.extension().is_some_and(|ext| ext == "yaml") {
-            if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
-                if let Ok(content) = std::fs::read_to_string(&path) {
-                    if let Ok(config) = ProviderConfig::from_yaml(&content) {
-                        // Convert ProviderConfig to ProviderInstance
-                        // Generate instance ID as first 4 characters of SHA-256 hash of the file content
-                        let mut hasher = Sha256::new();
-                        hasher.update(content.as_bytes());
-                        let hash_result = hasher.finalize();
-                        let full_hash = format!("{:x}", hash_result);
-                        let instance_id = full_hash[..4].to_string();
-                        let display_name = file_stem
-                            .split('_')
-                            .map(|word| {
-                                let mut chars = word.chars();
-                                match chars.next() {
-                                    None => String::new(),
-                                    Some(first) => {
-                                        first.to_uppercase().collect::<String>() + chars.as_str()
-                                    }
-                                }
-                            })
-                            .collect::<Vec<String>>()
-                            .join(" ");
-
-                        let (provider_type, base_url) = match file_stem.to_lowercase().as_str() {
-                            s if s.contains("openai") => ("openai", "https://api.openai.com"),
-                            s if s.contains("anthropic") => {
-                                ("anthropic", "https://api.anthropic.com")
-                            }
-                            s if s.contains("huggingface") => {
-                                ("huggingface", "https://huggingface.co")
-                            }
-                            s if s.contains("ollama") => ("ollama", "http://localhost:11434"),
-                            s if s.contains("groq") => ("groq", "https://api.groq.com"),
-                            s if s.contains("test") => ("test", "https://api.example.com"),
-                            _ => ("unknown", "https://api.example.com"),
-                        };
-
-                        let mut instance = ProviderInstance::new(
-                            instance_id,
-                            provider_type.to_string(),
-                            base_url.to_string(),
-                            String::new(),
-                            config.models.clone(),
-                        );
-
-                        // Copy API key - use the first key if available
-                        if let Some(first_key) = config.keys.first() {
-                            if let Some(key_value) = &first_key.value {
-                                instance.set_api_key(key_value.clone());
-                            }
-                        }
-
-                        instances.add(instance.id.clone(), instance);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 /// Save provider instances to configuration directory
@@ -114,79 +30,8 @@ fn save_provider_instances(instances: &ProviderCollection) -> Result<()> {
         let file_name = format!("{}-{}.yaml", instance.provider_type, &instance.id[..4]);
         let file_path = config_dir.join(&file_name);
 
-        // Serialize into a legacy-compatible ProviderConfig-ish YAML so tests and users
-        // that expect a `keys` sequence continue to work. We keep minimal fields:
-        // id, display_name, provider_type, base_url, active, keys (with api_key),
-        // models (list of model objects), created_at, updated_at.
-        use serde_yaml::Value;
-
-        let mut top = serde_yaml::Mapping::new();
-        top.insert(
-            Value::String("id".into()),
-            Value::String(instance.id.clone()),
-        );
-        top.insert(
-            Value::String("display_name".into()),
-            Value::String(instance.id.clone()),  // Use id instead of display_name
-        );
-        top.insert(
-            Value::String("provider_type".into()),
-            Value::String(instance.provider_type.clone()),
-        );
-        top.insert(
-            Value::String("base_url".into()),
-            Value::String(instance.base_url.clone()),
-        );
-        top.insert(Value::String("active".into()), Value::Bool(instance.active));
-
-        // Keys: represent the single api_key (if present) as a sequence with one mapping
-        let mut keys_seq = serde_yaml::Sequence::new();
-        if let Some(api_key) = instance.get_api_key() {
-            let mut key_map = serde_yaml::Mapping::new();
-            key_map.insert(Value::String("id".into()), Value::String("default".into()));
-            key_map.insert(
-                Value::String("api_key".into()),
-                Value::String(api_key.clone()),
-            );
-            // Include minimal discovered_at/created_at placeholders so older consumers are happy
-            let now = chrono::Utc::now();
-            key_map.insert(
-                Value::String("discovered_at".into()),
-                Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
-            );
-            keys_seq.push(Value::Mapping(key_map));
-        }
-        top.insert(Value::String("keys".into()), Value::Sequence(keys_seq));
-
-        // Models: convert to simple mapping objects with model_id and name
-        let mut models_seq = serde_yaml::Sequence::new();
-        for model_id in &instance.models {
-            let mut m = serde_yaml::Mapping::new();
-            m.insert(
-                Value::String("model_id".into()),
-                Value::String(model_id.clone()),
-            );
-            m.insert(
-                Value::String("name".into()),
-                Value::String(model_id.clone()),
-            );
-            models_seq.push(Value::Mapping(m));
-        }
-        top.insert(Value::String("models".into()), Value::Sequence(models_seq));
-
-        // Timestamps
-        let now = chrono::Utc::now();
-        top.insert(
-            Value::String("created_at".into()),
-            Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
-        );
-        top.insert(
-            Value::String("updated_at".into()),
-            Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
-        );
-
-        let yaml_value = Value::Mapping(top);
-        let yaml_content = serde_yaml::to_string(&yaml_value)?;
+        // Serialize into a ProviderInstance YAML
+        let yaml_content = serde_yaml::to_string(instance)?;
         std::fs::write(&file_path, yaml_content)?;
     }
 
@@ -331,7 +176,7 @@ pub fn handle_list_instances(
 /// Handle the add-instance command
 pub fn handle_add_instance(
     id: String,
-    name: String,
+    _name: String,  // display_name not supported in new ProviderInstance
     provider_type: String,
     base_url: String,
     api_key: Option<String>,
@@ -353,16 +198,7 @@ pub fn handle_add_instance(
 
     // Add API key if provided
     if let Some(key_value) = api_key {
-        let mut key = ProviderKey::new(
-            "default".to_string(),
-            "cli".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some(key_value);
-        key.discovered_at = chrono::Utc::now();
-        key.validation_status = ValidationStatus::Unknown;
-        instance.set_api_key(key.value.unwrap_or_default());
+        instance.set_api_key(key_value);
     }
 
     // Add models if provided
@@ -467,7 +303,7 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
 /// Handle the update-instance command
 pub fn handle_update_instance(
     id: String,
-    name: Option<String>,
+    _name: Option<String>,  // display_name not supported in new ProviderInstance
     base_url: Option<String>,
     api_key: Option<String>,
     models: Option<String>,
@@ -484,8 +320,6 @@ pub fn handle_update_instance(
     let instance_id = instance.id.clone();
 
     // Update fields if provided
-    // Note: display_name is no longer supported, ignoring name parameter
-
     if let Some(new_base_url) = base_url {
         instance.base_url = new_base_url;
     }
@@ -496,24 +330,7 @@ pub fn handle_update_instance(
 
     // Update API key if provided
     if let Some(new_key_value) = api_key {
-        // Remove existing default key if it exists
-        // For single API key, we can't retain specific keys, so we clear it if it matches
-        if let Some(current_key) = instance.get_api_key() {
-            if current_key.is_empty() {
-                instance.set_api_key(String::new());
-            }
-        }
-
-        let mut key = ProviderKey::new(
-            "default".to_string(),
-            "cli".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some(new_key_value);
-        key.discovered_at = chrono::Utc::now();
-        key.validation_status = ValidationStatus::Unknown;
-        instance.set_api_key(key.value.unwrap_or_default());
+        instance.set_api_key(new_key_value);
     }
 
     // Update models if provided
@@ -601,7 +418,7 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
         } else {
             println!("  Value: {}", "********".dimmed());
         }
-        println!("  Status: {:?}", ValidationStatus::Unknown);
+        println!("  Status: Unknown");
         println!(
             "  Discovered: {}",
             chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
@@ -840,12 +657,7 @@ pub fn handle_list_models(
                 if !tags.is_empty() {
                     println!("  Tags:");
                     for tag in tags {
-                        let tag_display = if let Some(ref color) = tag.color {
-                            format!("{} ({})", tag.name, color)
-                        } else {
-                            tag.name.clone()
-                        };
-                        println!("    - {}", tag_display);
+                        println!("    - {}", tag.name);
                     }
                 }
             }

@@ -11,7 +11,9 @@ pub mod scan;
 pub mod config_instance;
 pub mod config_validator;
 
-// ==== INTERNAL SUPPORT (CLI compatibility, not for external library use) ====
+// ==== INTERNAL SUPPORT (for core library internal use only) ====
+// These modules are deprecated and kept only for internal compatibility.
+// They should NOT be exported in the public API.
 pub mod discovered_key;
 pub mod provider_config;
 pub mod provider_key;

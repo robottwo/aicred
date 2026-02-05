@@ -72,12 +72,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                             if !tags.is_empty() {
                                 println!("          {} tags:", model);
                                 for tag in tags {
-                                    let tag_display = if let Some(ref color) = tag.color {
-                                        format!("{} ({})", tag.name, color)
-                                    } else {
-                                        tag.name.clone()
-                                    };
-                                    println!("            - {}", tag_display);
+                                    println!("            - {}", tag.name);
                                 }
                             }
                         }
@@ -100,12 +95,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     if !tags.is_empty() {
                         println!("    Tags:");
                         for tag in tags {
-                            let tag_display = if let Some(ref color) = tag.color {
-                                format!("{} ({})", tag.name, color)
-                            } else {
-                                tag.name.clone()
-                            };
-                            println!("      - {}", tag_display);
+                            println!("      - {}", tag.name);
                         }
                     }
                 }

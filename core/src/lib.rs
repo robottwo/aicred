@@ -130,18 +130,10 @@ pub use models::{
     ConfigInstance,
 };
 
-// ==== INTERNAL CLI TYPES (not for external library use) ====
-// These are exported for backward compatibility with the CLI,
-// but should not be used by external consumers of the library.
-// New code should use the types above instead.
-pub use models::{
-    discovered_key::DiscoveredKey,
-    provider_config::ProviderConfig,
-    provider_key::ProviderKey,
-    tag::Tag,
-    tag_assignment::TagAssignment,
-    unified_label::UnifiedLabel,
-};
+// Internal export only (needed for ScanResult and backward compatibility)
+// TODO: Remove when core library migrates to DiscoveredCredential
+pub use models::discovered_key::DiscoveredKey;
+pub use models::unified_label::UnifiedLabel;  // Temporary for wrap.rs compatibility
 
 pub use parser::{ConfigParser, FileFormat};
 

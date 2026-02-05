@@ -1,8 +1,7 @@
 //! Label management commands for the aicred CLI.
 
 use crate::utils::provider_loader::load_provider_instances;
-use aicred_core::models::Label;
-use aicred_core::UnifiedLabel;
+use aicred_core::models::{Label, LabelAssignment, LabelTarget};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;
@@ -10,8 +9,61 @@ use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
 use tracing::{debug, error, info};
-/// Load all unified labels from the configuration directory
-pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<UnifiedLabel>> {
+
+/// Temporary compatibility function - load UnifiedLabel format for backward compatibility
+/// TODO: Remove when wrap.rs is migrated to use LabelAssignment directly
+#[deprecated(note = "Use LabelAssignment instead")]
+pub fn load_unified_labels_with_home(home: Option<&Path>) -> Result<Vec<aicred_core::UnifiedLabel>> {
+    let assignments = load_label_assignments_with_home(home)?;
+    let labels_metadata = load_labels_with_home(home)?;
+    let provider_instances = load_provider_instances(home)?;
+
+    // Convert LabelAssignments to UnifiedLabel format
+    let mut unified_labels = Vec::new();
+    for assignment in assignments {
+        if let Some(label_metadata) = labels_metadata.get(&assignment.label_name) {
+            // Convert LabelTarget to ProviderModelTuple
+            let tuple = match &assignment.target {
+                LabelTarget::ProviderInstance { instance_id } => {
+                    // Find provider instance
+                    if let Some(instance) = provider_instances.get_instance(instance_id) {
+                        // Use first model if available
+                        if let Some(model_id) = instance.models.first() {
+                            ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
+                        } else {
+                            ProviderModelTuple::new(instance.provider_type.clone(), String::new())
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                LabelTarget::ProviderModel { instance_id, model_id } => {
+                    // Find provider instance
+                    if let Some(instance) = provider_instances.get_instance(instance_id) {
+                        ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
+                    } else {
+                        continue;
+                    }
+                }
+            };
+
+            unified_labels.push(aicred_core::UnifiedLabel {
+                label_name: assignment.label_name.clone(),
+                target: tuple,
+                description: label_metadata.description.clone(),
+                color: None,  // Color not supported in new Label
+                metadata: None,  // Metadata not converted for now
+                created_at: assignment.assigned_at,
+                updated_at: chrono::Utc::now(),
+            });
+        }
+    }
+
+    Ok(unified_labels)
+}
+
+/// Load all label assignments from the configuration directory
+pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<LabelAssignment>> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -34,18 +86,18 @@ pub fn load_label_assignments_with_home(home: Option<&Path>) -> Result<Vec<Unifi
     }
 
     let content = std::fs::read_to_string(&labels_file)?;
-    let labels: Vec<UnifiedLabel> = serde_yaml::from_str(&content)?;
+    let labels: Vec<LabelAssignment> = serde_yaml::from_str(&content)?;
     Ok(labels)
 }
 
-/// Load all unified labels from the configuration directory
-pub fn load_label_assignments() -> Result<Vec<UnifiedLabel>> {
+/// Load all label assignments from the configuration directory
+pub fn load_label_assignments() -> Result<Vec<LabelAssignment>> {
     load_label_assignments_with_home(None)
 }
 
-/// Save unified labels to the configuration directory
+/// Save label assignments to the configuration directory
 pub fn save_label_assignments_with_home(
-    labels: &[UnifiedLabel],
+    labels: &[LabelAssignment],
     home: Option<&Path>,
 ) -> Result<()> {
     let config_dir = match home {
@@ -106,16 +158,75 @@ pub fn save_label_assignments_with_home(
     Ok(())
 }
 
-/// Save unified labels to the configuration directory
-pub fn save_label_assignments(labels: &[UnifiedLabel]) -> Result<()> {
+/// Save label assignments to the configuration directory
+pub fn save_label_assignments(labels: &[LabelAssignment]) -> Result<()> {
     save_label_assignments_with_home(labels, None)
+}
+
+/// Load labels (metadata) from a separate file
+fn load_labels_with_home(home: Option<&Path>) -> Result<std::collections::HashMap<String, Label>> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
+
+    let labels_metadata_file = config_dir.join("labels_metadata.yaml");
+
+    if !labels_metadata_file.exists() {
+        return Ok(std::collections::HashMap::new());
+    }
+
+    let content = std::fs::read_to_string(&labels_metadata_file)?;
+    let labels: Vec<Label> = serde_yaml::from_str(&content)?;
+    Ok(labels.into_iter().map(|l| (l.name.clone(), l)).collect())
+}
+
+/// Save labels (metadata) to a separate file
+fn save_labels_with_home(
+    labels: &std::collections::HashMap<String, Label>,
+    home: Option<&Path>,
+) -> Result<()> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred");
+
+    std::fs::create_dir_all(&config_dir)?;
+
+    let labels_metadata_file = config_dir.join("labels_metadata.yaml");
+    let labels_vec: Vec<Label> = labels.values().cloned().collect();
+    let content = serde_yaml::to_string(&labels_vec)?;
+    std::fs::write(&labels_metadata_file, content)?;
+
+    Ok(())
 }
 
 /// Handle the labels list command
 pub fn handle_list_labels() -> Result<()> {
-    let labels = load_label_assignments()?;
+    let assignments = load_label_assignments()?;
+    let labels_metadata = load_labels_with_home(None)?;
 
-    if labels.is_empty() {
+    if assignments.is_empty() {
         println!("{}", "No labels configured.".yellow());
         println!(
             "{}",
@@ -126,30 +237,43 @@ pub fn handle_list_labels() -> Result<()> {
 
     println!("\n{}", "Label Assignments:".green().bold());
 
-    for label in &labels {
+    for assignment in &assignments {
+        // Get label metadata if available
+        let label_metadata = labels_metadata.get(&assignment.label_name);
+
         println!(
             "  {} - {}",
-            label.label_name.cyan().bold(),
-            label.target.as_str().dimmed()
+            assignment.label_name.cyan().bold(),
+            assignment_target_to_string(&assignment.target).dimmed()
         );
 
-        if let Some(ref description) = label.description {
-            println!("    Description: {}", description);
-        }
-        if let Some(ref color) = label.color {
-            println!("    Color: {}", color);
+        if let Some(label) = label_metadata {
+            if let Some(ref description) = label.description {
+                println!("    Description: {}", description);
+            }
         }
 
         println!(
             "    Created: {}",
-            label.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+            assignment.assigned_at.format("%Y-%m-%d %H:%M:%S UTC")
         );
         println!();
     }
 
-    println!("{}", format!("Total labels: {}", labels.len()).cyan());
+    println!("{}", format!("Total labels: {}", assignments.len()).cyan());
 
     Ok(())
+}
+
+fn assignment_target_to_string(target: &LabelTarget) -> String {
+    match target {
+        LabelTarget::ProviderInstance { instance_id } => {
+            format!("instance:{}", instance_id)
+        }
+        LabelTarget::ProviderModel { instance_id, model_id } => {
+            format!("instance:{}|model:{}", instance_id, model_id)
+        }
+    }
 }
 
 /// Find the labels directory using runtime path resolution
@@ -214,7 +338,6 @@ fn find_labels_directory(home: Option<&Path>) -> Result<std::path::PathBuf> {
 }
 
 /// Handle the labels scan command
-/// Handle the labels scan command
 pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> Result<()> {
     use colored::*;
     use regex::Regex;
@@ -254,7 +377,6 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
     }
 
     // Get the path to the conf/labels directory with runtime path resolution
-    // First try to find labels in user config directory, then fall back to binary location
     let labels_dir = find_labels_directory(home)?;
 
     if !labels_dir.exists() {
@@ -298,9 +420,10 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
         }
     }
 
-    // Load existing labels
-    let mut existing_labels = load_label_assignments_with_home(home)?;
-    let original_labels = existing_labels.clone(); // Keep track of original state
+    // Load existing label assignments and metadata
+    let mut existing_assignments = load_label_assignments_with_home(home)?;
+    let mut existing_labels_metadata = load_labels_with_home(home)?;
+    let original_assignments = existing_assignments.clone(); // Keep track of original state
     let mut new_assignments = Vec::new();
 
     // Process each scan file
@@ -443,21 +566,44 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                 );
             }
 
-            let label = UnifiedLabel::new(label_name.clone(), tuple.clone());
+            // Create label assignment
+            let assignment = LabelAssignment {
+                label_name: label_name.clone(),
+                target: if let Some(instance) = provider_instances.all_instances()
+                    .iter()
+                    .find(|inst| inst.provider_type == tuple.provider())
+                {
+                    if let Some(model) = instance.models.iter().find(|m| {
+                        let basename = m.rsplit('/').next().unwrap_or(m);
+                        basename == tuple.model()
+                    }) {
+                        LabelTarget::ProviderModel {
+                            instance_id: instance.id.clone(),
+                            model_id: model.clone(),
+                        }
+                    } else {
+                        // Model not found in instance, create instance-level assignment
+                        LabelTarget::ProviderInstance {
+                            instance_id: instance.id.clone(),
+                        }
+                    }
+                } else {
+                    continue; // Skip if provider instance not found
+                },
+                assigned_at: chrono::Utc::now(),
+                assigned_by: None,
+            };
 
-            // Check if label already exists and update it
-            if let Some(existing) = existing_labels
-                .iter_mut()
-                .find(|l| l.label_name == label_name)
-            {
+            // Check if assignment already exists and update it
+            let existing_index = existing_assignments.iter().position(|a| a.label_name == assignment.label_name);
+            if let Some(index) = existing_index {
                 if verbose {
                     println!(
                         "  🔄 Updating existing label '{}' to {}",
                         label_name, provider_model_str
                     );
                 }
-                existing.target = tuple;
-                existing.updated_at = chrono::Utc::now();
+                existing_assignments[index] = assignment;
             } else {
                 if verbose {
                     println!(
@@ -465,31 +611,41 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                         label_name, provider_model_str
                     );
                 }
-                new_assignments.push(label);
+                new_assignments.push(assignment);
+            }
+
+            // Ensure label metadata exists
+            if !existing_labels_metadata.contains_key(&label_name) {
+                existing_labels_metadata.insert(label_name.clone(), Label {
+                    name: label_name.clone(),
+                    description: None,
+                    created_at: chrono::Utc::now(),
+                    metadata: std::collections::HashMap::new(),
+                });
             }
         } else if verbose {
             eprintln!("  ❌ No matches found for label '{}'", label_name);
         }
     } // End of for entry in scan_files loop
 
-    // Add new assignments to existing labels
-    existing_labels.extend(new_assignments);
+    // Add new assignments to existing assignments
+    existing_assignments.extend(new_assignments);
 
     // Track what actually changed
     let mut newly_created = Vec::new();
     let mut updated = Vec::new();
 
     // Re-check what changed by comparing with original state
-    for label in &existing_labels {
-        if let Some(original) = original_labels
+    for assignment in &existing_assignments {
+        if let Some(original) = original_assignments
             .iter()
-            .find(|l| l.label_name == label.label_name)
+            .find(|a| a.label_name == assignment.label_name)
         {
-            if original.target != label.target {
-                updated.push(label);
+            if original.target != assignment.target {
+                updated.push(assignment);
             }
         } else {
-            newly_created.push(label);
+            newly_created.push(assignment);
         }
     }
 
@@ -501,19 +657,19 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
         if total_changes > 0 {
             println!("{}", "Would create/update the following labels:".cyan());
 
-            for label in newly_created {
+            for assignment in newly_created {
                 println!(
                     "  {} -> {}",
-                    label.label_name.cyan().bold(),
-                    label.target.as_str().dimmed()
+                    assignment.label_name.cyan().bold(),
+                    assignment_target_to_string(&assignment.target).dimmed()
                 );
             }
 
-            for label in updated {
+            for assignment in updated {
                 println!(
                     "  {} -> {}",
-                    label.label_name.cyan().bold(),
-                    label.target.as_str().dimmed()
+                    assignment.label_name.cyan().bold(),
+                    assignment_target_to_string(&assignment.target).dimmed()
                 );
             }
 
@@ -533,8 +689,9 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
             );
         }
     } else {
-        // Save the updated labels
-        save_label_assignments_with_home(&existing_labels, home)?;
+        // Save the updated assignments and metadata
+        save_label_assignments_with_home(&existing_assignments, home)?;
+        save_labels_with_home(&existing_labels_metadata, home)?;
 
         println!("\n{}", "Label scan completed".green().bold());
 
@@ -543,22 +700,22 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
         if total_changes > 0 {
             if !newly_created.is_empty() {
                 println!("{}", "New assignments:".cyan());
-                for label in newly_created {
+                for assignment in newly_created {
                     println!(
                         "  {} -> {}",
-                        label.label_name.cyan().bold(),
-                        label.target.as_str().dimmed()
+                        assignment.label_name.cyan().bold(),
+                        assignment_target_to_string(&assignment.target).dimmed()
                     );
                 }
             }
 
             if !updated.is_empty() {
                 println!("{}", "Updated assignments:".cyan());
-                for label in updated {
+                for assignment in updated {
                     println!(
                         "  {} -> {}",
-                        label.label_name.cyan().bold(),
-                        label.target.as_str().dimmed()
+                        assignment.label_name.cyan().bold(),
+                        assignment_target_to_string(&assignment.target).dimmed()
                     );
                 }
             }
@@ -576,6 +733,192 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
     }
 
     Ok(())
+}
+
+/// Handle the labels set command (create or update label assignment)
+pub fn handle_set_label(
+    label_name: String,
+    tuple_str: String,
+    _color: Option<String>,  // Color not supported in new Label
+    description: Option<String>,
+    home: Option<&Path>,
+) -> Result<()> {
+    // Trim and validate label name
+    let label_name = label_name.trim().to_string();
+    if label_name.is_empty() {
+        return Err(anyhow::anyhow!("Label name cannot be empty"));
+    }
+
+    let mut assignments = load_label_assignments_with_home(home)?;
+    let mut labels_metadata = load_labels_with_home(home)?;
+
+    // Parse the provider:model tuple
+    let tuple = ProviderModelTuple::parse(&tuple_str)
+        .map_err(|e| anyhow::anyhow!("Invalid provider:model tuple '{}': {}", tuple_str, e))?;
+
+    // Load provider instances to find the instance_id
+    let provider_instances = load_provider_instances(home)?;
+
+    // Find the matching provider instance
+    let provider_instances_list = provider_instances.all_instances();
+    let provider_instance = provider_instances_list
+        .iter()
+        .find(|inst| inst.provider_type == tuple.provider())
+        .ok_or_else(|| anyhow::anyhow!("No provider instance found for provider: {}", tuple.provider()))?;
+
+    // Create label assignment target
+    let target = if let Some(model) = provider_instance.models.iter().find(|m| {
+        let basename = m.rsplit('/').next().unwrap_or(m);
+        basename == tuple.model()
+    }) {
+        LabelTarget::ProviderModel {
+            instance_id: provider_instance.id.clone(),
+            model_id: model.clone(),
+        }
+    } else {
+        // Model not found, create instance-level assignment
+        LabelTarget::ProviderInstance {
+            instance_id: provider_instance.id.clone(),
+        }
+    };
+
+    // Check if this label already exists and update it, or create new one
+    let existing_assignment_index = assignments
+        .iter()
+        .position(|assignment| assignment.label_name == label_name);
+
+    if let Some(index) = existing_assignment_index {
+        // Update existing assignment
+        assignments[index].target = target;
+        assignments[index].assigned_at = chrono::Utc::now();
+
+        println!(
+            "{} Label '{}' updated successfully.",
+            "✓".green(),
+            label_name
+        );
+        println!("  Now assigned to: {}", tuple_str.cyan());
+    } else {
+        // Create new assignment
+        let assignment = LabelAssignment {
+            label_name: label_name.clone(),
+            target,
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        };
+
+        assignments.push(assignment);
+        println!("{} Label '{}' set successfully.", "✓".green(), label_name);
+        println!("  Assigned to: {}", tuple_str.cyan());
+    }
+
+    // Update label metadata
+    if description.is_some() || !labels_metadata.contains_key(&label_name) {
+        let label = labels_metadata.entry(label_name.clone()).or_insert_with(|| Label {
+            name: label_name.clone(),
+            description: None,
+            created_at: chrono::Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        });
+
+        label.description = description;
+    }
+
+    // Save to disk
+    save_label_assignments_with_home(&assignments, home)?;
+    save_labels_with_home(&labels_metadata, home)?;
+
+    Ok(())
+}
+
+/// Handle the labels unset command (remove label assignment entirely)
+pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Result<()> {
+    let mut assignments = load_label_assignments_with_home(home)?;
+    let mut labels_metadata = load_labels_with_home(home)?;
+
+    // Find the assignment by name
+    let assignment_index = assignments.iter().position(|assignment| assignment.label_name == name);
+
+    if assignment_index.is_none() {
+        return Err(anyhow::anyhow!("Label '{}' not found", name));
+    }
+
+    let assignment = assignments[assignment_index.unwrap()].clone();
+
+    if !force {
+        println!(
+            "{}",
+            "Warning: This will permanently remove the label assignment."
+                .yellow()
+                .bold()
+        );
+        println!("Label: {}", name.cyan());
+        println!("Assigned to: {}", assignment_target_to_string(&assignment.target));
+        println!("Use --force to confirm removal.");
+        return Ok(());
+    }
+
+    // Remove the assignment
+    assignments.remove(assignment_index.unwrap());
+    save_label_assignments_with_home(&assignments, home)?;
+
+    // Also remove label metadata if no more assignments reference it
+    if !assignments.iter().any(|a| a.label_name == name) {
+        labels_metadata.remove(&name);
+        save_labels_with_home(&labels_metadata, home)?;
+    }
+
+    println!("{} Label '{}' unset successfully.", "✓".green(), name);
+
+    Ok(())
+}
+
+/// Get labels assigned to a specific instance or model
+pub fn get_labels_for_target(
+    instance_id: &str,
+    model_id: Option<&str>,
+    home: Option<&Path>,
+) -> Result<Vec<Label>> {
+    let assignments = load_label_assignments_with_home(home)?;
+    let labels_metadata = load_labels_with_home(home)?;
+    let provider_instances = load_provider_instances(home)?;
+
+    // Look up the instance to get its provider_type
+    let instance = match provider_instances.get_instance(instance_id) {
+        Some(instance) => instance,
+        None => {
+            // Instance not found - return empty labels for newly discovered instances
+            return Ok(Vec::new());
+        }
+    };
+
+    let provider_type = &instance.provider_type;
+
+    let mut result = Vec::new();
+
+    for assignment in assignments {
+        // Check if this assignment's target matches the instance and model
+        let matches_target = match (&assignment.target, model_id) {
+            (LabelTarget::ProviderInstance { instance_id: target_inst }, None) => {
+                target_inst == instance_id
+            }
+            (LabelTarget::ProviderModel { instance_id: target_inst, model_id: target_model }, Some(model)) => {
+                target_inst == instance_id && target_model == model
+            }
+            _ => false,
+        };
+
+        if !matches_target {
+            continue;
+        }
+
+        // Get label metadata
+        if let Some(label_metadata) = labels_metadata.get(&assignment.label_name) {
+            result.push(label_metadata.clone());
+        }
+    }
+
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -597,14 +940,29 @@ mod tests {
 
         // Create a test label
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let labels = vec![UnifiedLabel::new("thinking".to_string(), tuple)];
+        let assignment = LabelAssignment {
+            label_name: "thinking".to_string(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "test-instance".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        };
 
-        // Save it
-        save_label_assignments_with_home(&labels, Some(temp_dir.path())).unwrap();
+        let label = Label {
+            name: "thinking".to_string(),
+            description: None,
+            created_at: chrono::Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        };
 
-        // Create a mock provider instance
-        // Note: In a real test, we'd need to set up provider instances
-        // For now, this test documents the expected behavior
+        // Save them
+        save_label_assignments_with_home(&[assignment], Some(temp_dir.path())).unwrap();
+
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("thinking".to_string(), label);
+        save_labels_with_home(&metadata, Some(temp_dir.path())).unwrap();
     }
 
     #[test]
@@ -613,11 +971,27 @@ mod tests {
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
+        let assignment = LabelAssignment {
+            label_name: "thinking".to_string(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "test-instance".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        };
+        let label = Label {
+            name: "thinking".to_string(),
+            description: None,
+            created_at: chrono::Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        };
 
-        // Querying for anthropic instance should return no labels
-        // (would need mock provider instances to test fully)
+        save_label_assignments_with_home(&[assignment], Some(temp_dir.path())).unwrap();
+
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("thinking".to_string(), label);
+        save_labels_with_home(&metadata, Some(temp_dir.path())).unwrap();
     }
 
     #[test]
@@ -626,11 +1000,27 @@ mod tests {
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
+        let assignment = LabelAssignment {
+            label_name: "thinking".to_string(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "test-instance".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        };
+        let label = Label {
+            name: "thinking".to_string(),
+            description: None,
+            created_at: chrono::Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        };
 
-        // Should match both "gpt-4" and "openai/gpt-4" model names
-        // (would need mock provider instances to test fully)
+        save_label_assignments_with_home(&[assignment], Some(temp_dir.path())).unwrap();
+
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("thinking".to_string(), label);
+        save_labels_with_home(&metadata, Some(temp_dir.path())).unwrap();
     }
 
     #[test]
@@ -639,11 +1029,27 @@ mod tests {
 
         // Create a label for openai:gpt-4
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
-        let label = UnifiedLabel::new("thinking".to_string(), tuple);
-        save_label_assignments_with_home(&[label], Some(temp_dir.path())).unwrap();
+        let assignment = LabelAssignment {
+            label_name: "thinking".to_string(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "test-instance".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        };
+        let label = Label {
+            name: "thinking".to_string(),
+            description: None,
+            created_at: chrono::Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        };
 
-        // Should NOT match "anthropic/gpt-4" even though basename matches
-        // (would need mock provider instances to test fully)
+        save_label_assignments_with_home(&[assignment], Some(temp_dir.path())).unwrap();
+
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("thinking".to_string(), label);
+        save_labels_with_home(&metadata, Some(temp_dir.path())).unwrap();
     }
 
     #[test]
@@ -692,197 +1098,4 @@ mod tests {
             "GPT-4 should match generic pattern"
         );
     }
-}
-
-/// Handle the labels set command (create or update label assignment)
-pub fn handle_set_label(
-    label_name: String,
-    tuple_str: String,
-    color: Option<String>,
-    description: Option<String>,
-    home: Option<&Path>,
-) -> Result<()> {
-    // Trim and validate label name
-    let label_name = label_name.trim().to_string();
-    if label_name.is_empty() {
-        return Err(anyhow::anyhow!("Label name cannot be empty"));
-    }
-
-    let mut labels = load_label_assignments_with_home(home)?;
-
-    // Parse the provider:model tuple
-    let tuple = ProviderModelTuple::parse(&tuple_str)
-        .map_err(|e| anyhow::anyhow!("Invalid provider:model tuple '{}': {}", tuple_str, e))?;
-
-    // Check if this label already exists and update it, or create new one
-    let existing_label_index = labels
-        .iter()
-        .position(|label| label.label_name == label_name);
-
-    if let Some(index) = existing_label_index {
-        // Update existing label
-        labels[index].target = tuple;
-        labels[index].updated_at = chrono::Utc::now();
-
-        // Update metadata if provided
-        if let Some(desc) = description {
-            labels[index].description = Some(desc);
-        }
-
-        if let Some(col) = color {
-            labels[index].color = Some(col);
-        }
-
-        println!(
-            "{} Label '{}' updated successfully.",
-            "✓".green(),
-            label_name
-        );
-        println!("  Now assigned to: {}", tuple_str.cyan());
-    } else {
-        // Create new label
-        let mut label = UnifiedLabel::new(label_name.clone(), tuple);
-
-        if let Some(desc) = description {
-            label = label.with_description(desc);
-        }
-
-        if let Some(col) = color {
-            label = label.with_color(col);
-        }
-
-        labels.push(label);
-        println!("{} Label '{}' set successfully.", "✓".green(), label_name);
-        println!("  Assigned to: {}", tuple_str.cyan());
-    }
-
-    // Save to disk
-    save_label_assignments_with_home(&labels, home)?;
-
-    Ok(())
-}
-
-/// Handle the labels unset command (remove label assignment entirely)
-pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Result<()> {
-    let mut labels = load_label_assignments_with_home(home)?;
-
-    // Find the label by name
-    let label_index = labels.iter().position(|label| label.label_name == name);
-
-    if label_index.is_none() {
-        return Err(anyhow::anyhow!("Label '{}' not found", name));
-    }
-
-    let label = labels[label_index.unwrap()].clone();
-
-    if !force {
-        println!(
-            "{}",
-            "Warning: This will permanently remove the label assignment."
-                .yellow()
-                .bold()
-        );
-        println!("Label: {}", name.cyan());
-        println!("Assigned to: {}", label.target.description());
-        println!("Use --force to confirm removal.");
-        return Ok(());
-    }
-
-    // Remove the label
-    labels.remove(label_index.unwrap());
-    save_label_assignments_with_home(&labels, home)?;
-
-    println!("{} Label '{}' unset successfully.", "✓".green(), name);
-
-    Ok(())
-}
-
-/// Get labels assigned to a specific instance or model
-pub fn get_labels_for_target(
-    instance_id: &str,
-    model_id: Option<&str>,
-    home: Option<&Path>,
-) -> Result<Vec<Label>> {
-    let labels = load_label_assignments_with_home(home)?;
-    let provider_instances = load_provider_instances(home)?;
-
-    // Look up the instance to get its provider_type
-    let instance = match provider_instances.get_instance(instance_id) {
-        Some(instance) => instance,
-        None => {
-            // Instance not found - return empty labels for newly discovered instances
-            return Ok(Vec::new());
-        }
-    };
-
-    let provider_type = &instance.provider_type;
-
-    let mut result = Vec::new();
-
-    for unified_label in labels {
-        // Check if this label's target tuple matches the instance and model
-        let tuple_provider = unified_label.target.provider();
-        let tuple_model = unified_label.target.model();
-
-        // The tuple provider must match the instance's provider_type
-        if tuple_provider != provider_type {
-            continue;
-        }
-
-        // If model_id is provided, resolve the actual model ID
-        if let Some(model_display_name) = model_id {
-            // Find the model in the instance by matching the ID
-            let model = match instance
-                .models
-                .iter()
-                .find(|m| *m == model_display_name)
-            {
-                Some(model) => model,
-                None => {
-                    // Model not found in this instance
-                    continue;
-                }
-            };
-
-            // Extract the basename from the model ID for comparison
-            let model_basename = if let Some(slash_pos) = model.find('/') {
-                &model[slash_pos + 1..]
-            } else {
-                model
-            };
-
-            // The tuple model must match either the model ID or its basename
-            if tuple_model != *model && tuple_model != model_basename {
-                continue;
-            }
-        } else if !instance.models.iter().any(|model| {
-            let basename = model
-                .rsplit_once('/')
-                .map(|(_, name)| name)
-                .unwrap_or(model);
-            tuple_model == *model || tuple_model == basename
-        }) {
-            continue;
-        }
-
-        // This label matches! Create a Label for display
-        use aicred_core::models::Label;
-        use chrono::Utc;
-        let mut label = Label {
-            name: unified_label.label_name.clone(),
-            description: None,
-            created_at: Utc::now(),
-            metadata: std::collections::HashMap::new(),
-        };
-
-        // Add description if present
-        if let Some(ref description) = unified_label.description {
-            label.description = Some(description.clone());
-        }
-        // Note: color field removed from Label struct
-
-        result.push(label);
-    }
-
-    Ok(result)
 }

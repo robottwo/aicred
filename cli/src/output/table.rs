@@ -1,4 +1,4 @@
-use aicred_core::{ScanResult, Tag};
+use aicred_core::{ScanResult, models::Label};
 use colored::*;
 use tracing::debug;
 
@@ -86,12 +86,7 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     if !tags.is_empty() {
                         println!("  Tags:");
                         for tag in &tags {
-                            let tag_display = if let Some(ref color) = tag.color {
-                                format!("{} ({})", tag.name, color)
-                            } else {
-                                tag.name.clone()
-                            };
-                            println!("    {}", tag_display);
+                            println!("    {}", tag.name);
                         }
                     }
 
@@ -255,7 +250,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 /// Get tags for a specific instance
 fn get_tags_for_instance(
     instance_id: &str,
-) -> Result<Vec<Tag>, anyhow::Error> {
+) -> Result<Vec<Label>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
     get_tags_for_target(instance_id, None, None)
 }
