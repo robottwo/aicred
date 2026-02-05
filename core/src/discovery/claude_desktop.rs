@@ -562,13 +562,13 @@ mod tests {
 
         // Verify provider instance details
         assert_eq!(provider_instance.provider_type, "anthropic");
-        assert_eq!(provider_instance.display_name, "anthropic");
+        assert_eq!(provider_instance.id, "anthropic");
         assert!(provider_instance.has_non_empty_api_key());
 
         // Verify model was added to provider instance
         assert_eq!(provider_instance.model_count(), 1);
         assert_eq!(
-            provider_instance.models[0].model_id,
+            provider_instance.models[0],
             "claude-3-opus-20240229"
         );
 

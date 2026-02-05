@@ -243,10 +243,9 @@ mod tests {
 
         let metadata = OpenRouterPlugin::transform_model(openrouter_model);
 
-        assert_eq!(metadata.id, "test-model");
-        assert_eq!(metadata.name, "Test Model");
-        assert_eq!(metadata.context_length, Some(4096));
-        assert!(metadata.pricing.is_some());
+        assert_eq!(metadata.id, Some("test-model".to_string()));
+        assert_eq!(metadata.name, Some("Test Model".to_string()));
+        // New ModelMetadata structure doesn't have context_length or pricing fields
         assert!(metadata.architecture.is_some());
     }
 }

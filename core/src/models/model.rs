@@ -79,44 +79,28 @@ pub struct Model {
 
 impl From<crate::models::ModelMetadata> for Model {
     fn from(metadata: crate::models::ModelMetadata) -> Self {
-        // Convert pricing to TokenCost
-        let cost = metadata.pricing.as_ref().map(|pricing| TokenCost {
-            input_cost_per_million: pricing.prompt.map(|p| p * 1_000_000.0),
-            output_cost_per_million: pricing.completion.map(|c| c * 1_000_000.0),
-            cached_input_cost_modifier: None,
-        });
-
-        // Convert architecture and other metadata to JSON for storage
+        // Simplified conversion - new ModelMetadata has minimal fields
+        // Old pricing/context_length/nested metadata fields don't exist on new type
+        
         let mut model_metadata = HashMap::new();
 
-        if let Some(pricing) = metadata.pricing {
-            if let Ok(pricing_json) = serde_json::to_value(&pricing) {
-                model_metadata.insert("pricing".to_string(), pricing_json);
-            }
-        }
-
         if let Some(architecture) = metadata.architecture {
-            if let Ok(arch_json) = serde_json::to_value(&architecture) {
-                model_metadata.insert("architecture".to_string(), arch_json);
-            }
+            model_metadata.insert("architecture".to_string(), serde_json::Value::String(architecture));
         }
 
-        // Include any additional metadata from the source
-        if let Some(extra_metadata) = metadata.metadata {
-            for (key, value) in extra_metadata {
-                model_metadata.insert(key, value);
-            }
+        if let Some(notes) = metadata.notes {
+            model_metadata.insert("notes".to_string(), serde_json::Value::String(notes));
         }
 
         Self {
             model_id: metadata.id.unwrap_or_default(),
             name: metadata.name.unwrap_or_default(),
             quantization: None,
-            context_window: None,  // context_length doesn't exist on new ModelMetadata
+            context_window: None,
             capabilities: None,
             temperature: None,
             tags: None,
-            cost,
+            cost: None,  // No pricing info in new ModelMetadata
             metadata: if model_metadata.is_empty() {
                 None
             } else {

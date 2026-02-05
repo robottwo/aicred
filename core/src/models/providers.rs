@@ -166,6 +166,21 @@ impl ProviderInstance {
         }
         Ok(())
     }
+    
+    /// Builder: sets metadata (backward compatibility).
+    #[must_use]
+    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = metadata;
+        self
+    }
+    
+    /// Checks if a model exists in this instance (backward compatibility).
+    ///
+    /// Returns true if the model ID is in the models list.
+    #[must_use]
+    pub fn get_model(&self, model_id: &str) -> Option<&String> {
+        self.models.iter().find(|&m| m == model_id)
+    }
 }
 
 /// Capabilities of a provider instance.
@@ -311,6 +326,7 @@ impl From<crate::models::provider_config::ProviderConfig> for ProviderInstance {
             api_key,
             models: config.models,
             capabilities: Capabilities::default(),
+            active: true,  // Default to active
             metadata: HashMap::new(),
         }
     }
@@ -324,28 +340,33 @@ impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
         use crate::models::discovered_key::Confidence as OldConfidence;
         
         let keys = if !instance.api_key.is_empty() {
+            let now = chrono::Utc::now();
             vec![ProviderKey {
                 id: instance.id.clone(),
                 value: Some(instance.api_key),
-                discovered_at: chrono::Utc::now(),
+                discovered_at: now,
                 source: String::new(),  // No source info available from ProviderInstance
                 line_number: None,
                 confidence: OldConfidence::High,  // Default confidence
                 environment: OldEnvironment::Production,  // Default to production
+                last_validated: Some(now),
                 validation_status: OldValidationStatus::Valid,  // Assume valid
+                metadata: None,
+                created_at: now,
             }]
         } else {
             Vec::new()
         };
         
+        let now = chrono::Utc::now();
         Self {
-            id: Some(instance.id),
             keys,
             models: instance.models,
             metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-            schema_version: 1,
+            version: "1.0".to_string(),  // Default version
+            schema_version: "1".to_string(),  // Schema version as string
+            created_at: now,
+            updated_at: now,
         }
     }
 }
