@@ -1,4 +1,5 @@
 pub mod labels;
+pub mod models;
 pub mod providers;
 pub mod scan;
 pub mod tags;

@@ -25,6 +25,10 @@ mod utils;
 
 use commands::{
     labels::{handle_label_scan, handle_list_labels, handle_set_label, handle_unset_label},
+    models::{
+        handle_compare_models, handle_get_model, handle_list_by_capability,
+        handle_list_registry_models, handle_model_stats,
+    },
     providers::{
         handle_add_instance, handle_get_instance, handle_list_instances, handle_list_models,
         handle_providers, handle_remove_instance, handle_update_instance,
@@ -408,23 +412,46 @@ enum LabelCommands {
 
 #[derive(Subcommand)]
 enum ModelCommands {
-    /// List all models with their configurations
+    /// List all models from the model registry
     List {
         /// Show detailed information
         #[arg(long, short = 'v')]
         verbose: bool,
 
-        /// Filter by provider type (e.g., openai, anthropic)
+        /// Filter by provider (e.g., openai, anthropic)
         #[arg(long)]
-        provider_type: Option<String>,
+        provider: Option<String>,
 
-        /// Filter by tag name
+        /// Filter by capability (e.g., code, vision, streaming)
         #[arg(long)]
-        tag: Option<String>,
+        capability: Option<String>,
 
-        /// Filter by label name
+        /// Search for models by name or ID
         #[arg(long)]
-        label: Option<String>,
+        search: Option<String>,
+    },
+
+    /// Get detailed information about a specific model
+    Get {
+        /// Model ID to show (positional argument)
+        id: String,
+    },
+
+    /// Compare pricing between multiple models
+    Compare {
+        /// Model IDs to compare (space-separated)
+        #[arg(required = true)]
+        ids: Vec<String>,
+    },
+
+    /// Show model registry statistics
+    Stats,
+
+    /// List models with a specific capability
+    Capability {
+        /// Capability to filter by (code, vision, streaming, etc.)
+        #[arg(value_name = "CAPABILITY")]
+        capability: String,
     },
 }
 
@@ -619,17 +646,15 @@ fn main() -> Result<()> {
         Commands::Models { command } => match command {
             Some(ModelCommands::List {
                 verbose,
-                provider_type,
-                tag,
-                label,
-            }) => handle_list_models(
-                cli.home.map(PathBuf::from),
-                verbose,
-                provider_type,
-                tag,
-                label,
-            ),
-            None => handle_list_models(cli.home.map(PathBuf::from), false, None, None, None),
+                provider,
+                capability,
+                search,
+            }) => handle_list_registry_models(provider, capability, search, verbose),
+            Some(ModelCommands::Get { id }) => handle_get_model(&id),
+            Some(ModelCommands::Compare { ids }) => handle_compare_models(ids),
+            Some(ModelCommands::Stats) => handle_model_stats(),
+            Some(ModelCommands::Capability { capability }) => handle_list_by_capability(&capability),
+            None => handle_list_registry_models(None, None, None, false),
         },
         Commands::Version => handle_version(),
         Commands::Wrap {
