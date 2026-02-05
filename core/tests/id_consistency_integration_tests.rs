@@ -129,13 +129,13 @@ fn test_label_assignment_for_newly_discovered_instances() {
 
     // Create test instances with specific IDs (simulating the SHA-256 hash format)
     let test_instances = vec![
-        ProviderInstance::new(
+        ProviderInstance::new_without_models(
             "d76a".to_string(),
             "OpenRouter Instance".to_string(),
             "openrouter".to_string(),
             "https://openrouter.ai/api/v1".to_string(),
         ),
-        ProviderInstance::new(
+        ProviderInstance::new_without_models(
             "350c".to_string(),
             "Groq Instance".to_string(),
             "groq".to_string(),

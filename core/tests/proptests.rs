@@ -6,7 +6,7 @@
 //! Property-based tests for core library invariants.
 
 use aicred_core::{
-    models::{discovered_key::Confidence, DiscoveredKey, ValueType},
+    models::{discovered_key::{Confidence, ValueType}, DiscoveredKey},
     providers::openai::OpenAIPlugin,
     ProviderPlugin,
 };
