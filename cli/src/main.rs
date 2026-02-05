@@ -24,6 +24,7 @@ mod output;
 mod utils;
 
 use commands::{
+    export::handle_export,
     labels::{handle_label_scan, handle_list_labels, handle_set_label, handle_unset_label},
     providers::{
         handle_add_instance, handle_get_instance, handle_list_instances, handle_list_models,
@@ -141,6 +142,37 @@ enum Commands {
     Models {
         #[command(subcommand)]
         command: Option<ModelCommands>,
+    },
+
+    /// Export discovered configurations as shell environment variables
+    Export {
+        /// Template file path (YAML format)
+        #[arg(long, short = 't')]
+        template: Option<String>,
+
+        /// Output format (bash, fish, powershell)
+        #[arg(long, short = 'f')]
+        format: Option<String>,
+
+        /// Write export to file instead of stdout
+        #[arg(long, short = 'o')]
+        output: Option<String>,
+
+        /// Include full secret values (DANGEROUS)
+        #[arg(long)]
+        include_secrets: bool,
+
+        /// Prefix for all exported variables
+        #[arg(long, short = 'p')]
+        prefix: Option<String>,
+
+        /// Custom variables in format NAME=VALUE (can be repeated)
+        #[arg(long, short = 'v', value_name = "NAME=VALUE")]
+        vars: Option<Vec<String>>,
+
+        /// Dry run - print export without writing to file
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Show version information
@@ -631,6 +663,24 @@ fn main() -> Result<()> {
             ),
             None => handle_list_models(cli.home.map(PathBuf::from), false, None, None, None),
         },
+        Commands::Export {
+            template,
+            format,
+            output,
+            include_secrets,
+            prefix,
+            vars,
+            dry_run,
+        } => handle_export(
+            cli.home.map(PathBuf::from),
+            template,
+            format,
+            output,
+            include_secrets,
+            prefix,
+            vars,
+            dry_run,
+        ),
         Commands::Version => handle_version(),
         Commands::Wrap {
             scanner_names,

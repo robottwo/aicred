@@ -58,6 +58,7 @@
 
 pub mod env_resolver;
 pub mod error;
+pub mod export;
 pub mod models;
 pub mod parser;
 pub mod plugins;
@@ -68,6 +69,10 @@ pub mod utils;
 
 pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
 pub use error::{Error, Result};
+pub use export::{
+    default_template, export_vars, ExportConfig, ExportContext, ExportFormat, ExportTemplate,
+    TemplateVariable,
+};
 pub use models::{
     AuthMethod, Capabilities, Confidence, ConfigInstance, DiscoveredKey, Model, Provider,
     RateLimit, ScanResult, ScanSummary, UnifiedLabel, ValueType,
