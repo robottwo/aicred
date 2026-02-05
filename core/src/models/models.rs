@@ -50,8 +50,18 @@ pub struct ModelPricing {
 }
 
 /// Extended model metadata.
+///
+/// Note: For backward compatibility with probe_models_async, this also includes
+/// id, name, and pricing fields. In the future, consider separating probed
+/// model info from static metadata.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModelMetadata {
+    /// Model ID (for backward compatibility with probing)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Model name (for backward compatibility with probing)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// Model architecture (e.g., "transformer", "diffusion")
     pub architecture: Option<String>,
     /// Number of parameters (e.g., 7B, 70B)
@@ -78,6 +88,33 @@ pub struct TokenCost {
 }
 
 impl Model {
+    /// Creates a new Model with basic information (for backward compatibility).
+    #[must_use]
+    pub fn new(id: String, name: String) -> Self {
+        Self {
+            id,
+            provider: String::new(),
+            name,
+            capabilities: ModelCapabilities::default(),
+            context_window: None,
+            pricing: None,
+            metadata: ModelMetadata::default(),
+        }
+    }
+
+    /// Validates the model configuration (stub for backward compatibility).
+    ///
+    /// # Errors
+    /// Returns an error if the configuration is invalid.
+    pub fn validate(&self) -> crate::error::Result<()> {
+        if self.id.is_empty() {
+            return Err(crate::error::Error::ValidationError(
+                "Model ID cannot be empty".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Calculates the cost for a given number of input and output tokens
     #[must_use]
     pub fn token_cost(&self, input_tokens: u32, output_tokens: u32) -> Option<TokenCost> {

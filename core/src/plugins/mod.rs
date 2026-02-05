@@ -60,7 +60,7 @@ pub trait ProviderPlugin: Send + Sync {
     /// Returns a vector of model IDs that this instance supports.
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // Default implementation - returns the models configured in the instance
-        Ok(instance.models.iter().map(|m| m.model_id.clone()).collect())
+        Ok(instance.models.clone())
     }
 
     /// Gets the full model configuration with provider-specific overrides applied.

@@ -96,29 +96,49 @@ pub mod utils;
 pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
 pub use error::{Error, Result};
 
-// Primary API exports (currently old types, will migrate to new types in 0.3.0)
+// Primary API exports (v0.2.0 - canonical types)
 pub use models::{
-    AuthMethod, Capabilities, Confidence, ConfigInstance, DiscoveredKey, Model, Provider,
-    RateLimit, ScanResult, ScanSummary, UnifiedLabel, ValueType,
-};
-
-// New API exports (available now for early adopters)
-pub use models::{
-    CredentialValue,
+    // Credentials & Discovery
     DiscoveredCredential,
-    LabelNew,
-    LabelAssignmentNew,
+    CredentialValue,
+    Confidence,
+    ValueType,
+    Environment,
+    ValidationStatus,
+    // Labels
+    Label,
+    LabelAssignment,
     LabelTarget,
     LabelWithAssignments,
-    ModelNew,
+    // Models
+    Model,
+    ModelMetadata,
     ModelCapabilities,
-    ProviderNew,
-    ProviderInstanceNew,
+    ModelPricing,
+    TokenCost,
+    // Providers
+    Provider,
+    ProviderInstance,
     ProviderCollection,
-    ConfidenceNew,
-    ValueTypeNew,
-    AuthMethodNew,
-    RateLimitNew,
+    AuthMethod,
+    RateLimit,
+    Capabilities,
+    // Scan
+    ScanResult,
+    ScanSummary,
+    // Config
+    ConfigInstance,
+};
+
+// Backward compatibility (v0.1.x - deprecated, will be removed in v0.3.0)
+#[allow(deprecated)]
+pub use models::{
+    DiscoveredKey,      // Use DiscoveredCredential instead
+    Tag,                // Use Label instead
+    UnifiedLabel,       // Use LabelWithAssignments instead
+    ProviderConfig,     // Use ProviderInstance instead
+    ProviderInstances,  // Use ProviderCollection instead
+    ProviderKey,        // Merged into DiscoveredCredential
 };
 
 pub use parser::{ConfigParser, FileFormat};
@@ -853,9 +873,8 @@ fn probe_provider_instances_async(
                     .get_instance_mut(&provider_instance_id)
                 {
                     // Update metadata
-                    let metadata = provider_instance.metadata.get_or_insert_with(HashMap::new);
-                    metadata.insert("probe_attempted".to_string(), "true".to_string());
-                    metadata.insert(
+                    provider_instance.metadata.insert("probe_attempted".to_string(), "true".to_string());
+                    provider_instance.metadata.insert(
                         "probe_timestamp".to_string(),
                         chrono::Utc::now().to_rfc3339(),
                     );
@@ -869,15 +888,17 @@ fn probe_provider_instances_async(
                                 instance_id
                             );
 
-                            // Convert ModelMetadata to Model and store
+                            // Extract model IDs from ModelMetadata
                             provider_instance.models =
-                                models.into_iter().map(std::convert::Into::into).collect();
+                                models.into_iter()
+                                    .filter_map(|m| m.id)
+                                    .collect();
 
                             stats.probed_successfully += 1;
                             stats.total_models_discovered += provider_instance.models.len();
 
-                            metadata.insert("probe_success".to_string(), "true".to_string());
-                            metadata.insert(
+                            provider_instance.metadata.insert("probe_success".to_string(), "true".to_string());
+                            provider_instance.metadata.insert(
                                 "models_count".to_string(),
                                 provider_instance.models.len().to_string(),
                             );

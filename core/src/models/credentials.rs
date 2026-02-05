@@ -167,6 +167,8 @@ pub enum Environment {
     },
     /// Environment variable
     EnvironmentVariable,
+    /// Production environment (backward compatibility)
+    Production,
 }
 
 /// Validation status for a credential.

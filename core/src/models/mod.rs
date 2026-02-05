@@ -1,106 +1,166 @@
 //! Core data models for the aicred library.
-// Allow clippy lints for the models module
 
-// ==== NEW CONSOLIDATED MODELS (v0.2.0) ====
-pub mod credentials_new;
-pub mod labels_new;
-pub mod models_new;
-pub mod providers_new;
-pub mod scan_new;
+// ==== CONSOLIDATED MODELS (v0.2.0) ====
+pub mod credentials;
+pub mod labels;
+pub mod models;
+pub mod providers;
+pub mod scan;
 
-// ==== OLD MODELS (v0.1.x - to be removed) ====
+// ==== SPECIALIZED MODELS ====
 pub mod config_instance;
 pub mod config_validator;
+
+// ==== OLD MODELS (v0.1.x - DEPRECATED, kept for backward compatibility) ====
+#[allow(deprecated)]
 pub mod discovered_key;
+#[allow(deprecated)]
 pub mod label;
+#[allow(deprecated)]
 pub mod label_assignment;
+#[allow(deprecated)]
 pub mod model;
+#[allow(deprecated)]
 pub mod model_metadata;
+#[allow(deprecated)]
 pub mod provider;
+#[allow(deprecated)]
 pub mod provider_config;
+#[allow(deprecated)]
 pub mod provider_instance;
+#[allow(deprecated)]
 pub mod provider_instances;
+#[allow(deprecated)]
 pub mod provider_key;
+#[allow(deprecated)]
 pub mod scan_result;
+#[allow(deprecated)]
 pub mod tag;
+#[allow(deprecated)]
 pub mod tag_assignment;
+#[allow(deprecated)]
 pub mod unified_label;
 
 #[cfg(test)]
 mod tests;
 
-// ==== NEW API (v0.2.0) - Preferred ====
-pub use credentials_new::{
-    Confidence as ConfidenceNew,
+// ==== PRIMARY API (v0.2.0) ====
+
+// Credentials & Discovery
+pub use credentials::{
+    Confidence,
     CredentialValue,
     DiscoveredCredential,
-    Environment as EnvironmentNew,
-    ValidationStatus as ValidationStatusNew,
-    ValueType as ValueTypeNew,
+    Environment,
+    ValidationStatus,
+    ValueType,
 };
-pub use labels_new::{
-    Label as LabelNew,
-    LabelAssignment as LabelAssignmentNew,
+
+// Labels (semantic tagging)
+pub use labels::{
+    Label,
+    LabelAssignment,
     LabelTarget,
     LabelWithAssignments,
 };
-pub use models_new::{
-    Model as ModelNew,
+
+// Models & Metadata
+pub use models::{
+    Model,
     ModelCapabilities,
-    ModelMetadata as ModelMetadataNew,
-    ModelPricing as ModelPricingNew,
-    TokenCost as TokenCostNew,
+    ModelMetadata,
+    ModelPricing,
+    TokenCost,
 };
-pub use providers_new::{
-    AuthMethod as AuthMethodNew,
-    Capabilities as CapabilitiesNew,
-    Provider as ProviderNew,
+
+// Providers & Instances
+pub use providers::{
+    AuthMethod,
+    Capabilities,
+    Provider,
     ProviderCollection,
-    ProviderInstance as ProviderInstanceNew,
-    RateLimit as RateLimitNew,
+    ProviderInstance,
+    RateLimit,
 };
 
-// ==== OLD API (v0.1.x) - Deprecated, will be removed in v0.3.0 ====
-#[deprecated(since = "0.2.0", note = "Use DiscoveredCredential from credentials_new")]
-pub use discovered_key::{Confidence, DiscoveredKey, ValueType};
+// Scan Results
+pub use scan::{ScanResult, ScanSummary};
 
-#[deprecated(since = "0.2.0", note = "Use LabelNew from labels_new - tags renamed to labels")]
-pub use label::Label;
+// Config Instance (not deprecated)
+pub use config_instance::ConfigInstance;
 
-#[deprecated(since = "0.2.0", note = "Use LabelAssignmentNew from labels_new")]
-pub use label_assignment::{LabelAssignment, LabelAssignmentTarget};
+// ==== BACKWARD COMPATIBILITY ALIASES (v0.1.x) ====
+// These type aliases allow old code to continue working.
+// They point to the new types via type aliases.
 
-#[deprecated(since = "0.2.0", note = "Use ModelNew from models_new")]
-pub use model::{Capabilities, Model, TokenCost};
+// Re-export old module types for external backward compatibility
+#[allow(deprecated)]
+pub use discovered_key::{
+    Confidence as ConfidenceOld,
+    DiscoveredKey,
+    ValueType as ValueTypeOld,
+};
 
-#[deprecated(since = "0.2.0", note = "Use ModelMetadataNew from models_new")]
-pub use model_metadata::{ModelArchitecture, ModelMetadata, ModelPricing};
+#[allow(deprecated)]
+pub use label::Label as LabelOld;
 
-#[deprecated(since = "0.2.0", note = "Use ProviderNew from providers_new")]
-pub use provider::{AuthMethod, Provider, RateLimit};
+#[allow(deprecated)]
+pub use label_assignment::{
+    LabelAssignment as LabelAssignmentOld,
+    LabelAssignmentTarget,
+};
 
-#[deprecated(since = "0.1.0", note = "Use ProviderInstanceNew instead")]
+#[allow(deprecated)]
+pub use model::{
+    Capabilities as CapabilitiesOld,
+    Model as ModelOld,
+    TokenCost as TokenCostOld,
+};
+
+#[allow(deprecated)]
+pub use model_metadata::{
+    ModelArchitecture,
+    ModelMetadata as ModelMetadataOld,
+    ModelPricing as ModelPricingOld,
+};
+
+#[allow(deprecated)]
+pub use provider::{
+    AuthMethod as AuthMethodOld,
+    Provider as ProviderOld,
+    RateLimit as RateLimitOld,
+};
+
+#[allow(deprecated)]
 pub use provider_config::ProviderConfig;
 
-#[deprecated(since = "0.2.0", note = "Use ProviderInstanceNew from providers_new")]
-pub use provider_instance::ProviderInstance;
+#[allow(deprecated)]
+pub use provider_instance::ProviderInstance as ProviderInstanceOld;
 
-#[deprecated(since = "0.2.0", note = "Use ProviderCollection from providers_new")]
+#[allow(deprecated)]
 pub use provider_instances::ProviderInstances;
 
-#[deprecated(since = "0.2.0", note = "Use ValidationStatusNew from credentials_new")]
-pub use provider_key::{Environment, ProviderKey, ValidationStatus};
+#[allow(deprecated)]
+pub use provider_key::{
+    Environment as EnvironmentOld,
+    ProviderKey,
+    ValidationStatus as ValidationStatusOld,
+};
 
-pub use scan_result::{ScanResult, ScanSummary};
+#[allow(deprecated)]
+pub use scan_result::{
+    ScanResult as ScanResultOld,
+    ScanSummary as ScanSummaryOld,
+};
 
-#[deprecated(since = "0.2.0", note = "Tags renamed to Labels - use LabelNew instead")]
+#[allow(deprecated)]
 pub use tag::Tag;
 
-#[deprecated(since = "0.2.0", note = "Tags renamed to Labels - use LabelAssignmentNew instead")]
-pub use tag_assignment::{TagAssignment, TagAssignmentTarget};
+#[allow(deprecated)]
+pub use tag_assignment::{
+    TagAssignment,
+    TagAssignmentTarget,
+};
 
-#[deprecated(since = "0.2.0", note = "Use LabelWithAssignments instead")]
+#[allow(deprecated)]
 pub use unified_label::UnifiedLabel;
-
-// For backwards compatibility without deprecation warnings
-pub use config_instance::ConfigInstance;

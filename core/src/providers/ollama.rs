@@ -64,7 +64,7 @@ impl ProviderPlugin for OllamaPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Otherwise, return default Ollama models

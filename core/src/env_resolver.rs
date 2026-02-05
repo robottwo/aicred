@@ -192,7 +192,7 @@ impl EnvResolver {
                 || instance
                     .models
                     .iter()
-                    .any(|model| model.model_id == target.model || model.name == target.model)
+                    .any(|model_id| model_id == &target.model)
         })
     }
 
@@ -356,8 +356,8 @@ fn resolve_model_id(
     }
 
     // Fall back to first model from instance if no specific target
-    if let Some(model) = instance.models.first() {
-        return Some(format!("{}:{}", instance.provider_type, model.model_id));
+    if let Some(model_id) = instance.models.first() {
+        return Some(format!("{}:{}", instance.provider_type, model_id));
     }
 
     // Fall back to default value if specified

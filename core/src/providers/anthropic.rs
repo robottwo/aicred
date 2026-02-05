@@ -76,7 +76,7 @@ impl ProviderPlugin for AnthropicPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Try to fetch models from API if we have a valid key
