@@ -1,7 +1,7 @@
 use aicred_core::models::{Model, ProviderInstance};
 use aicred_core::plugins::PluginRegistry;
 use aicred_core::providers::anthropic::AnthropicPlugin;
-use aicred_core::{scan, ScanOptions};
+use aicred_core::{scan, ScanOptions, DiscoveredKey};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -244,7 +244,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // Create a map to track configuration context by source file
     let mut source_context: std::collections::HashMap<
         String,
-        std::collections::HashMap<String, Vec<aicred_core::models::DiscoveredKey>>,
+        std::collections::HashMap<String, Vec<DiscoveredKey>>,
     > = std::collections::HashMap::new();
 
     // Step 1: We're no longer tracking existing instances to ensure consistent SHA-256 based IDs
@@ -336,7 +336,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
             );
 
             // Find API keys in this group
-            let api_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
+            let api_keys: Vec<&DiscoveredKey> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
@@ -347,7 +347,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                 .collect();
 
             // Also check for other key types that can serve as primary keys
-            let other_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
+            let other_keys: Vec<&DiscoveredKey> = keys
                 .iter()
                 .filter(|k| {
                     matches!(

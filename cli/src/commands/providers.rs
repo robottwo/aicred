@@ -1,7 +1,8 @@
 use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::models::{
-    ProviderCollection, ProviderInstance, ProviderKey,
+    ProviderCollection, ProviderInstance,
 };
+use aicred_core::{ProviderKey, ProviderConfig};
 use aicred_core::models::discovered_key::Confidence;
 use aicred_core::models::provider_key::{Environment, ValidationStatus};
 use anyhow::Result;
@@ -24,8 +25,6 @@ fn load_instances_from_providers(
     providers_dir: &PathBuf,
     instances: &mut ProviderCollection,
 ) -> Result<()> {
-    use aicred_core::models::ProviderConfig;
-
     if !providers_dir.exists() {
         return Ok(());
     }

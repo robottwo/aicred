@@ -1,7 +1,8 @@
 //! Environment variable resolution logic for mapping labels to provider configurations.
 
 use crate::error::Result;
-use crate::models::{ProviderInstance, UnifiedLabel};
+use crate::models::ProviderInstance;
+use crate::models::unified_label::UnifiedLabel;
 use crate::scanners::{EnvVarDeclaration, LabelMapping};
 use crate::utils::ProviderModelTuple;
 use std::collections::HashMap;

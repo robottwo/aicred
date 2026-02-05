@@ -1,6 +1,6 @@
 //! Tag management commands for the aicred CLI.
 
-use aicred_core::models::{Tag, TagAssignment};
+use aicred_core::{Tag, TagAssignment};
 use anyhow::Result;
 use colored::*;
 use std::path::Path;

@@ -11,13 +11,13 @@ pub mod scan;
 pub mod config_instance;
 pub mod config_validator;
 
-// ==== LEGACY SUPPORT (still used internally) ====
-pub mod discovered_key;  // Used by discovery modules
-pub mod provider_config; // Used by conversions
+// ==== INTERNAL SUPPORT (CLI compatibility, not for external library use) ====
+pub mod discovered_key;
+pub mod provider_config;
 pub mod provider_key;
 pub mod tag;
 pub mod tag_assignment;
-pub mod unified_label; // Used by label system
+pub mod unified_label;
 
 #[cfg(test)]
 mod tests;
@@ -66,13 +66,3 @@ pub use scan::{ScanResult, ScanSummary};
 
 // Config Instance
 pub use config_instance::ConfigInstance;
-
-// Legacy support (still used internally)
-pub use discovered_key::DiscoveredKey;
-pub use provider_config::ProviderConfig;
-pub use provider_key::ProviderKey;
-pub use unified_label::UnifiedLabel;
-
-// Tags (still used)
-pub use tag::Tag;
-pub use tag_assignment::{TagAssignment, TagAssignmentTarget};

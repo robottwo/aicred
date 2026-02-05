@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::models::{DiscoveredKey, ProviderInstance, ProviderCollection};
+use crate::models::discovered_key::DiscoveredKey;
+use crate::models::{ProviderInstance, ProviderCollection};
 
 /// Represents a specific instance of an application configuration
 /// For example, multiple Roo Code installations in different directories

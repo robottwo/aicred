@@ -128,9 +128,19 @@ pub use models::{
     ScanSummary,
     // Config
     ConfigInstance,
-    // Legacy (for tests)
-    ProviderKey,
-    Tag,
+};
+
+// ==== INTERNAL CLI TYPES (not for external library use) ====
+// These are exported for backward compatibility with the CLI,
+// but should not be used by external consumers of the library.
+// New code should use the types above instead.
+pub use models::{
+    discovered_key::DiscoveredKey,
+    provider_config::ProviderConfig,
+    provider_key::ProviderKey,
+    tag::Tag,
+    tag_assignment::TagAssignment,
+    unified_label::UnifiedLabel,
 };
 
 pub use parser::{ConfigParser, FileFormat};

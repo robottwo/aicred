@@ -1,4 +1,4 @@
-use aicred_core::ScanResult;
+use aicred_core::{ScanResult, Tag};
 use colored::*;
 use tracing::debug;
 
@@ -255,7 +255,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 /// Get tags for a specific instance
 fn get_tags_for_instance(
     instance_id: &str,
-) -> Result<Vec<aicred_core::models::Tag>, anyhow::Error> {
+) -> Result<Vec<Tag>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
     get_tags_for_target(instance_id, None, None)
 }

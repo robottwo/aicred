@@ -1,7 +1,8 @@
 //! Label management commands for the aicred CLI.
 
 use crate::utils::provider_loader::load_provider_instances;
-use aicred_core::models::{Label, UnifiedLabel};
+use aicred_core::models::Label;
+use aicred_core::UnifiedLabel;
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;

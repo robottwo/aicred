@@ -1,6 +1,7 @@
 //! Provider instance loading utilities.
 
 use aicred_core::models::{ProviderCollection, ProviderInstance};
+use aicred_core::ProviderConfig;
 use anyhow::Result;
 use colored::*;
 use std::path::Path;
@@ -41,7 +42,7 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                 }
 
                 // If that fails, try parsing as ProviderConfig (legacy format)
-                match aicred_core::models::ProviderConfig::from_yaml(&content) {
+                match ProviderConfig::from_yaml(&content) {
                     Ok(config) => {
                         // Convert ProviderConfig to ProviderInstance
                         // Take the first API key if available
