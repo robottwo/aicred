@@ -353,6 +353,7 @@ impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
                 validation_status: OldValidationStatus::Valid,  // Assume valid
                 metadata: None,
                 created_at: now,
+                updated_at: now,
             }]
         } else {
             Vec::new()

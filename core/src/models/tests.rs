@@ -335,9 +335,9 @@ mod tests {
             "key_metadata".to_string(),
             r#"{"test":"value"}"#.to_string(),
         );
-        instance.metadata = Some(metadata);
+        instance.metadata = metadata;
 
-        instance.add_model(Model::new("gpt-4".to_string(), "GPT-4".to_string()));
+        instance.add_model("gpt-4".to_string());
 
         // Convert to ProviderConfig
         let config: ProviderConfig = instance.into();
@@ -555,7 +555,7 @@ mod tests {
         metadata.insert("line_number".to_string(), "not-a-number".to_string());
         metadata.insert("discovered_at".to_string(), "invalid-date".to_string());
         metadata.insert("key_metadata".to_string(), "not-valid-json".to_string());
-        instance.metadata = Some(metadata);
+        instance.metadata = metadata;
 
         // Convert to ProviderConfig - should not panic
         let config: ProviderConfig = instance.into();

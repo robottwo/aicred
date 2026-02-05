@@ -813,14 +813,14 @@ fn probe_provider_instances_async(
                 };
 
                 // Get API key if available
-                let Some(api_key) = &provider_instance.api_key else {
+                if provider_instance.api_key.is_empty() {
                     tracing::debug!(
                         "No API key available for provider instance: {}",
                         provider_instance.id
                     );
                     continue;
-                };
-                let api_key = api_key.clone();
+                }
+                let api_key = provider_instance.api_key.clone();
 
                 // Get base URL
                 let base_url = Some(provider_instance.base_url.as_str());
