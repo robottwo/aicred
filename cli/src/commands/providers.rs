@@ -99,10 +99,18 @@ fn load_instances_from_providers(
                             }
                             s if s.contains("grok") => ("grok", "https://api.x.ai/v1"),
                             s if s.contains("mistral") => ("mistral", "https://api.mistral.ai/v1"),
-                            s if s.contains("moonshot") => ("moonshot", "https://api.moonshot.cn/v1"),
-                            s if s.contains("perplexity") => ("perplexity", "https://api.perplexity.ai"),
-                            s if s.contains("replicate") => ("replicate", "https://api.replicate.com/v1"),
-                            s if s.contains("together") => ("together", "https://api.together.xyz/v1"),
+                            s if s.contains("moonshot") => {
+                                ("moonshot", "https://api.moonshot.cn/v1")
+                            }
+                            s if s.contains("perplexity") => {
+                                ("perplexity", "https://api.perplexity.ai")
+                            }
+                            s if s.contains("replicate") => {
+                                ("replicate", "https://api.replicate.com/v1")
+                            }
+                            s if s.contains("together") => {
+                                ("together", "https://api.together.xyz/v1")
+                            }
                             s if s.contains("zai") => ("zai", "https://api.z.ai/v1"),
                             s if s.contains("test") => ("test", "https://api.example.com"),
                             _ => ("unknown", "https://api.example.com"),
