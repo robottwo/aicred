@@ -1,6 +1,11 @@
-//! Scanner plugins for various applications that store API keys.
+//! Discovery system for finding AI credentials across applications.
+//!
+//! This module contains application-specific scanners that know how to find
+//! credentials in various tools' configuration files (Claude Desktop, Roo Code, etc.).
+//!
+//! Previously named `scanners`, renamed to `discovery` in v0.2.0 for clarity.
 
-// Allow clippy lints for the scanners module
+// Allow clippy lints for the discovery module
 #![allow(clippy::unused_self)]
 #![allow(clippy::implicit_clone)]
 #![allow(clippy::option_if_let_else)]

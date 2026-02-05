@@ -98,7 +98,8 @@ pub mod models;
 pub mod parser;
 pub mod plugins;
 pub mod providers;
-pub mod scanners;
+pub mod discovery;
+pub mod scanners; // Backward compatibility re-export
 pub mod utils;
 
 pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
@@ -131,7 +132,14 @@ pub use models::{
 
 pub use parser::{ConfigParser, FileFormat};
 pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
-pub use scanners::{register_builtin_scanners, ScannerConfig, ScannerPlugin, ScannerRegistry, DEFAULT_MAX_FILE_SIZE};
+// Discovery system (application-specific credential scanners)
+pub use crate::discovery::{
+    register_builtin_scanners,
+    ScannerConfig,
+    ScannerPlugin,
+    ScannerRegistry,
+    DEFAULT_MAX_FILE_SIZE,
+};
 pub use utils::provider_model_tuple::ProviderModelTuple;
 
 use std::path::PathBuf;
