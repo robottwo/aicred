@@ -1,10 +1,5 @@
 //! Core data models for the aicred library.
 // Allow clippy lints for the models module
-#![allow(clippy::option_if_let_else)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::struct_excessive_bools)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::len_zero)]
 
 // ==== NEW CONSOLIDATED MODELS (v0.2.0) ====
 pub mod credentials_new;

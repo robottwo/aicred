@@ -6,11 +6,6 @@
 //! Previously named `scanners`, renamed to `discovery` in v0.2.0 for clarity.
 
 // Allow clippy lints for the discovery module
-#![allow(clippy::unused_self)]
-#![allow(clippy::implicit_clone)]
-#![allow(clippy::option_if_let_else)]
-#![allow(clippy::unnecessary_wraps)]
-#![allow(clippy::too_many_lines)]
 
 /// Default maximum file size to scan (1MB).
 pub const DEFAULT_MAX_FILE_SIZE: usize = 1024 * 1024;
@@ -373,6 +368,7 @@ pub fn read_yaml_file(path: &Path) -> Result<serde_yaml::Value> {
 }
 
 /// Helper to find config files that exist from a list of potential paths.
+#[must_use] 
 pub fn find_existing_configs(home_dir: &Path, relative_paths: &[&str]) -> Vec<PathBuf> {
     relative_paths
         .iter()

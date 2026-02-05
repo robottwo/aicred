@@ -1,9 +1,6 @@
 //! Parser module for detecting and parsing configuration file formats.
 
 // Allow clippy lints for the parser module
-#![allow(clippy::option_if_let_else)]
-#![allow(clippy::unnecessary_wraps)]
-#![allow(clippy::match_wildcard_for_single_variants)]
 
 use crate::error::{Error, Result};
 use serde_json::Value as JsonValue;

@@ -312,7 +312,7 @@ impl GshScanner {
                         path.display().to_string(),
                         value_type,
                         Self::get_confidence(value),
-                        value.to_string(),
+                        value.clone(),
                     );
 
                     if is_model_id {
@@ -346,7 +346,7 @@ impl GshScanner {
                         path.display().to_string(),
                         value_type,
                         Self::get_confidence(value),
-                        value.to_string(),
+                        value.clone(),
                     );
 
                     if is_model_id {
