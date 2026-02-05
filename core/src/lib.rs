@@ -17,7 +17,7 @@
 //!
 //! As of v0.2.0, two APIs are available:
 //!
-//! - **Legacy API** (v0.1.x): `DiscoveredKey`, `Provider`, `Model`, etc. - Still works, deprecated.
+//! - **Legacy API** (v0.1.x): `DiscoveredCredential`, `Provider`, `Model`, etc. - Still works, deprecated.
 //! - **New API** (v0.2.0+): `DiscoveredCredential`, `ProviderNew`, `ModelNew`, `LabelNew`, etc. - Recommended.
 //!
 //! The new API provides cleaner naming and better structure. Both APIs work in v0.2.x.
@@ -130,10 +130,8 @@ pub use models::{
     ConfigInstance,
 };
 
-// Internal export only (needed for ScanResult and backward compatibility)
-// TODO: Remove when core library migrates to DiscoveredCredential
-pub use models::discovered_key::DiscoveredKey;
-pub use models::unified_label::UnifiedLabel;  // Temporary for wrap.rs compatibility
+// Temporary export for wrap.rs compatibility
+pub use models::unified_label::UnifiedLabel;
 
 pub use parser::{ConfigParser, FileFormat};
 
@@ -411,7 +409,7 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             .into_iter()
             .map(|key| {
                 // Keep full values for non-sensitive value types
-                use crate::models::discovered_key::ValueType as OldValueType;
+                use crate::models::credentials::ValueType as OldValueType;
                 let should_preserve = match &key.value_type {
                     OldValueType::ModelId => {
                         tracing::debug!("Preserving ModelId key: {}", key.redacted_value());
@@ -442,7 +440,7 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             result
                 .keys
                 .iter()
-                .filter(|k| matches!(k.value_type, crate::models::discovered_key::ValueType::ModelId))
+                .filter(|k| matches!(k.value_type, ValueType::ModelId))
                 .count()
         );
     }

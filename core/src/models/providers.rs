@@ -337,7 +337,7 @@ impl From<crate::models::provider_config::ProviderConfig> for ProviderInstance {
 impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
     fn from(instance: ProviderInstance) -> Self {
         use crate::models::provider_key::{ProviderKey, Environment as OldEnvironment, ValidationStatus as OldValidationStatus};
-        use crate::models::discovered_key::Confidence as OldConfidence;
+        use crate::models::credentials::Confidence as OldConfidence;
         
         let keys = if !instance.api_key.is_empty() {
             let now = chrono::Utc::now();

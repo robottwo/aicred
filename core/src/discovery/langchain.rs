@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::{Error, Result};
-use crate::models::discovered_key::{Confidence, ValueType};
+use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::discovered_key::DiscoveredKey;
+use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -150,13 +150,13 @@ impl LangChainScanner {
         &self,
         json_value: &serde_json::Value,
         path: &Path,
-    ) -> Option<Vec<DiscoveredKey>> {
+    ) -> Option<Vec<DiscoveredCredential>> {
         let mut keys = Vec::new();
 
         // Look for API keys in common locations
         if let Some(api_key) = json_value.get("api_key").and_then(|v| v.as_str()) {
             if Self::is_valid_key(api_key) {
-                let discovered_key = DiscoveredKey::new(
+                let discovered_key = DiscoveredCredential::new(
                     "langchain".to_string(),
                     path.display().to_string(),
                     ValueType::ApiKey,
@@ -172,7 +172,7 @@ impl LangChainScanner {
             for (provider_name, provider_config) in providers {
                 if let Some(key) = provider_config.get("api_key").and_then(|v| v.as_str()) {
                     if Self::is_valid_key(key) {
-                        let discovered_key = DiscoveredKey::new(
+                        let discovered_key = DiscoveredCredential::new(
                             provider_name.clone(),
                             path.display().to_string(),
                             ValueType::ApiKey,
@@ -193,7 +193,7 @@ impl LangChainScanner {
                     if let Some(value) = env_value.as_str() {
                         if Self::is_valid_key(value) {
                             let provider = Self::infer_provider_from_env_name(env_name);
-                            let discovered_key = DiscoveredKey::new(
+                            let discovered_key = DiscoveredCredential::new(
                                 provider,
                                 path.display().to_string(),
                                 ValueType::ApiKey,
@@ -212,7 +212,7 @@ impl LangChainScanner {
             if let Some(provider) = llm.get("provider").and_then(|v| v.as_str()) {
                 if let Some(api_key) = llm.get("api_key").and_then(|v| v.as_str()) {
                     if Self::is_valid_key(api_key) {
-                        let discovered_key = DiscoveredKey::new(
+                        let discovered_key = DiscoveredCredential::new(
                             provider.to_string(),
                             path.display().to_string(),
                             ValueType::ApiKey,
@@ -237,7 +237,7 @@ impl LangChainScanner {
         &self,
         yaml_value: &serde_yaml::Value,
         path: &Path,
-    ) -> Option<Vec<DiscoveredKey>> {
+    ) -> Option<Vec<DiscoveredCredential>> {
         let keys = Vec::new();
 
         // Convert YAML to JSON-like structure for easier processing

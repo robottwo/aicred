@@ -191,8 +191,8 @@ impl OpenAIPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, provider_key::{Environment, ValidationStatus}, ProviderInstance, ProviderKey,
+    use crate::models::{credentials::Confidence,
+         provider_key::{Environment, ProviderKey, ValidationStatus}, ProviderInstance,
     };
     use std::path::Path;
 

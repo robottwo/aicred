@@ -1,7 +1,7 @@
-//! `ScanResult` model for collecting and querying discovered keys.
+//! `ScanResult` model for collecting and querying discovered credentials.
 
 use crate::models::config_instance::ConfigInstance;
-use crate::models::discovered_key::{Confidence, DiscoveredKey, ValueType};
+use crate::models::credentials::{Confidence, DiscoveredCredential, ValueType};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,8 +9,8 @@ use std::collections::HashMap;
 /// Results from scanning for API keys.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResult {
-    /// Discovered keys.
-    pub keys: Vec<DiscoveredKey>,
+    /// Discovered credentials.
+    pub keys: Vec<DiscoveredCredential>,
     /// Configuration instances discovered.
     pub config_instances: Vec<ConfigInstance>,
     /// When the scan started.
@@ -52,7 +52,7 @@ impl ScanResult {
 
     /// Adds a discovered key to the result.
     /// Only adds the key if no key with the same hash already exists.
-    pub fn add_key(&mut self, key: DiscoveredKey) {
+    pub fn add_key(&mut self, key: DiscoveredCredential) {
         // Check if a key with the same hash already exists
         if self
             .keys
@@ -76,7 +76,7 @@ impl ScanResult {
 
     /// Adds multiple discovered keys to the result.
     /// Only adds keys that don't have duplicate hashes.
-    pub fn add_keys(&mut self, keys: Vec<DiscoveredKey>) {
+    pub fn add_keys(&mut self, keys: Vec<DiscoveredCredential>) {
         for key in keys {
             self.add_key(key);
         }
@@ -152,7 +152,7 @@ impl ScanResult {
 
     /// Filters keys by provider.
     #[must_use]
-    pub fn filter_by_provider(&self, provider: &str) -> Vec<&DiscoveredKey> {
+    pub fn filter_by_provider(&self, provider: &str) -> Vec<&DiscoveredCredential> {
         self.keys
             .iter()
             .filter(|key| key.provider == provider)
@@ -161,7 +161,7 @@ impl ScanResult {
 
     /// Filters keys by confidence level (minimum confidence).
     #[must_use]
-    pub fn filter_by_confidence(&self, min_confidence: Confidence) -> Vec<&DiscoveredKey> {
+    pub fn filter_by_confidence(&self, min_confidence: Confidence) -> Vec<&DiscoveredCredential> {
         self.keys
             .iter()
             .filter(|key| key.confidence >= min_confidence)
@@ -170,7 +170,7 @@ impl ScanResult {
 
     /// Filters keys by type.
     #[must_use]
-    pub fn filter_by_type(&self, value_type: &ValueType) -> Vec<&DiscoveredKey> {
+    pub fn filter_by_type(&self, value_type: &ValueType) -> Vec<&DiscoveredCredential> {
         self.keys
             .iter()
             .filter(|key| &key.value_type == value_type)
@@ -179,7 +179,7 @@ impl ScanResult {
 
     /// Gets high confidence keys (High and `VeryHigh`).
     #[must_use]
-    pub fn high_confidence_keys(&self) -> Vec<&DiscoveredKey> {
+    pub fn high_confidence_credentials(&self) -> Vec<&DiscoveredCredential> {
         self.filter_by_confidence(Confidence::High)
     }
 
@@ -272,21 +272,21 @@ impl ScanSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::discovered_key::DiscoveredKey;
+    use crate::models::credentials::DiscoveredCredential;
 
-    fn create_test_key(
+    fn create_test_credential(
         provider: &str,
         value_type: ValueType,
         confidence: Confidence,
-    ) -> DiscoveredKey {
-        // Create different key values based on provider and confidence to avoid deduplication in tests
-        let key_value = format!("test-key-{provider}-{confidence:?}");
-        DiscoveredKey::new_redacted(
+    ) -> DiscoveredCredential {
+        // Create different credential values based on provider and confidence to avoid deduplication in tests
+        let credential_value = format!("test-credential-{provider}-{confidence:?}");
+        DiscoveredCredential::new_redacted(
             provider.to_string(),
             "/test".to_string(),
             value_type,
             confidence,
-            &key_value,
+            &credential_value,
         )
     }
 
@@ -313,8 +313,8 @@ mod tests {
         let home_path = temp_dir.path().to_string_lossy().to_string();
         let mut result = ScanResult::new(home_path, vec!["openai".to_string()], Utc::now());
 
-        let key1 = create_test_key("openai", ValueType::ApiKey, Confidence::High);
-        let key2 = create_test_key("anthropic", ValueType::ApiKey, Confidence::Medium);
+        let key1 = create_test_credential("openai", ValueType::ApiKey, Confidence::High);
+        let key2 = create_test_credential("anthropic", ValueType::ApiKey, Confidence::Medium);
 
         result.add_key(key1);
         result.add_key(key2);
@@ -329,17 +329,17 @@ mod tests {
         let home_path = temp_dir.path().to_string_lossy().to_string();
         let mut result = ScanResult::new(home_path, vec![], Utc::now());
 
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "openai",
             ValueType::ApiKey,
             Confidence::High,
         ));
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "anthropic",
             ValueType::ApiKey,
             Confidence::Medium,
         ));
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "google",
             ValueType::SecretKey,
             Confidence::Low,
@@ -359,17 +359,17 @@ mod tests {
     fn test_key_statistics() {
         let mut result = ScanResult::new("/home/user".to_string(), vec![], Utc::now());
 
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "openai",
             ValueType::ApiKey,
             Confidence::High,
         ));
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "openai",
             ValueType::ApiKey,
             Confidence::Medium,
         ));
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "anthropic",
             ValueType::SecretKey,
             Confidence::High,
@@ -389,12 +389,12 @@ mod tests {
         let mut result = ScanResult::new("/home/user".to_string(), vec![], Utc::now());
         result.set_stats(100, 20);
 
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "openai",
             ValueType::ApiKey,
             Confidence::High,
         ));
-        result.add_key(create_test_key(
+        result.add_key(create_test_credential(
             "anthropic",
             ValueType::ApiKey,
             Confidence::Medium,
@@ -419,7 +419,7 @@ mod tests {
             "test-app".to_string(),
             std::path::PathBuf::from("/path/1"),
         );
-        instance1.add_key(create_test_key(
+        instance1.add_key(create_test_credential(
             "openai",
             ValueType::ApiKey,
             Confidence::High,
@@ -430,7 +430,7 @@ mod tests {
             "test-app".to_string(),
             std::path::PathBuf::from("/path/2"),
         );
-        instance2.add_key(create_test_key(
+        instance2.add_key(create_test_credential(
             "anthropic",
             ValueType::ApiKey,
             Confidence::Medium,

@@ -53,7 +53,7 @@ pub use ragit::RagitScanner;
 pub use roo_code::RooCodeScanner;
 
 use crate::error::{Error, Result};
-use crate::models::discovered_key::{Confidence, DiscoveredKey, ValueType};
+use crate::models::credentials::{Confidence, DiscoveredCredential, ValueType};
 use crate::models::{ConfigInstance, Model, ProviderInstance};
 use sha2::Digest;
 use std::collections::HashMap;
@@ -198,7 +198,7 @@ pub trait ScannerPlugin: Send + Sync {
 #[derive(Debug, Clone)]
 pub struct ScanResult {
     /// Discovered API keys.
-    pub keys: Vec<DiscoveredKey>,
+    pub keys: Vec<DiscoveredCredential>,
     /// Configuration instances found.
     pub instances: Vec<ConfigInstance>,
 }
@@ -214,12 +214,12 @@ impl ScanResult {
     }
 
     /// Adds a discovered key.
-    pub fn add_key(&mut self, key: DiscoveredKey) {
+    pub fn add_key(&mut self, key: DiscoveredCredential) {
         self.keys.push(key);
     }
 
     /// Adds multiple discovered keys.
-    pub fn add_keys(&mut self, keys: Vec<DiscoveredKey>) {
+    pub fn add_keys(&mut self, keys: Vec<DiscoveredCredential>) {
         self.keys.extend(keys);
     }
 
@@ -384,7 +384,7 @@ pub fn find_existing_configs(home_dir: &Path, relative_paths: &[&str]) -> Vec<Pa
 /// # Panics
 /// Panics if some regex patterns are invalid.
 #[must_use]
-pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<DiscoveredKey> {
+pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<DiscoveredCredential> {
     let mut keys = Vec::new();
 
     for (env_var, provider) in patterns {
@@ -398,11 +398,11 @@ pub fn extract_env_keys(content: &str, patterns: &[(&str, &str)]) -> Vec<Discove
             if let Some(key_match) = cap.get(1) {
                 let key_value = key_match.as_str();
 
-                let discovered_key = DiscoveredKey::new(
+                let discovered_key = DiscoveredCredential::new(
                     (*provider).to_string(),
                     "env_file".to_string(),
-                    crate::models::discovered_key::ValueType::ApiKey,
-                    crate::models::discovered_key::Confidence::High,
+                    ValueType::ApiKey,
+                    Confidence::High,
                     key_value.to_string(),
                 );
 
@@ -426,7 +426,7 @@ pub fn extract_env_keys_with_metadata(
     content: &str,
     api_patterns: &[(&str, &str)],
     metadata_patterns: &[(&str, &str, &str)],
-) -> Vec<DiscoveredKey> {
+) -> Vec<DiscoveredCredential> {
     let mut keys = Vec::new();
 
     // First, extract API keys
@@ -444,11 +444,11 @@ pub fn extract_env_keys_with_metadata(
                         .chars()
                         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
                 {
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         (*provider).to_string(),
                         "env_file".to_string(),
-                        crate::models::discovered_key::ValueType::ApiKey,
-                        crate::models::discovered_key::Confidence::High,
+                        ValueType::ApiKey,
+                        Confidence::High,
                         key_value.to_string(),
                     );
 
@@ -470,19 +470,19 @@ pub fn extract_env_keys_with_metadata(
                 if !value.is_empty() {
                     // Map special custom types to their proper ValueType variants
                     let value_type = match *custom_type {
-                        "ModelId" => crate::models::discovered_key::ValueType::ModelId,
-                        "BaseUrl" => crate::models::discovered_key::ValueType::BaseUrl,
-                        "Temperature" => crate::models::discovered_key::ValueType::Temperature,
-                        _ => crate::models::discovered_key::ValueType::Custom(
+                        "ModelId" => ValueType::ModelId,
+                        "BaseUrl" => ValueType::BaseUrl,
+                        "Temperature" => ValueType::Temperature,
+                        _ => ValueType::Custom(
                             (*custom_type).to_string(),
                         ),
                     };
 
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         (*provider).to_string(),
                         "env_file".to_string(),
                         value_type,
-                        crate::models::discovered_key::Confidence::High,
+                        Confidence::High,
                         value.to_string(),
                     );
 
@@ -504,15 +504,15 @@ pub trait ScannerPluginExt: ScannerPlugin {
     /// discovered keys for that provider.
     ///
     /// # Arguments
-    /// * `keys` - A slice of `DiscoveredKey` objects to group
+    /// * `keys` - A slice of `DiscoveredCredential` objects to group
     ///
     /// # Returns
     /// A `HashMap` mapping provider names to their associated discovered keys
     fn group_keys_by_provider(
         &self,
-        keys: &[DiscoveredKey],
-    ) -> HashMap<String, Vec<DiscoveredKey>> {
-        let mut grouped: HashMap<String, Vec<DiscoveredKey>> = HashMap::new();
+        keys: &[DiscoveredCredential],
+    ) -> HashMap<String, Vec<DiscoveredCredential>> {
+        let mut grouped: HashMap<String, Vec<DiscoveredCredential>> = HashMap::new();
 
         for key in keys {
             grouped
@@ -534,7 +534,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
     ///
     /// This function takes discovered keys grouped by provider and creates `ProviderInstance`
     /// objects with proper API keys, models, and settings. It handles the mapping from
-    /// DiscoveredKey.ValueType to `ProviderInstance` fields.
+    /// DiscoveredCredential.ValueType to `ProviderInstance` fields.
     ///
     /// # Arguments
     /// * `grouped_keys` - A `HashMap` of provider names to their discovered keys
@@ -552,7 +552,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
     #[allow(clippy::cognitive_complexity)]
     fn build_provider_instances(
         &self,
-        grouped_keys: HashMap<String, Vec<DiscoveredKey>>,
+        grouped_keys: HashMap<String, Vec<DiscoveredCredential>>,
         source_path: &str,
         plugin_registry: Option<&crate::plugins::PluginRegistry>,
     ) -> Result<Vec<ProviderInstance>> {
@@ -789,7 +789,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
     /// This combines grouping and building into a single operation.
     ///
     /// # Arguments
-    /// * `keys` - A slice of `DiscoveredKey` objects
+    /// * `keys` - A slice of `DiscoveredCredential` objects
     /// * `source_path` - The source file path where keys were discovered
     /// * `plugin_registry` - Optional plugin registry for API-based model discovery
     ///
@@ -800,7 +800,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
     /// Returns an error if instance building fails
     fn build_instances_from_keys(
         &self,
-        keys: &[DiscoveredKey],
+        keys: &[DiscoveredCredential],
         source_path: &str,
         plugin_registry: Option<&crate::plugins::PluginRegistry>,
     ) -> Result<Vec<ProviderInstance>> {
@@ -871,21 +871,21 @@ mod tests {
         let scanner = MockScanner;
 
         let keys = vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "OpenAI".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "OpenAI".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
                 Confidence::High,
                 "https://api.openai.com".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "Anthropic".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -908,7 +908,7 @@ mod tests {
         let mut grouped = HashMap::new();
         grouped.insert(
             "OpenAI".to_string(),
-            vec![DiscoveredKey::new(
+            vec![DiscoveredCredential::new(
                 "OpenAI".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -935,28 +935,28 @@ mod tests {
         grouped.insert(
             "OpenAI".to_string(),
             vec![
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ApiKey,
                     Confidence::High,
                     "sk-test123456789".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::BaseUrl,
                     Confidence::High,
                     "https://api.openai.com".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ModelId,
                     Confidence::High,
                     "gpt-4".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::Temperature,
@@ -990,14 +990,14 @@ mod tests {
         grouped.insert(
             "OpenAI".to_string(),
             vec![
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ApiKey,
                     Confidence::High,
                     "sk-prod-key".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ApiKey,
@@ -1029,14 +1029,14 @@ mod tests {
         grouped.insert(
             "OpenAI".to_string(),
             vec![
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::BaseUrl,
                     Confidence::High,
                     "https://api.openai.com".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ModelId,
@@ -1062,21 +1062,21 @@ mod tests {
         grouped.insert(
             "OpenAI".to_string(),
             vec![
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ApiKey,
                     Confidence::High,
                     "sk-test123".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::Custom("organization_id".to_string()),
                     Confidence::High,
                     "org-123456".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ParallelToolCalls,
@@ -1108,14 +1108,14 @@ mod tests {
         let scanner = MockScanner;
 
         let keys = vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "OpenAI".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "Anthropic".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -1141,14 +1141,14 @@ mod tests {
         grouped.insert(
             "OpenAI".to_string(),
             vec![
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::ApiKey,
                     Confidence::High,
                     "sk-test123".to_string(),
                 ),
-                DiscoveredKey::new(
+                DiscoveredCredential::new(
                     "OpenAI".to_string(),
                     "/test/config".to_string(),
                     ValueType::Temperature,
@@ -1176,7 +1176,7 @@ mod tests {
         let scanner = MockScanner;
 
         let mut grouped = HashMap::new();
-        let mut key = DiscoveredKey::new(
+        let mut key = DiscoveredCredential::new(
             "OpenAI".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1194,7 +1194,7 @@ mod tests {
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
         // Metadata is only set if there are special value types (temperature, headers, etc.)
-        // Line numbers from DiscoveredKey are not automatically stored in instance metadata
+        // Line numbers from DiscoveredCredential are not automatically stored in instance metadata
         // unless the instance goes through ProviderConfig conversion
     }
 }

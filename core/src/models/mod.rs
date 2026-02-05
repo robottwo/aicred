@@ -14,11 +14,8 @@ pub mod config_validator;
 // ==== INTERNAL SUPPORT (for core library internal use only) ====
 // These modules are deprecated and kept only for internal compatibility.
 // They should NOT be exported in the public API.
-pub mod discovered_key;
 pub mod provider_config;
 pub mod provider_key;
-pub mod tag;
-pub mod tag_assignment;
 pub mod unified_label;
 
 #[cfg(test)]

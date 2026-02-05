@@ -2,9 +2,8 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
-use crate::models::discovered_key::{Confidence, ValueType};
+use crate::models::credentials::{Confidence, DiscoveredCredential, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::discovered_key::DiscoveredKey;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -227,13 +226,13 @@ impl ClaudeDesktopScanner {
         &self,
         json_value: &serde_json::Value,
         path: &Path,
-    ) -> Option<Vec<DiscoveredKey>> {
+    ) -> Option<Vec<DiscoveredCredential>> {
         let mut keys = Vec::new();
 
         // Look for API key stored under "userID" field
         if let Some(user_id) = json_value.get("userID").and_then(|v| v.as_str()) {
             if Self::is_valid_key(user_id) {
-                let discovered_key = DiscoveredKey::new(
+                let discovered_key = DiscoveredCredential::new(
                     "anthropic".to_string(),
                     path.display().to_string(),
                     ValueType::ApiKey,
@@ -251,7 +250,7 @@ impl ClaudeDesktopScanner {
 
         // Extract model information as a discovered key
         if let Some(model) = json_value.get("model").and_then(|v| v.as_str()) {
-            let model_key = DiscoveredKey::new(
+            let model_key = DiscoveredCredential::new(
                 "anthropic".to_string(),
                 path.display().to_string(),
                 ValueType::ModelId,
@@ -268,7 +267,7 @@ impl ClaudeDesktopScanner {
             .get("temperature")
             .and_then(serde_json::Value::as_f64)
         {
-            let temp_key = DiscoveredKey::new(
+            let temp_key = DiscoveredCredential::new(
                 "anthropic".to_string(),
                 path.display().to_string(),
                 ValueType::Temperature,
@@ -288,7 +287,7 @@ impl ClaudeDesktopScanner {
             .get("max_tokens")
             .and_then(serde_json::Value::as_u64)
         {
-            let max_tokens_key = DiscoveredKey::new(
+            let max_tokens_key = DiscoveredCredential::new(
                 "anthropic".to_string(),
                 path.display().to_string(),
                 ValueType::Custom("max_tokens".to_string()),

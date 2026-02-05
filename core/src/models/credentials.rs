@@ -13,16 +13,207 @@ pub struct DiscoveredCredential {
     pub value: CredentialValue,
     /// Confidence level for this discovery
     pub confidence: Confidence,
+    /// SHA-256 hash of the credential value
+    pub hash: String,
     /// Source file where credential was found
     pub source_file: String,
     /// Line number in source file (if applicable)
     pub source_line: Option<usize>,
+    /// Column number in the source file (if applicable)
+    pub column_number: Option<u32>,
     /// Environment where credential was discovered
     pub environment: Environment,
     /// When this credential was discovered
     pub discovered_at: DateTime<Utc>,
     /// Type of credential
     pub value_type: ValueType,
+    /// Additional metadata
+    pub metadata: Option<serde_json::Value>,
+}
+
+impl DiscoveredCredential {
+    /// Creates a new discovered credential with a full value
+    #[must_use]
+    pub fn new(
+        provider: String,
+        source_file: String,
+        value_type: ValueType,
+        confidence: Confidence,
+        full_value: String,
+    ) -> Self {
+        let hash = Self::hash_value(&full_value);
+        let discovered_at = Utc::now();
+
+        Self {
+            provider,
+            value: CredentialValue::full(full_value),
+            confidence,
+            hash,
+            source_file,
+            source_line: None,
+            column_number: None,
+            environment: Environment::UserConfig,
+            discovered_at,
+            value_type,
+            metadata: None,
+        }
+    }
+
+    /// Creates a new discovered credential with a redacted value
+    #[must_use]
+    pub fn new_redacted(
+        provider: String,
+        source_file: String,
+        value_type: ValueType,
+        confidence: Confidence,
+        full_value: &str,
+    ) -> Self {
+        let hash = Self::hash_value(full_value);
+        let discovered_at = Utc::now();
+
+        Self {
+            provider,
+            value: CredentialValue::redact(full_value),
+            confidence,
+            hash,
+            source_file,
+            source_line: None,
+            column_number: None,
+            environment: Environment::UserConfig,
+            discovered_at,
+            value_type,
+            metadata: None,
+        }
+    }
+
+    /// Returns the redacted version of the credential value
+    #[must_use]
+    pub fn redacted_value(&self) -> String {
+        match &self.value {
+            CredentialValue::Full(value) => {
+                if value.chars().count() <= 8 {
+                    let prefix: String = value.chars().take(2).collect();
+                    format!("{prefix}****")
+                } else {
+                    let last_chars: String = value
+                        .chars()
+                        .rev()
+                        .take(4)
+                        .collect::<String>()
+                        .chars()
+                        .rev()
+                        .collect();
+                    format!("****{last_chars}")
+                }
+            }
+            CredentialValue::Redacted { prefix, .. } => {
+                format!("{prefix}****")
+            }
+        }
+    }
+
+    /// Gets the full value if available
+    #[must_use]
+    pub fn full_value(&self) -> Option<&str> {
+        match &self.value {
+            CredentialValue::Full(s) => Some(s),
+            CredentialValue::Redacted { .. } => None,
+        }
+    }
+
+    /// Sets whether to include the full value (converts between Full and Redacted)
+    #[must_use]
+    pub fn with_full_value(mut self, include: bool) -> Self {
+        let current_value = self.full_value();
+        match (include, current_value) {
+            (true, Some(full)) => {
+                // Already has full value
+                self.value = CredentialValue::Full(full.to_string());
+            }
+            (true, None) => {
+                // Don't have full value, can't include it - keep as redacted
+                // This is a limitation of the redacted approach
+            }
+            (false, Some(full)) => {
+                // Convert to redacted
+                self.value = CredentialValue::redact(full);
+            }
+            (false, None) => {
+                // Already redacted
+            }
+        }
+        self
+    }
+
+    /// Returns whether this credential has a full value stored
+    #[must_use]
+    pub const fn has_full_value(&self) -> bool {
+        matches!(self.value, CredentialValue::Full(_))
+    }
+
+    /// Sets the line and column numbers where the credential was found
+    #[must_use]
+    pub const fn with_position(mut self, line: usize, column: u32) -> Self {
+        self.source_line = Some(line);
+        self.column_number = Some(column);
+        self
+    }
+
+    /// Sets the environment where the credential was discovered
+    #[must_use]
+    pub fn with_environment(mut self, environment: Environment) -> Self {
+        self.environment = environment;
+        self
+    }
+
+    /// Sets additional metadata
+    #[must_use]
+    pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Calculates SHA-256 hash of a value
+    #[must_use]
+    pub fn hash_value(value: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(value.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Checks if this credential matches a hash
+    #[must_use]
+    pub fn matches_hash(&self, other_hash: &str) -> bool {
+        self.hash == other_hash
+    }
+
+    /// Gets a short description of the credential
+    #[must_use]
+    pub fn description(&self) -> String {
+        format!(
+            "{} for {} (confidence: {})",
+            self.value_type, self.provider, self.confidence
+        )
+    }
+
+    /// Gets the source field name for backward compatibility with DiscoveredKey
+    #[must_use]
+    pub const fn source(&self) -> &String {
+        &self.source_file
+    }
+}
+
+impl std::fmt::Display for DiscoveredCredential {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} for {} ({} confidence, discovered at {})",
+            self.value_type,
+            self.provider,
+            self.confidence,
+            self.discovered_at.format("%Y-%m-%d %H:%M:%S UTC")
+        )
+    }
 }
 
 /// Credential value (full or redacted for security).

@@ -1,6 +1,6 @@
 //! Provider key model for representing individual API keys with comprehensive metadata.
 
-use crate::models::discovered_key::Confidence;
+use crate::models::credentials::Confidence;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -81,7 +81,7 @@ pub struct ProviderKey {
     /// Line number in the source file.
     pub line_number: Option<u32>,
 
-    /// Confidence level of key detection (from `DiscoveredKey`).
+    /// Confidence level of key detection (from `DiscoveredCredential`).
     pub confidence: Confidence,
 
     /// Environment context (dev/staging/prod).

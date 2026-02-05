@@ -2,8 +2,9 @@
 #[allow(clippy::module_inception)]
 mod tests {
     use super::super::*;
-    use crate::models::discovered_key::{Confidence, ValueType};
-    use crate::models::provider_key::{Environment, ValidationStatus};
+    use crate::models::credentials::{Confidence, ValueType};
+    use crate::models::provider_config::ProviderConfig;
+    use crate::models::provider_key::{Environment, ProviderKey, ValidationStatus};
     use chrono::Utc;
 
     #[test]
@@ -35,7 +36,7 @@ mod tests {
 
     #[test]
     fn test_discovered_key_redaction() {
-        let key = DiscoveredKey::new(
+        let key = DiscoveredCredential::new(
             "OpenAI".to_string(),
             "/path/to/config".to_string(),
             ValueType::ApiKey,
@@ -56,7 +57,7 @@ mod tests {
             Utc::now(),
         );
 
-        let key1 = DiscoveredKey::new(
+        let key1 = DiscoveredCredential::new(
             "OpenAI".to_string(),
             "/path/to/config1".to_string(),
             ValueType::ApiKey,
@@ -64,7 +65,7 @@ mod tests {
             "sk-123".to_string(),
         );
 
-        let key2 = DiscoveredKey::new(
+        let key2 = DiscoveredCredential::new(
             "Anthropic".to_string(),
             "/path/to/config2".to_string(),
             ValueType::ApiKey,

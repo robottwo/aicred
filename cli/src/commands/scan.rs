@@ -1,7 +1,7 @@
 use aicred_core::models::{Model, ProviderInstance};
 use aicred_core::plugins::PluginRegistry;
 use aicred_core::providers::anthropic::AnthropicPlugin;
-use aicred_core::{scan, ScanOptions, DiscoveredKey};
+use aicred_core::{scan, ScanOptions, DiscoveredCredential};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -244,7 +244,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // Create a map to track configuration context by source file
     let mut source_context: std::collections::HashMap<
         String,
-        std::collections::HashMap<String, Vec<DiscoveredKey>>,
+        std::collections::HashMap<String, Vec<DiscoveredCredential>>,
     > = std::collections::HashMap::new();
 
     // Step 1: We're no longer tracking existing instances to ensure consistent SHA-256 based IDs
@@ -294,7 +294,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
     // Step 2: Collect all keys by source file first
     for key in &result.keys {
-        let source = key.source.clone();
+        let source = key.source_file.clone();
         let provider = key.provider.clone();
         source_context
             .entry(source)
@@ -307,7 +307,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // Also collect from config instances
     for instance in &result.config_instances {
         for key in &instance.keys {
-            let source = key.source.clone();
+            let source = key.source_file.clone();
             let provider = key.provider.clone();
             source_context
                 .entry(source)
@@ -336,25 +336,25 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
             );
 
             // Find API keys in this group
-            let api_keys: Vec<&DiscoveredKey> = keys
+            let api_keys: Vec<&DiscoveredCredential> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
                         k.value_type,
-                        aicred_core::models::discovered_key::ValueType::ApiKey
+                        aicred_core::ValueType::ApiKey
                     )
                 })
                 .collect();
 
             // Also check for other key types that can serve as primary keys
-            let other_keys: Vec<&DiscoveredKey> = keys
+            let other_keys: Vec<&DiscoveredCredential> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
                         k.value_type,
-                        aicred_core::models::discovered_key::ValueType::AccessToken
-                            | aicred_core::models::discovered_key::ValueType::SecretKey
-                            | aicred_core::models::discovered_key::ValueType::BearerToken
+                        aicred_core::ValueType::AccessToken
+                            | aicred_core::ValueType::SecretKey
+                            | aicred_core::ValueType::BearerToken
                     )
                 })
                 .collect();
@@ -408,11 +408,11 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     );
 
                     // Check if we have probed models for this source
-                    let source_key = (provider_name.clone(), primary_key.source.clone());
+                    let source_key = (provider_name.clone(), primary_key.source_file.clone());
                     tracing::debug!(
                         "  Looking up key: ({}, '{}')",
                         provider_name,
-                        primary_key.source
+                        primary_key.source_file
                     );
                     if let Some(probed_models) = probed_models_by_source.get(&source_key) {
                         tracing::info!(
@@ -467,7 +467,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
                     for key in &keys {
                         match &key.value_type {
-                            aicred_core::models::discovered_key::ValueType::ModelId => {
+                            aicred_core::ValueType::ModelId => {
                                 if let Some(full_value) = key.full_value() {
                                     tracing::debug!("Found ModelId: {}", full_value);
                                     models_found.push(full_value.to_string());
@@ -478,14 +478,14 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     );
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::BaseUrl => {
+                            aicred_core::ValueType::BaseUrl => {
                                 if let Some(full_value) = key.full_value() {
                                     _base_url = Some(full_value.to_string());
                                     instance.base_url = full_value.to_string();
                                     tracing::debug!("Found base_url: {}", full_value);
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::Temperature => {
+                            aicred_core::ValueType::Temperature => {
                                 if let Some(full_value) = key.full_value() {
                                     if let Ok(temp) = full_value.parse::<f32>() {
                                         metadata_map
@@ -494,7 +494,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     }
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::Custom(
+                            aicred_core::ValueType::Custom(
                                 ref custom_type,
                             ) => {
                                 let custom_type_lower = custom_type.to_lowercase();
@@ -555,7 +555,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     );
 
                     // Always include existing models from the ProviderInstance
-                    // This handles the case where API-probed models exist but weren't converted to DiscoveredKey objects
+                    // This handles the case where API-probed models exist but weren't converted to DiscoveredCredential objects
                     for existing_model in &instance.models {
                         if !models_found.contains(&existing_model) {
                             tracing::debug!(
@@ -649,7 +649,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         );
 
                         // Check if we have probed models for this provider and instance
-                        let source_key = (provider_name.clone(), primary_key.source.clone());
+                        let source_key = (provider_name.clone(), primary_key.source_file.clone());
                         if let Some(probed_models) = probed_models_by_source.get(&source_key) {
                             tracing::info!(
                                 "Found {} probed models for {} (instance {}), adding to new instance (redacted key)",
@@ -681,7 +681,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     metadata_map.remove("modelid");
 
                     for key in &keys {
-                        if let aicred_core::models::discovered_key::ValueType::Custom(
+                        if let aicred_core::ValueType::Custom(
                             ref custom_type,
                         ) = key.value_type
                         {
@@ -788,7 +788,7 @@ fn write_audit_log(log_path: &str, result: &aicred_core::ScanResult) -> Result<(
             writeln!(
                 file,
                 "  - {}: {} ({} - confidence: {})",
-                key.provider, key.value_type, key.source, key.confidence
+                key.provider, key.value_type, key.source_file, key.confidence
             )?;
         }
     }

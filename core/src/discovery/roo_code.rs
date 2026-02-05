@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
-use crate::models::discovered_key::{Confidence, ValueType};
+use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::discovered_key::DiscoveredKey;
+use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -382,7 +382,7 @@ impl RooCodeScanner {
         &self,
         json_value: &serde_json::Value,
         path: &Path,
-    ) -> Option<Vec<DiscoveredKey>> {
+    ) -> Option<Vec<DiscoveredCredential>> {
         let mut keys = Vec::new();
 
         // Look for API keys in VSCode settings
@@ -391,7 +391,7 @@ impl RooCodeScanner {
                 if key.contains("roo") && key.contains("api") && key.contains("key") {
                     if let Some(api_key) = value.as_str() {
                         if Self::is_valid_key(api_key) {
-                            let discovered_key = DiscoveredKey::new(
+                            let discovered_key = DiscoveredCredential::new(
                                 "roo-code".to_string(),
                                 path.display().to_string(),
                                 ValueType::ApiKey,
@@ -406,7 +406,7 @@ impl RooCodeScanner {
                 // Extract model ID
                 if key.contains("roo") && key.contains("model") {
                     if let Some(model_id) = value.as_str() {
-                        let discovered_key = DiscoveredKey::new(
+                        let discovered_key = DiscoveredCredential::new(
                             "roo-code".to_string(),
                             path.display().to_string(),
                             ValueType::ModelId,
@@ -420,7 +420,7 @@ impl RooCodeScanner {
                 // Extract temperature
                 if key.contains("roo") && key.contains("temperature") {
                     if let Some(temp) = value.as_f64() {
-                        let discovered_key = DiscoveredKey::new(
+                        let discovered_key = DiscoveredCredential::new(
                             "roo-code".to_string(),
                             path.display().to_string(),
                             ValueType::Temperature,
@@ -434,7 +434,7 @@ impl RooCodeScanner {
                 // Extract max_tokens
                 if key.contains("roo") && key.contains("max_tokens") {
                     if let Some(max_tokens) = value.as_i64() {
-                        let discovered_key = DiscoveredKey::new(
+                        let discovered_key = DiscoveredCredential::new(
                             "roo-code".to_string(),
                             path.display().to_string(),
                             ValueType::Custom("max_tokens".to_string()),
@@ -453,7 +453,7 @@ impl RooCodeScanner {
                 for (provider, key_value) in keys_obj {
                     if let Some(key) = key_value.as_str() {
                         if Self::is_valid_key(key) {
-                            let discovered_key = DiscoveredKey::new(
+                            let discovered_key = DiscoveredCredential::new(
                                 provider.clone(),
                                 path.display().to_string(),
                                 ValueType::ApiKey,
@@ -477,7 +477,7 @@ impl RooCodeScanner {
                         _ => continue,
                     };
 
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         "roo-code".to_string(),
                         path.display().to_string(),
                         ValueType::Custom(setting_key.clone()),
@@ -503,7 +503,7 @@ impl RooCodeScanner {
                                 if Self::is_valid_key(default_value) {
                                     let provider =
                                         Self::infer_provider_from_property_name(prop_name);
-                                    let discovered_key = DiscoveredKey::new(
+                                    let discovered_key = DiscoveredCredential::new(
                                         provider,
                                         path.display().to_string(),
                                         ValueType::ApiKey,

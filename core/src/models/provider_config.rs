@@ -4,6 +4,7 @@
 //! This module is deprecated in favor of [`ProviderInstance`](crate::models::ProviderInstance) and [`ProviderInstances`](crate::models::ProviderInstances).
 //! Use the new provider instance system for enhanced metadata and model management.
 
+use crate::models::credentials::Confidence;
 use crate::models::provider_key::{Environment, ProviderKey, ValidationStatus};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -136,7 +137,7 @@ impl ProviderConfig {
             let mut key = ProviderKey::new(
                 "default".to_string(),
                 "configured".to_string(),
-                crate::models::discovered_key::Confidence::High,
+                Confidence::High,
                 Environment::Production,
             );
             key.value = Some(api_key_value);
@@ -188,7 +189,7 @@ impl ProviderConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::discovered_key::Confidence;
+    use crate::models::credentials::Confidence;
 
     #[test]
     fn test_provider_config_creation() {

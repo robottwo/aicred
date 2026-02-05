@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
-use crate::models::discovered_key::{Confidence, ValueType};
+use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::discovered_key::DiscoveredKey;
+use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -257,7 +257,7 @@ impl GshScanner {
     }
 
     /// Parse GSH-specific configuration from .gshrc file using key/value pairs.
-    fn parse_gshrc(&self, content: &str, path: &Path) -> Vec<DiscoveredKey> {
+    fn parse_gshrc(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Define the specific keys we want to look for
@@ -308,7 +308,7 @@ impl GshScanner {
 
                     let is_model_id = matches!(value_type, ValueType::ModelId);
 
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         provider.to_string(),
                         path.display().to_string(),
                         value_type,
@@ -342,7 +342,7 @@ impl GshScanner {
 
                     let is_model_id = matches!(value_type, ValueType::ModelId);
 
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         provider.to_string(),
                         path.display().to_string(),
                         value_type,
@@ -414,7 +414,7 @@ impl GshScanner {
     }
 
     /// Extract keys from shell script format (KEY=value pairs).
-    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredKey> {
+    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Common API key patterns in shell scripts - handle both quoted and unquoted values
@@ -464,7 +464,7 @@ impl GshScanner {
                 if let Some(key_match) = cap.get(1) {
                     let key_value = key_match.as_str();
 
-                    let discovered_key = DiscoveredKey::new(
+                    let discovered_key = DiscoveredCredential::new(
                         provider.to_string(),
                         path.display().to_string(),
                         ValueType::ApiKey,
@@ -929,7 +929,7 @@ export GSH_SLOW_MODEL_ID="anthropic/claude-3-opus"
         assert_eq!(keys.len(), 4);
 
         // Find the Model ID keys
-        let model_id_keys: Vec<&DiscoveredKey> = keys
+        let model_id_keys: Vec<&DiscoveredCredential> = keys
             .iter()
             .filter(|k| matches!(k.value_type, ValueType::ModelId))
             .collect();

@@ -393,9 +393,9 @@ pub fn handle_unassign_tag(
 
     // Filter assignments - keep those that don't match the target to remove
     let mut filtered_assignments = Vec::new();
-    for assignment in assignments {
+    for assignment in &assignments {
         if assignment.label_name != tag.name {
-            filtered_assignments.push(assignment);
+            filtered_assignments.push(assignment.clone());
             continue;
         }
 
@@ -410,20 +410,19 @@ pub fn handle_unassign_tag(
             }
             LabelTarget::ProviderModel { instance_id, model_id } => {
                 // Match if both instance and model match
-                if let (Some(inst), Some(mod)) = (&target_instance_id.as_str(), target_model_id.as_ref()) {
-                    instance_id == inst && model_id == mod
-                } else {
-                    false
+                match target_model_id.as_ref() {
+                    Some(m) => instance_id == &target_instance_id && model_id == m,
+                    None => false,
                 }
             }
         };
 
         if !matches_target {
-            filtered_assignments.push(assignment);
+            filtered_assignments.push(assignment.clone());
         }
     }
 
-    *assignments = filtered_assignments;
+    assignments = filtered_assignments;
 
     if assignments.len() == original_count {
         return Err(anyhow::anyhow!(

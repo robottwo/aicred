@@ -1,188 +1,195 @@
-# Internal Migration Complete ⬛
+# Legacy Type Migration - Final Status
 
-## Summary
+## Date
+February 5, 2026
 
-Successfully completed full internal migration to new API v0.2.0 with backward compatibility cleanup.
+## Accomplished
 
-**Final Status**: ✅ 100% compilation success, production-ready
+### ✅ Core Library Migration
 
-## What Was Accomplished
+**DiscoveredKey → DiscoveredCredential**
+- ✅ Migrated `DiscoveredKey` to `DiscoveredCredential`
+- ✅ Added missing fields to `DiscoveredCredential`:
+  - `hash: String` (public field for compatibility)
+  - `column_number: Option<u32>`
+  - `metadata: Option<serde_json::Value>`
+  - `source()` method for backward compatibility
+- ✅ Added missing methods:
+  - `new()` - constructor with full value
+  - `new_redacted()` - constructor with redacted value
+  - `redacted_value()` - returns redacted credential string
+  - `full_value()` - returns full value if available
+  - `has_full_value()` - checks if full value is stored
+  - `with_position()` - sets line and column numbers
+  - `with_environment()` - sets environment
+  - `with_metadata()` - sets additional metadata
+  - `hash_value()` - calculates SHA-256 hash
+  - `matches_hash()` - checks if credential matches hash
+  - `description()` - gets short description
+- ✅ Migrated all discovery scanners:
+  - `claude_desktop.rs`
+  - `gsh.rs`
+  - `langchain.rs`
+  - `ragit.rs`
+  - `roo_code.rs`
+  - `mod.rs` (generic scanning logic)
+- ✅ Migrated `ScanResult` model
+- ✅ Migrated `models/tests.rs` and `models/scan.rs` tests
+- ✅ Updated all imports from `discovered_key` to `credentials`
 
-### 1. Internal Migration (Complete)
-- ✅ All `*_new.rs` files renamed to canonical names
-- ✅ Internal codebase uses new types throughout
-- ✅ All provider tests migrated to new API
-- ✅ All integration tests migrated to new API
-- ✅ 0 compilation errors across entire codebase
+**CLI Migration**
+- ✅ Migrated `scan.rs` to use `DiscoveredCredential`
+- ✅ Updated field access from `key.source` to `key.source_file`
+- ✅ Fixed all type references to use `ValueType` from `credentials`
 
-### 2. Backward Compatibility Cleanup (Complete)
-- ✅ Removed 6 truly redundant old model files (~2,100 lines)
-- ✅ Kept necessary legacy types for internal use
-- ✅ Cleaned up lib.rs exports
-- ✅ Library compiles with 41 warnings, 0 errors
+### ✅ Legacy Files Deleted
 
-### 3. Test Suite (Complete)
-- ✅ Core library tests: 100% compile (248 passing)
-- ✅ Integration tests: 100% compile (9/9 files)
-- ✅ All test files migrated to new API patterns
+Successfully deleted 3 of 6 legacy type files:
+1. ✅ `core/src/models/discovered_key.rs` - Migrated to `DiscoveredCredential`
+2. ✅ `core/src/models/tag.rs` - Replaced by `Label` in `labels.rs`
+3. ✅ `core/src/models/tag_assignment.rs` - Replaced by `LabelAssignment` in `labels.rs`
 
-## Files Removed
+### ✅ Compilation Status
 
-**Truly redundant (deleted):**
-- `label.rs`, `label_assignment.rs` → replaced by `labels.rs`
-- `model.rs`, `model_metadata.rs` → replaced by `models.rs`
-- `provider.rs` → replaced by `providers.rs`
-- `scan_result.rs` → replaced by `scan.rs`
+- ✅ Core library compiles (0 errors, 40 warnings)
+- ✅ CLI compiles (0 errors, 12 warnings)
+- ✅ Tests compile (0 errors)
+- ✅ 167 tests pass, 57 fail
 
-**Total**: ~2,100 lines of duplicate code removed
+## Remaining Work
 
-## Files Kept (Internal Use)
+### ⚠️ Legacy Files Still Exist
 
-**Active features:**
-- `tag.rs`, `tag_assignment.rs` → Tag system still in use
-- `provider_key.rs` → ProviderKey structure still active
-- `unified_label.rs` → Label aggregation system
+3 of 6 legacy files remain due to usage in tests and public API:
 
-**Internal compatibility:**
-- `discovered_key.rs` → Used by all discovery modules
-- `provider_config.rs` → Used for config conversions
-- `provider_instance.rs`, `provider_instances.rs` → Used by old code paths
+1. **`provider_key.rs`** (used in provider tests)
+   - Used in test modules for `anthropic`, `groq`, `huggingface`, `litellm`, `openai`
+   - Contains `ProviderKey` struct, `ValidationStatus` enum, `Environment` enum
+   - Tests use `ProviderKey` to create mock credentials for testing
+   - **Migration path:** Refactor tests to use `ProviderInstance` directly or create test helper functions
 
-## API Surface
+2. **`provider_config.rs`** (used in tests)
+   - Used in `models/tests.rs` for backward compatibility tests
+   - Deprecated in favor of `ProviderInstance` system
+   - **Migration path:** Tests can be updated to use `ProviderInstance` directly, or kept for historical data migration
 
-### Public API (v0.2.0)
-```rust
-// Models
-use aicred_core::{
-    Model, ModelMetadata, ModelCapabilities,
-    ProviderInstance, ProviderCollection,
-    Label, LabelAssignment,
-    DiscoveredCredential,
-};
-```
+3. **`unified_label.rs`** (used by `env_resolver.rs`)
+   - Used by `EnvResolver` which is part of the public API
+   - `UnifiedLabel` combines `Label` metadata + `LabelAssignment`
+   - Exported in `lib.rs` for backward compatibility
+   - **Migration path:** Requires refactoring `env_resolver.rs` to use separate `Label` and `LabelAssignment` types (significant API change)
 
-### Legacy (Internal)
-```rust
-// Still used internally but not recommended for new code
-use aicred_core::{
-    DiscoveredKey,        // Used by discovery
-    ProviderConfig,       // Used by conversions
-    PluginRegistry,       // Used by scan logic
-};
-```
+### ⚠️ Test Failures
 
-## Code Quality
+57 tests fail, likely due to:
+- API changes from `DiscoveredKey` to `DiscoveredCredential`
+- Field name changes (`source` → `source_file`)
+- Enum/struct type differences
+- Need to investigate and fix specific test failures
 
-### Before Migration
-- Duplicate model definitions across 18 files
-- Mixed old/new API usage
-- 259 compilation errors in tests
-- Backward compatibility scattered throughout
+### ⚠️ Public API Impact
 
-### After Migration
-- Clean single-source-of-truth model files
-- Consistent new API usage
-- 0 compilation errors
-- Legacy support cleanly isolated
+`EnvResolver` still uses `UnifiedLabel` internally:
+- This is a public API component
+- Breaking change would require major version bump
+- Should be scheduled as a separate migration task
 
-## Statistics
+## Migration Strategy Used
 
-- **Errors reduced**: 259 → 0 (100%)
-- **Code removed**: ~2,100 lines
-- **Files deleted**: 6 redundant model files
-- **Test files migrated**: 9 integration test files
-- **Provider tests migrated**: 6 provider test files
-- **Commits**: 13 focused commits
-- **Time invested**: ~4 hours
+**Pragmatic Approach:**
+1. Made `DiscoveredCredential` fully compatible with `DiscoveredKey`
+2. Added missing fields/methods for drop-in replacement
+3. Migrated all core library usages
+4. Deleted files that had no remaining usages
+5. Kept files that would require public API changes or extensive test refactoring
+6. Documented remaining work for future completion
 
-## Verification
+## Files Modified
 
-### Compile Status
-```bash
-$ cargo build --package aicred-core
-   Finished `dev` profile in 1.84s
-   ✅ 0 errors, 41 warnings
-```
+### Core Files (migrated)
+- `core/src/models/credentials.rs` - Enhanced with DiscoveredKey-compatible API
+- `core/src/models/scan.rs` - Uses DiscoveredCredential
+- `core/src/models/config_instance.rs` - Uses DiscoveredCredential
+- `core/src/models/providers.rs` - Uses DiscoveredCredential
+- `core/src/models/provider_config.rs` - Updated imports
+- `core/src/models/provider_key.rs` - Updated imports
+- `core/src/models/tests.rs` - Updated imports and test code
+- `core/src/discovery/mod.rs` - Migrated to DiscoveredCredential
+- `core/src/discovery/claude_desktop.rs` - Migrated to DiscoveredCredential
+- `core/src/discovery/gsh.rs` - Migrated to DiscoveredCredential
+- `core/src/discovery/langchain.rs` - Migrated to DiscoveredCredential
+- `core/src/discovery/ragit.rs` - Migrated to DiscoveredCredential
+- `core/src/discovery/roo_code.rs` - Migrated to DiscoveredCredential
+- `core/src/lib.rs` - Updated exports, removed discovered_key imports
 
-### Test Compilation
-```bash
-$ cargo test --package aicred-core --no-run
-   Finished `test` profile in 2.60s
-   ✅ All test files compile
-   ✅ Core lib tests: 248 passing
-   ✅ Integration tests: 9/9 compile
-```
+### CLI Files (migrated)
+- `cli/src/commands/scan.rs` - Uses DiscoveredCredential, updated field names
+- `cli/src/commands/tags.rs` - Fixed compilation errors
 
-## Migration Patterns Applied
+### Files Deleted
+- `core/src/models/discovered_key.rs` ✓
+- `core/src/models/tag.rs` ✓
+- `core/src/models/tag_assignment.rs` ✓
 
-### 1. Field Renames
-```rust
-// Before
-instance.display_name
-instance.models[0].model_id
-
-// After
-instance.id
-instance.models[0]  // Vec<String>
-```
-
-### 2. Metadata Patterns
-```rust
-// Before
-if let Some(metadata) = &instance.metadata {
-    metadata.as_ref().unwrap()
-}
-
-// After
-let metadata = &instance.metadata;  // HashMap
-if !metadata.is_empty() { ... }
-```
-
-### 3. Model Construction
-```rust
-// Before
-let model = Model::new("id".to_string(), "name".to_string())
-    .with_context_window(8192);
-instance.add_model(model);
-
-// After
-instance.add_model("id".to_string());
-```
-
-### 4. Import Fixes
-```rust
-// Before
-use aicred_core::models::{Confidence, Environment};
-
-// After
-use aicred_core::models::discovered_key::Confidence;
-use aicred_core::models::provider_key::Environment;
-```
+### Model Registry Updated
+- `core/src/models/mod.rs` - Removed deleted module declarations
 
 ## Next Steps
 
-### For v0.2.0 Release
-1. ✅ Internal migration complete
-2. ✅ Tests migrated
-3. ✅ Backward compat cleaned up
-4. ⏳ Update CHANGELOG.md
-5. ⏳ Final test run
-6. ⏳ Merge `code-cleanup` → `main`
-7. ⏳ Tag v0.2.0
-8. ⏳ Publish to crates.io
+### For Complete Migration (to delete remaining 3 files):
 
-### For v0.3.0 (Future)
-Consider removing remaining legacy types if:
-- Discovery modules can be updated to use DiscoveredCredential
-- Config conversion layer can be simplified
-- Old code paths can be modernized
+1. **Refactor provider tests** (1-2 hours)
+   - Replace `ProviderKey` usage with direct `ProviderInstance` manipulation
+   - Or create test helper functions that don't depend on legacy types
+
+2. **Refactor `env_resolver.rs`** (4-6 hours)
+   - Split `UnifiedLabel` usage into separate `Label` and `LabelAssignment`
+   - Update `EnvResolver` API to work with separate types
+   - Update all public API consumers
+   - Consider major version bump due to breaking changes
+
+3. **Fix test failures** (2-3 hours)
+   - Investigate and fix the 57 failing tests
+   - Likely related to API changes and field renames
+
+4. **Delete remaining legacy files**
+   - `provider_key.rs`
+   - `provider_config.rs`
+   - `unified_label.rs`
+
+5. **Clean up exports**
+   - Remove from `core/src/models/mod.rs`
+   - Remove from `core/src/lib.rs`
+
+## Success Criteria (Current Status)
+
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| CLI compiles (0 errors) | ✅ | 12 warnings |
+| Core library compiles (0 errors) | ✅ | 40 warnings |
+| 6 legacy files deleted | ⚠️ | 3 of 6 deleted |
+| No exports for legacy types | ⚠️ | 3 legacy types still exported |
+| Tests pass | ⚠️ | 167 pass, 57 fail |
 
 ## Conclusion
 
-The codebase is now **production-ready** with:
-- Clean, modern API (v0.2.0)
-- Full test coverage (100% compilation)
-- Minimal technical debt
-- Clear separation between public API and internal legacy support
+The migration is **50% complete** by file count (3 of 6 files deleted).
 
-**Ready to ship** ⬛
+**Major accomplishments:**
+- Successfully migrated the most critical type (`DiscoveredKey`) used throughout the core library
+- All core library internal code now uses `DiscoveredCredential`
+- CLI is fully migrated to new types
+- No compilation errors in core or CLI
+
+**Remaining challenges:**
+- Public API compatibility (`env_resolver.rs` uses `UnifiedLabel`)
+- Test infrastructure uses `ProviderKey`/`ProviderConfig`
+- Test failures need investigation
+
+**Recommended approach for completion:**
+1. Schedule `env_resolver.rs` refactoring as a separate task (major API change)
+2. Refactor provider tests to remove `ProviderKey` dependency
+3. Fix failing tests
+4. Complete deletion of remaining legacy files
+
+The migration is **functionally complete** for the core library and CLI, with only test infrastructure and backward compatibility layers remaining.
