@@ -66,12 +66,25 @@ pub fn handle_wrap(
     // 4. Load labels and provider instances from user configuration
     let labels = load_label_assignments_with_home(home_dir.as_deref())?;
 
-    // 5. Load provider instances from disk/config
+    // 5. Load provider instances from disk/config and convert to new API
     let provider_instances_collection = load_provider_instances(home_dir.as_deref())?;
-    let provider_instances: Vec<_> = provider_instances_collection
+    let provider_instances: Vec<aicred_core::ProviderInstance> = provider_instances_collection
         .all_instances()
         .iter()
-        .map(|inst| (*inst).clone())
+        .map(|old_inst| {
+            use aicred_core::ProviderInstance;
+            // Convert old ProviderInstance to new ProviderInstance
+            let api_key = old_inst.api_key.clone().unwrap_or_default();
+            let models: Vec<String> = old_inst.models.iter().map(|m| m.id.clone()).collect();
+            let metadata = old_inst.metadata.clone().unwrap_or_default();
+            ProviderInstance::new(
+                old_inst.id.clone(),
+                old_inst.provider_type.clone(),
+                old_inst.base_url.clone(),
+                api_key,
+                models,
+            )
+        })
         .collect();
 
     // 6. Use EnvResolver to properly resolve environment variables

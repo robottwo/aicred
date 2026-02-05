@@ -239,7 +239,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                 instance.models.len()
             );
             for model in &instance.models {
-                println!("    DEBUG: Model: {}", model.model_id);
+                println!("    DEBUG: Model: {}", model.id);
             }
         }
     }
@@ -335,7 +335,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
 
         for instance in provider_instances.all_instances() {
             for model in &instance.models {
-                let provider_model_str = format!("{}:{}", instance.provider_type, model.model_id);
+                let provider_model_str = format!("{}:{}", instance.provider_type, model.id);
 
                 if verbose {
                     println!("  DEBUG: Testing '{}' against patterns", provider_model_str);
@@ -834,7 +834,7 @@ pub fn get_labels_for_target(
             let model = match instance
                 .models
                 .iter()
-                .find(|m| m.name == model_display_name || m.model_id == model_display_name)
+                .find(|m| m.name == model_display_name || m.id == model_display_name)
             {
                 Some(model) => model,
                 None => {
@@ -844,41 +844,42 @@ pub fn get_labels_for_target(
             };
 
             // Extract the basename from the canonical model ID for comparison
-            let model_basename = if let Some(slash_pos) = model.model_id.find('/') {
-                &model.model_id[slash_pos + 1..]
+            let model_basename = if let Some(slash_pos) = model.id.find('/') {
+                &model.id[slash_pos + 1..]
             } else {
-                &model.model_id
+                &model.id
             };
 
             // The tuple model must match either the canonical model ID or its basename
-            if tuple_model != model.model_id && tuple_model != model_basename {
+            if tuple_model != model.id && tuple_model != model_basename {
                 continue;
             }
         } else if !instance.models.iter().any(|model| {
             let basename = model
-                .model_id
+                .id
                 .rsplit_once('/')
                 .map(|(_, name)| name)
-                .unwrap_or(&model.model_id);
-            tuple_model == model.model_id || tuple_model == basename
+                .unwrap_or(&model.id);
+            tuple_model == model.id || tuple_model == basename
         }) {
             continue;
         }
 
         // This label matches! Create a Label for display
-        let label = Label::new(
-            unified_label.label_name.clone(),
-            unified_label.label_name.clone(),
-        );
+        use aicred_core::models::Label;
+        use chrono::Utc;
+        let mut label = Label {
+            name: unified_label.label_name.clone(),
+            description: None,
+            created_at: Utc::now(),
+            metadata: std::collections::HashMap::new(),
+        };
 
-        // Add metadata if present
-        let mut label = label;
+        // Add description if present
         if let Some(ref description) = unified_label.description {
-            label = label.with_description(description.clone());
+            label.description = Some(description.clone());
         }
-        if let Some(ref color) = unified_label.color {
-            label = label.with_color(color.clone());
-        }
+        // Note: color field removed from Label struct
 
         result.push(label);
     }

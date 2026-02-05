@@ -1,9 +1,44 @@
 //! Provider instance loading utilities.
 
-use aicred_core::models::{Model, ProviderInstance, ProviderInstances};
+use aicred_core::models::{Model, ProviderInstance, ProviderInstanceOld, ProviderInstances};
 use anyhow::Result;
 use colored::*;
 use std::path::Path;
+
+/// Convert new ProviderInstance to old ProviderInstanceOld
+fn convert_new_to_old(new: ProviderInstance) -> ProviderInstanceOld {
+    use chrono::Utc;
+    let now = Utc::now();
+
+    let mut old = ProviderInstanceOld::new(
+        new.id.clone(),
+        new.id.clone(), // display_name = id
+        new.provider_type,
+        new.base_url,
+    );
+
+    old.api_key = if new.api_key.is_empty() { None } else { Some(new.api_key) };
+    old.active = new.active;
+
+    // Convert Vec<String> models to Vec<Model>
+    old.models = new
+        .models
+        .into_iter()
+        .map(|model_id| Model::new(model_id.clone(), model_id))
+        .collect();
+
+    // Convert metadata HashMap to Option<HashMap>
+    old.metadata = if new.metadata.is_empty() {
+        None
+    } else {
+        Some(new.metadata)
+    };
+
+    old.created_at = now;
+    old.updated_at = now;
+
+    old
+}
 
 /// Load provider instances from configuration directory
 pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances> {
@@ -33,48 +68,22 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
 
         if path.extension().is_some_and(|ext| ext == "yaml") {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                // First try to parse as the modern ProviderInstance directly
-                if let Ok(instance) = serde_yaml::from_str::<ProviderInstance>(&content) {
-                    // If the deserialized instance already contains an API key, accept it.
-                    // Otherwise, if the file looks like the legacy format (contains "keys:"),
-                    // try parsing as ProviderConfig and convert so we don't lose nested keys.
-                    if instance.get_api_key().is_some() {
-                        let _ = instances.add_instance(instance);
-                        continue;
-                    } else if content.contains("keys:") {
-                        match aicred_core::models::ProviderConfig::from_yaml(&content) {
-                            Ok(config) => {
-                                let instance: ProviderInstance = config.into();
-                                let _ = instances.add_instance(instance);
-                                continue;
-                            }
-                            Err(e) => {
-                                eprintln!(
-                                    "{} {}: {}",
-                                    "Error parsing instance file:".red(),
-                                    path.display(),
-                                    e
-                                );
-                                // fall through to next handling (will log below)
-                            }
-                        }
-                    } else {
-                        // No API key and not legacy-shaped; still add the instance as-is.
-                        let _ = instances.add_instance(instance);
-                        continue;
-                    }
+                // First try to parse as the modern ProviderInstance (new type)
+                if let Ok(new_instance) = serde_yaml::from_str::<ProviderInstance>(&content) {
+                    // Convert to old type and add to collection
+                    let old_instance = convert_new_to_old(new_instance);
+                    let _ = instances.add_instance(old_instance);
+                    continue;
                 }
 
-                // If direct deserialization failed (or the file uses legacy 'keys' shape),
-                // attempt to parse as a ProviderConfig (legacy multi-key format) and convert.
+                // If that fails, try parsing as ProviderConfig (legacy format)
                 match aicred_core::models::ProviderConfig::from_yaml(&content) {
                     Ok(config) => {
-                        let instance: ProviderInstance = config.into();
-                        let _ = instances.add_instance(instance);
+                        let old_instance: ProviderInstanceOld = config.into();
+                        let _ = instances.add_instance(old_instance);
                     }
                     Err(_e) => {
-                        // Fallback: try a permissive parse for ad-hoc YAML fixtures produced by tests
-                        // which may omit fields like `version` or use model objects instead of strings.
+                        // Fallback: try a permissive parse for ad-hoc YAML fixtures
                         #[allow(clippy::collapsible_match)]
                         if let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(&content) {
                             if let serde_yaml::Value::Mapping(map) = value {
@@ -88,7 +97,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                                 };
 
                                 let id = get_str("id").unwrap_or_else(|| {
-                                    // fallback to filename-like id
                                     path.file_stem()
                                         .and_then(|s| s.to_str())
                                         .unwrap_or("unknown")
@@ -111,7 +119,7 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                                     .map(|dt| dt.with_timezone(&Utc))
                                     .unwrap_or_else(|| created_at);
 
-                                let mut instance = ProviderInstance::new(
+                                let mut instance = ProviderInstanceOld::new(
                                     id.clone(),
                                     display_name,
                                     provider_type.clone(),
@@ -134,7 +142,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                                     if let Some(seq) = keys_val.as_sequence() {
                                         if !seq.is_empty() {
                                             if let Some(first_key) = seq[0].as_mapping() {
-                                                // try api_key then value as fallbacks
                                                 let api_key = first_key
                                                     .get(serde_yaml::Value::String(
                                                         "api_key".to_string(),
@@ -151,7 +158,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                                                     instance.set_api_key(k);
                                                 }
                                             } else if let Some(s) = seq[0].as_str() {
-                                                // key represented as string (rare) - treat as api_key
                                                 instance.set_api_key(s.to_string());
                                             }
                                         }
@@ -187,7 +193,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                                     }
                                 }
 
-                                // Preserve parsed timestamps on the instance if possible
                                 instance.created_at = created_at;
                                 instance.updated_at = updated_at;
 
@@ -196,7 +201,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderInstances>
                             }
                         }
 
-                        // If all parsing attempts fail, log error so tests see the diagnostic
                         eprintln!(
                             "{} {}: failed to parse as ProviderConfig or permissive YAML",
                             "Error parsing instance file:".red(),

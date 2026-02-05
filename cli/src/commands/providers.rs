@@ -1,8 +1,9 @@
 use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::models::{
-    Confidence, Environment, Model, ProviderInstance, ProviderInstances, ProviderKey,
-    ValidationStatus,
+    Model, ProviderInstanceOld, ProviderInstances, ProviderKey,
 };
+use aicred_core::models::discovered_key::Confidence;
+use aicred_core::models::provider_key::{Environment, ValidationStatus};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -73,7 +74,7 @@ fn load_instances_from_providers(
                             _ => ("unknown", "https://api.example.com"),
                         };
 
-                        let mut instance = ProviderInstance::new(
+                        let mut instance = ProviderInstanceOld::new(
                             instance_id,
                             display_name,
                             provider_type.to_string(),
@@ -168,7 +169,7 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
             let mut m = serde_yaml::Mapping::new();
             m.insert(
                 Value::String("model_id".into()),
-                Value::String(model.model_id.clone()),
+                Value::String(model.id.clone()),
             );
             m.insert(
                 Value::String("name".into()),
@@ -219,7 +220,7 @@ pub fn handle_list_instances(
     println!("\n{}", "Configured Provider Instances:".green().bold());
 
     let all_instances = instances.all_instances();
-    let filtered_instances: Vec<&ProviderInstance> = all_instances
+    let filtered_instances: Vec<&ProviderInstanceOld> = all_instances
         .into_iter()
         .filter(|instance| {
             let type_match = provider_type
@@ -294,7 +295,7 @@ pub fn handle_list_instances(
 
             if !instance.models.is_empty() {
                 let model_names: Vec<String> =
-                    instance.models.iter().map(|m| m.model_id.clone()).collect();
+                    instance.models.iter().map(|m| m.id.clone()).collect();
                 println!("  Available Models: {}", model_names.join(", "));
             }
 
@@ -358,7 +359,7 @@ pub fn handle_add_instance(
         ));
     }
 
-    let mut instance = ProviderInstance::new(id.clone(), name, provider_type, base_url);
+    let mut instance = ProviderInstanceOld::new(id.clone(), name, provider_type, base_url);
     instance.active = active;
 
     // Add API key if provided
@@ -639,48 +640,32 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
         println!("  {}", "No models configured".dimmed());
     } else {
         for model in &instance.models {
-            println!("  {} - {}", model.model_id.cyan(), model.name);
-            if let Some(capabilities) = &model.capabilities {
-                let mut caps = Vec::new();
-                if capabilities.text_generation {
-                    caps.push("text_generation");
-                }
-                if capabilities.image_generation {
-                    caps.push("image_generation");
-                }
-                if capabilities.audio_processing {
-                    caps.push("audio_processing");
-                }
-                if capabilities.video_processing {
-                    caps.push("video_processing");
-                }
-                if capabilities.code_generation {
-                    caps.push("code_generation");
-                }
-                if capabilities.function_calling {
-                    caps.push("function_calling");
-                }
-                if capabilities.fine_tuning {
-                    caps.push("fine_tuning");
-                }
-                if capabilities.streaming {
-                    caps.push("streaming");
-                }
-                if capabilities.multimodal {
-                    caps.push("multimodal");
-                }
-                if capabilities.tool_use {
-                    caps.push("tool_use");
-                }
+            println!("  {} - {}", model.id.cyan(), model.name);
+            let mut caps = Vec::new();
+            if model.capabilities.chat {
+                caps.push("chat");
+            }
+            if model.capabilities.completion {
+                caps.push("completion");
+            }
+            if model.capabilities.embedding {
+                caps.push("embedding");
+            }
+            if model.capabilities.function_calling {
+                caps.push("function_calling");
+            }
+            if model.capabilities.vision {
+                caps.push("vision");
+            }
+            if model.capabilities.json_mode {
+                caps.push("json_mode");
+            }
+            if !caps.is_empty() {
                 println!("    Capabilities: {}", caps.join(", "));
             }
-            if let Some(cost) = &model.cost {
-                if let Some(input_cost) = cost.input_cost_per_million {
-                    println!("    Input cost: ${} per 1M tokens", input_cost);
-                }
-                if let Some(output_cost) = cost.output_cost_per_million {
-                    println!("    Output cost: ${} per 1M tokens", output_cost);
-                }
+            if let Some(pricing) = &model.pricing {
+                println!("    Input cost: ${} per token", pricing.input_cost_per_token);
+                println!("    Output cost: ${} per token", pricing.output_cost_per_token);
             }
             println!();
         }
@@ -823,7 +808,7 @@ pub fn handle_list_models(
     println!("\n{}", "Configured Models:".green().bold());
 
     // Collect all models from all instances
-    let mut all_models: Vec<(&ProviderInstance, &Model)> = Vec::new();
+    let mut all_models: Vec<(&ProviderInstanceOld, &Model)> = Vec::new();
     for instance in instances.all_instances() {
         for model in &instance.models {
             all_models.push((instance, model));
@@ -836,7 +821,7 @@ pub fn handle_list_models(
     }
 
     // Filter models
-    let mut filtered_models: Vec<(&ProviderInstance, &Model)> = all_models
+    let mut filtered_models: Vec<(&ProviderInstanceOld, &Model)> = all_models
         .into_iter()
         .filter(|(instance, model)| {
             let type_match = provider_type
@@ -848,7 +833,7 @@ pub fn handle_list_models(
                 tag.as_ref().is_none_or(
                     |tag_name| match crate::commands::tags::get_tags_for_target(
                         &instance.id,
-                        Some(model.model_id.as_str()),
+                        Some(model.id.as_str()),
                         home.as_deref(),
                     ) {
                         Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
@@ -860,7 +845,7 @@ pub fn handle_list_models(
             let label_match = label.as_ref().is_none_or(|label_name| {
                 match crate::commands::labels::get_labels_for_target(
                     &instance.id,
-                    Some(model.model_id.as_str()),
+                    Some(model.id.as_str()),
                     home.as_deref(),
                 ) {
                     Ok(labels) => labels.iter().any(|l| l.name == *label_name),
@@ -885,64 +870,47 @@ pub fn handle_list_models(
         for (instance, model) in filtered_models {
             println!(
                 "{} - {} ({})",
-                model.model_id.cyan(),
+                model.id.cyan(),
                 model.name,
                 instance.provider_type
             );
             println!("  Instance: {} ({})", instance.display_name, instance.id);
 
             // Show capabilities
-            if let Some(capabilities) = &model.capabilities {
-                let mut caps = Vec::new();
-                if capabilities.text_generation {
-                    caps.push("text_generation");
-                }
-                if capabilities.image_generation {
-                    caps.push("image_generation");
-                }
-                if capabilities.audio_processing {
-                    caps.push("audio_processing");
-                }
-                if capabilities.video_processing {
-                    caps.push("video_processing");
-                }
-                if capabilities.code_generation {
-                    caps.push("code_generation");
-                }
-                if capabilities.function_calling {
-                    caps.push("function_calling");
-                }
-                if capabilities.fine_tuning {
-                    caps.push("fine_tuning");
-                }
-                if capabilities.streaming {
-                    caps.push("streaming");
-                }
-                if capabilities.multimodal {
-                    caps.push("multimodal");
-                }
-                if capabilities.tool_use {
-                    caps.push("tool_use");
-                }
-                if !caps.is_empty() {
-                    println!("  Capabilities: {}", caps.join(", "));
-                }
+            let mut caps = Vec::new();
+            if model.capabilities.chat {
+                caps.push("chat");
+            }
+            if model.capabilities.completion {
+                caps.push("completion");
+            }
+            if model.capabilities.embedding {
+                caps.push("embedding");
+            }
+            if model.capabilities.function_calling {
+                caps.push("function_calling");
+            }
+            if model.capabilities.vision {
+                caps.push("vision");
+            }
+            if model.capabilities.json_mode {
+                caps.push("json_mode");
+            }
+            if !caps.is_empty() {
+                println!("  Capabilities: {}", caps.join(", "));
             }
 
             // Show cost information
-            if let Some(cost) = &model.cost {
-                if let Some(input_cost) = cost.input_cost_per_million {
-                    println!("  Input cost: ${} per 1M tokens", input_cost);
-                }
-                if let Some(output_cost) = cost.output_cost_per_million {
-                    println!("  Output cost: ${} per 1M tokens", output_cost);
-                }
+            if let Some(pricing) = &model.pricing {
+                println!("  Input cost: ${} per token", pricing.input_cost_per_token);
+                println!("  Output cost: ${} per token", pricing.output_cost_per_token);
+                println!("  Currency: {}", pricing.currency);
             }
 
             // Show tags
             if let Ok(tags) = crate::commands::tags::get_tags_for_target(
                 &instance.id,
-                Some(model.model_id.as_str()),
+                Some(model.id.as_str()),
                 home.as_deref(),
             ) {
                 if !tags.is_empty() {
@@ -961,18 +929,13 @@ pub fn handle_list_models(
             // Show labels
             if let Ok(labels) = crate::commands::labels::get_labels_for_target(
                 &instance.id,
-                Some(model.model_id.as_str()),
+                Some(model.id.as_str()),
                 home.as_deref(),
             ) {
                 if !labels.is_empty() {
                     println!("  Labels:");
                     for label in labels {
-                        let label_display = if let Some(ref color) = label.color {
-                            format!("{} ({})", label.name, color)
-                        } else {
-                            label.name.clone()
-                        };
-                        println!("    - {}", label_display);
+                        println!("    - {}", label.name);
                     }
                 }
             }
@@ -1001,16 +964,16 @@ pub fn handle_list_models(
 
         for (instance, model) in filtered_models {
             // Extract basename from model_id (everything after the last slash)
-            let basename = if let Some(last_slash_pos) = model.model_id.rfind('/') {
-                &model.model_id[last_slash_pos + 1..]
+            let basename = if let Some(last_slash_pos) = model.id.rfind('/') {
+                &model.id[last_slash_pos + 1..]
             } else {
-                &model.model_id
+                &model.id
             };
 
             // Get labels and tags for this model
             let labels = match crate::commands::labels::get_labels_for_target(
                 &instance.id,
-                Some(model.model_id.as_str()),
+                Some(model.id.as_str()),
                 home.as_deref(),
             ) {
                 Ok(labels) => labels
@@ -1023,7 +986,7 @@ pub fn handle_list_models(
 
             let tags = match crate::commands::tags::get_tags_for_target(
                 &instance.id,
-                Some(model.model_id.as_str()),
+                Some(model.id.as_str()),
                 home.as_deref(),
             ) {
                 Ok(tags) => tags
@@ -1043,7 +1006,7 @@ pub fn handle_list_models(
                     instance.id
                 )
                 .yellow(),
-                truncate_string(&model.model_id, 35),
+                truncate_string(&model.id, 35),
                 if labels.is_empty() {
                     "-".dimmed()
                 } else {
