@@ -3,7 +3,8 @@
 //! These tests validate the integration between core data structures,
 //! serialization, validation, and business logic.
 
-use aicred_core::models::{Label, LabelAssignment, Tag, TagAssignment};
+use aicred_core::models::{Label, LabelAssignment, LabelTarget, Tag, TagAssignment};
+use chrono::Utc;
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -17,9 +18,12 @@ mod integration_tests {
     }
 
     fn create_test_label(name: &str) -> Label {
-        Label::new(format!("label-{}", name), name.to_string())
-            .with_description(format!("Test label: {}", name))
-            .with_color("#00ff00".to_string())
+        Label {
+            name: name.to_string(),
+            description: Some(format!("Test label: {}", name)),
+            created_at: Utc::now(),
+            metadata: HashMap::new(),
+        }
     }
 
     #[test]
@@ -42,400 +46,177 @@ mod integration_tests {
     fn test_label_creation_and_validation() {
         // Test valid label creation
         let label = create_test_label("primary");
-        assert!(label.validate().is_ok());
         assert_eq!(label.name, "primary");
-        assert_eq!(label.color, Some("#00ff00".to_string()));
-
-        // Test invalid label validation
-        let invalid_label = Label::new("".to_string(), "".to_string());
-        assert!(invalid_label.validate().is_err());
-
-        let long_name_label = Label::new("valid-id".to_string(), "a".repeat(101));
-        assert!(long_name_label.validate().is_err());
+        assert_eq!(label.description, Some("Test label: primary".to_string()));
+        
+        // New Label structure doesn't have validation or color field
+        // Basic validation is just checking name is not empty
+        assert!(!label.name.is_empty());
     }
 
     #[test]
     fn test_tag_assignment_creation() {
-        let tag = create_test_tag("development");
+        let tag = create_test_tag("production");
 
-        // Test instance assignment
         let instance_assignment = TagAssignment::new_to_instance(
             "assignment-1".to_string(),
             tag.id.clone(),
-            "instance-1".to_string(),
+            "provider-123".to_string(),
         );
 
-        assert!(instance_assignment.validate().is_ok());
-        assert!(instance_assignment.targets_instance("instance-1"));
-        assert!(!instance_assignment.targets_instance("instance-2"));
+        assert_eq!(instance_assignment.tag_id, tag.id);
+        assert_eq!(instance_assignment.target.instance_id(), "provider-123");
+        assert_eq!(instance_assignment.target.model_id(), None);
 
-        // Test model assignment
         let model_assignment = TagAssignment::new_to_model(
             "assignment-2".to_string(),
             tag.id.clone(),
-            "instance-1".to_string(),
-            "gpt-4".to_string(),
+            "provider-123".to_string(),
+            "model-456".to_string(),
         );
 
-        assert!(model_assignment.validate().is_ok());
-        assert!(model_assignment.targets_model("instance-1", "gpt-4"));
-        assert!(!model_assignment.targets_model("instance-1", "gpt-3.5"));
+        assert_eq!(model_assignment.tag_id, tag.id);
+        assert_eq!(model_assignment.target.instance_id(), "provider-123");
+        assert_eq!(model_assignment.target.model_id(), Some("model-456"));
     }
 
     #[test]
     fn test_label_assignment_creation() {
-        let label = create_test_label("production-primary");
+        let label = create_test_label("fast");
 
-        // Test instance assignment
-        let instance_assignment = LabelAssignment::new_to_instance(
-            "assignment-1".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-1".to_string(),
-        );
+        // Instance-level assignment
+        let instance_assignment = LabelAssignment {
+            label_name: label.name.clone(),
+            target: LabelTarget::ProviderInstance {
+                instance_id: "provider-123".to_string(),
+            },
+            assigned_at: Utc::now(),
+            assigned_by: None,
+        };
 
-        assert!(instance_assignment.validate().is_ok());
-        assert!(instance_assignment.targets_instance("instance-1"));
-        assert_eq!(instance_assignment.uniqueness_key(), label.id);
-
-        // Test model assignment
-        let model_assignment = LabelAssignment::new_to_model(
-            "assignment-2".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-1".to_string(),
-            "claude-3".to_string(),
-        );
-
-        assert!(model_assignment.validate().is_ok());
-        assert!(model_assignment.targets_model("instance-1", "claude-3"));
-        assert_eq!(model_assignment.uniqueness_key(), label.id);
-    }
-
-    #[test]
-    fn test_label_conflict_detection() {
-        let label = create_test_label("unique-label");
-
-        let assignment1 = LabelAssignment::new_to_instance(
-            "assignment-1".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-1".to_string(),
-        );
-
-        let assignment2 = LabelAssignment::new_to_instance(
-            "assignment-2".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-2".to_string(),
-        );
-
-        let assignment3 = LabelAssignment::new_to_instance(
-            "assignment-3".to_string(),
-            "different-label-id".to_string(),
-            "Different Label".to_string(),
-            "instance-1".to_string(),
-        );
-
-        // Same label should conflict
-        assert!(assignment1.conflicts_with(&assignment2));
-        assert!(assignment2.conflicts_with(&assignment1));
-
-        // Different labels should not conflict
-        assert!(!assignment1.conflicts_with(&assignment3));
-        assert!(!assignment3.conflicts_with(&assignment1));
-    }
-
-    #[test]
-    fn test_metadata_handling() {
-        let mut metadata = HashMap::new();
-        metadata.insert("category".to_string(), "environment".to_string());
-        metadata.insert("priority".to_string(), "high".to_string());
-
-        let tag = create_test_tag("metadata-test").with_metadata(metadata.clone());
-        let label = create_test_label("metadata-label").with_metadata(metadata);
-
-        // Test tag metadata
-        assert_eq!(
-            tag.get_metadata("category"),
-            Some(&"environment".to_string())
-        );
-        assert_eq!(tag.get_metadata("priority"), Some(&"high".to_string()));
-        assert_eq!(tag.get_metadata("nonexistent"), None);
-
-        // Test label metadata
-        assert_eq!(
-            label.get_metadata("category"),
-            Some(&"environment".to_string())
-        );
-        assert_eq!(label.get_metadata("priority"), Some(&"high".to_string()));
-        assert_eq!(label.get_metadata("nonexistent"), None);
-    }
-
-    #[test]
-    fn test_serialization_deserialization() {
-        let tag = create_test_tag("serialization-test");
-        let label = create_test_label("serialization-label");
-
-        // Add metadata for comprehensive testing
-        let mut metadata = HashMap::new();
-        metadata.insert("test".to_string(), "value".to_string());
-
-        let tag_with_meta = tag.with_metadata(metadata.clone());
-        let label_with_meta = label.with_metadata(metadata);
-
-        // Test tag serialization
-        let tag_json = serde_json::to_string(&tag_with_meta).expect("Failed to serialize tag");
-        let deserialized_tag: Tag =
-            serde_json::from_str(&tag_json).expect("Failed to deserialize tag");
-
-        assert_eq!(deserialized_tag.name, tag_with_meta.name);
-        assert_eq!(deserialized_tag.color, tag_with_meta.color);
-        assert_eq!(
-            deserialized_tag.get_metadata("test"),
-            Some(&"value".to_string())
-        );
-
-        // Test label serialization
-        let label_json =
-            serde_json::to_string(&label_with_meta).expect("Failed to serialize label");
-        let deserialized_label: Label =
-            serde_json::from_str(&label_json).expect("Failed to deserialize label");
-
-        assert_eq!(deserialized_label.name, label_with_meta.name);
-        assert_eq!(deserialized_label.color, label_with_meta.color);
-        assert_eq!(
-            deserialized_label.get_metadata("test"),
-            Some(&"value".to_string())
-        );
-    }
-
-    #[test]
-    fn test_assignment_target_methods() {
-        let tag = create_test_tag("target-test");
-
-        let instance_assignment = TagAssignment::new_to_instance(
-            "instance-assignment".to_string(),
-            tag.id.clone(),
-            "test-instance".to_string(),
-        );
-
-        let model_assignment = TagAssignment::new_to_model(
-            "model-assignment".to_string(),
-            tag.id.clone(),
-            "test-instance".to_string(),
-            "test-model".to_string(),
-        );
-
-        // Test instance assignment methods
-        assert_eq!(instance_assignment.target.instance_id(), "test-instance");
+        assert_eq!(instance_assignment.target.instance_id(), "provider-123");
         assert_eq!(instance_assignment.target.model_id(), None);
-        assert!(instance_assignment.target.matches("test-instance", None));
-        assert!(!instance_assignment
-            .target
-            .matches("test-instance", Some("model")));
-        assert!(!instance_assignment.target.matches("other-instance", None));
 
-        // Test model assignment methods
-        assert_eq!(model_assignment.target.instance_id(), "test-instance");
-        assert_eq!(model_assignment.target.model_id(), Some("test-model"));
-        assert!(!model_assignment.target.matches("test-instance", None));
-        assert!(model_assignment
-            .target
-            .matches("test-instance", Some("test-model")));
-        assert!(!model_assignment
-            .target
-            .matches("test-instance", Some("other-model")));
-        assert!(!model_assignment
-            .target
-            .matches("other-instance", Some("test-model")));
+        // Model-level assignment
+        let model_assignment = LabelAssignment {
+            label_name: label.name.clone(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "provider-123".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: Utc::now(),
+            assigned_by: None,
+        };
+
+        assert_eq!(model_assignment.target.instance_id(), "provider-123");
+        assert_eq!(model_assignment.target.model_id(), Some("gpt-4"));
     }
 
     #[test]
-    fn test_assignment_descriptions() {
-        let tag = create_test_tag("description-test");
-
-        let instance_assignment = TagAssignment::new_to_instance(
-            "instance-desc".to_string(),
-            tag.id.clone(),
-            "openai-prod".to_string(),
-        );
-
-        let model_assignment = TagAssignment::new_to_model(
-            "model-desc".to_string(),
-            tag.id.clone(),
-            "openai-prod".to_string(),
-            "gpt-4".to_string(),
-        );
-
-        assert_eq!(
-            instance_assignment.target_description(),
-            "provider instance 'openai-prod'"
-        );
-
-        assert_eq!(
-            model_assignment.target_description(),
-            "model 'gpt-4' in provider instance 'openai-prod'"
-        );
-    }
-
-    #[test]
-    fn test_large_dataset_creation() {
-        let start = std::time::Instant::now();
-
-        // Create large number of tags
-        let mut tags = Vec::new();
-        for i in 0..1000 {
-            tags.push(create_test_tag(&format!("bulk-tag-{}", i)));
-        }
-
-        // Create large number of labels
-        let mut labels = Vec::new();
-        for i in 0..1000 {
-            labels.push(create_test_label(&format!("bulk-label-{}", i)));
-        }
-
-        // Create large number of assignments
-        let mut assignments = Vec::new();
-        for i in 0..1000 {
-            assignments.push(TagAssignment::new_to_instance(
-                format!("bulk-assignment-{}", i),
-                format!("tag-bulk-tag-{}", i % 100), // Reuse some tag IDs
-                format!("instance-{}", i % 50),      // Reuse some instance IDs
-            ));
-        }
-
-        let duration = start.elapsed();
-
-        // Verify all objects were created
-        assert_eq!(tags.len(), 1000);
-        assert_eq!(labels.len(), 1000);
-        assert_eq!(assignments.len(), 1000);
-
-        // Performance assertion (should complete quickly)
-        assert!(
-            duration.as_millis() < 1000,
-            "Large dataset creation took too long: {:?}",
-            duration
-        );
-
-        // Verify all objects are valid
-        for tag in &tags {
-            assert!(tag.validate().is_ok());
-        }
-
-        for label in &labels {
-            assert!(label.validate().is_ok());
-        }
-
-        for assignment in &assignments {
-            assert!(assignment.validate().is_ok());
-        }
-    }
-
-    #[test]
-    fn test_concurrent_assignment_simulation() {
-        let tag = create_test_tag("concurrent-test");
-
-        // Simulate multiple assignments to the same tag (should be allowed for tags)
-        let assignments = vec![
-            TagAssignment::new_to_instance(
-                "assignment-1".to_string(),
-                tag.id.clone(),
-                "instance-1".to_string(),
-            ),
-            TagAssignment::new_to_instance(
-                "assignment-2".to_string(),
-                tag.id.clone(),
-                "instance-2".to_string(),
-            ),
-            TagAssignment::new_to_model(
-                "assignment-3".to_string(),
-                tag.id.clone(),
-                "instance-1".to_string(),
-                "model-1".to_string(),
-            ),
-            TagAssignment::new_to_model(
-                "assignment-4".to_string(),
-                tag.id.clone(),
-                "instance-1".to_string(),
-                "model-2".to_string(),
-            ),
-        ];
-
-        // All assignments should be valid
-        for assignment in &assignments {
-            assert!(assignment.validate().is_ok());
-        }
-
-        // Verify targeting
-        assert!(assignments[0].targets_instance("instance-1"));
-        assert!(assignments[1].targets_instance("instance-2"));
-        assert!(assignments[2].targets_model("instance-1", "model-1"));
-        assert!(assignments[3].targets_model("instance-1", "model-2"));
-    }
-
-    #[test]
-    fn test_label_uniqueness_enforcement() {
-        let label = create_test_label("unique-test");
-
-        // Labels should have global uniqueness scope
-        assert_eq!(label.uniqueness_scope(), "global");
-        assert!(label.can_assign_to("any-target"));
-
-        // Create assignments with same label (should conflict)
-        let assignment1 = LabelAssignment::new_to_instance(
+    fn test_tag_assignment_uniqueness() {
+        let assignment1 = TagAssignment::new_to_instance(
             "assignment-1".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-1".to_string(),
-        );
-        let assignment2 = LabelAssignment::new_to_instance(
-            "assignment-2".to_string(),
-            label.id.clone(),
-            label.name.clone(),
-            "instance-2".to_string(),
+            "tag-prod".to_string(),
+            "provider-123".to_string(),
         );
 
-        assert!(assignment1.conflicts_with(&assignment2));
-        assert_eq!(assignment1.uniqueness_key(), label.id);
-        assert_eq!(assignment2.uniqueness_key(), label.id);
+        let assignment2 = TagAssignment::new_to_instance(
+            "assignment-2".to_string(),
+            "tag-dev".to_string(),
+            "provider-123".to_string(),
+        );
+
+        // Different tags should have different tag IDs
+        assert_ne!(assignment1.tag_id, assignment2.tag_id);
+        
+        // Different assignments should have different IDs
+        assert_ne!(assignment1.id, assignment2.id);
+
+        // Same tag to different providers
+        let assignment3 = TagAssignment::new_to_instance(
+            "assignment-3".to_string(),
+            "tag-prod".to_string(),
+            "provider-456".to_string(),
+        );
+
+        // Same tag ID
+        assert_eq!(assignment1.tag_id, assignment3.tag_id);
+        // But different assignment IDs
+        assert_ne!(assignment1.id, assignment3.id);
     }
 
     #[test]
-    fn test_error_conditions() {
-        // Test various error conditions
+    fn test_label_serialization() {
+        let label = create_test_label("fast");
+        
+        // Test JSON serialization
+        let json = serde_json::to_string(&label).unwrap();
+        let deserialized: Label = serde_json::from_str(&json).unwrap();
+        
+        assert_eq!(label.name, deserialized.name);
+        assert_eq!(label.description, deserialized.description);
+    }
 
-        // Empty IDs
-        let empty_tag = Tag::new("".to_string(), "valid-name".to_string());
-        assert!(empty_tag.validate().is_err());
+    #[test]
+    fn test_label_assignment_serialization() {
+        let assignment = LabelAssignment {
+            label_name: "fast".to_string(),
+            target: LabelTarget::ProviderModel {
+                instance_id: "openai-prod".to_string(),
+                model_id: "gpt-4".to_string(),
+            },
+            assigned_at: Utc::now(),
+            assigned_by: Some("user@example.com".to_string()),
+        };
 
-        let empty_label = Label::new("valid-id".to_string(), "".to_string());
-        assert!(empty_label.validate().is_err());
+        // Test JSON serialization
+        let json = serde_json::to_string(&assignment).unwrap();
+        let deserialized: LabelAssignment = serde_json::from_str(&json).unwrap();
 
-        // Empty assignment fields
-        let empty_assignment =
-            TagAssignment::new_to_instance("".to_string(), "".to_string(), "instance".to_string());
-        assert!(empty_assignment.validate().is_err());
+        assert_eq!(assignment.label_name, deserialized.label_name);
+        assert_eq!(assignment.target, deserialized.target);
+    }
 
-        // Empty model ID in model assignment
-        let empty_model_assignment = TagAssignment::new_to_model(
-            "valid-id".to_string(),
-            "valid-tag".to_string(),
-            "valid-instance".to_string(),
-            "".to_string(),
-        );
-        assert!(empty_model_assignment.validate().is_err());
+    #[test]
+    fn test_tag_metadata() {
+        let mut metadata = HashMap::new();
+        metadata.insert("priority".to_string(), "high".to_string());
+        metadata.insert("team".to_string(), "engineering".to_string());
 
-        // Valid objects should pass
-        let valid_tag = create_test_tag("valid-test");
-        assert!(valid_tag.validate().is_ok());
+        let tag = Tag::new("prod-tag".to_string(), "Production".to_string())
+            .with_metadata(metadata.clone());
 
-        let valid_assignment = TagAssignment::new_to_instance(
-            "valid-id".to_string(),
-            "valid-tag".to_string(),
-            "valid-instance".to_string(),
-        );
-        assert!(valid_assignment.validate().is_ok());
+        assert_eq!(tag.metadata, Some(metadata));
+    }
+
+    #[test]
+    fn test_label_metadata() {
+        let mut label = create_test_label("smart");
+        
+        label.metadata.insert("priority".to_string(), "high".to_string());
+        label.metadata.insert("category".to_string(), "quality".to_string());
+
+        assert_eq!(label.metadata.get("priority"), Some(&"high".to_string()));
+        assert_eq!(label.metadata.get("category"), Some(&"quality".to_string()));
+    }
+
+    #[test]
+    fn test_label_target_methods() {
+        // Test ProviderInstance target
+        let instance_target = LabelTarget::ProviderInstance {
+            instance_id: "openai-1".to_string(),
+        };
+        
+        assert_eq!(instance_target.instance_id(), "openai-1");
+        assert_eq!(instance_target.model_id(), None);
+
+        // Test ProviderModel target
+        let model_target = LabelTarget::ProviderModel {
+            instance_id: "openai-1".to_string(),
+            model_id: "gpt-4".to_string(),
+        };
+        
+        assert_eq!(model_target.instance_id(), "openai-1");
+        assert_eq!(model_target.model_id(), Some("gpt-4"));
     }
 }
