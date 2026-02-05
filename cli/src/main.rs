@@ -536,6 +536,11 @@ fn main() -> Result<()> {
             (_, Some(InstanceCommands::Validate { id, all_errors })) => {
                 handle_validate_instances(id, all_errors)
             }
+            (_, Some(InstanceCommands::SetModel { id, tier, model })) => {
+                handle_set_model(id, tier, model)
+            }
+            (_, Some(InstanceCommands::GetModel { id, tier })) => handle_get_model(id, tier),
+            (_, Some(InstanceCommands::ListModelTiers { id })) => handle_list_model_tiers(id),
         },
         Commands::Tags { command } => match command {
             Some(TagCommands::List) => handle_list_tags(cli.home.map(PathBuf::from).as_deref()),
