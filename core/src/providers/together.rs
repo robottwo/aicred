@@ -69,7 +69,90 @@ mod tests {
     fn test_together_plugin_name() {
         let plugin = TogetherPlugin;
         assert_eq!(plugin.name(), "together");
+    
+    #[test]
+    fn test_validate_instance_empty_url() {
+        let plugin = TogetherPlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "together".to_string(),
+            base_url: "".to_string(),
+            api_key: Some("test-key-12345678901234567890".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot be empty"));
     }
+
+    #[test]
+    fn test_validate_instance_invalid_url() {
+        let plugin = TogetherPlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "together".to_string(),
+            base_url: "https://example.com".to_string(),
+            api_key: Some("test-key-12345678901234567890".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_instance_valid() {
+        let plugin = TogetherPlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "together".to_string(),
+            base_url: "https://api.together.xyz".to_string(),
+            api_key: Some("test-key-12345678901234567890".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_is_instance_configured_with_key() {
+        let plugin = TogetherPlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "together".to_string(),
+            base_url: "https://api.together.xyz".to_string(),
+            api_key: Some("test-key-12345678901234567890".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_is_instance_configured_without_key() {
+        let plugin = TogetherPlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "together".to_string(),
+            base_url: "https://api.together.xyz".to_string(),
+            api_key: None,
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+}
 
     #[test]
     fn test_confidence_scoring() {

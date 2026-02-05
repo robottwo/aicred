@@ -102,3 +102,88 @@ mod tests {
         assert!(score2 < 0.5, "Expected score < 0.5, got {score2}");
     }
 }
+
+    #[test]
+    fn test_validate_instance_empty_url() {
+        let plugin = AzurePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "azure".to_string(),
+            base_url: "".to_string(),
+            api_key: Some("d4d0a84e0a8944a29c8f5b2d7a4a5c2a".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot be empty"));
+    }
+
+    #[test]
+    fn test_validate_instance_invalid_url() {
+        let plugin = AzurePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "azure".to_string(),
+            base_url: "https://example.com".to_string(),
+            api_key: Some("d4d0a84e0a8944a29c8f5b2d7a4a5c2a".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid"));
+    }
+
+    #[test]
+    fn test_validate_instance_valid() {
+        let plugin = AzurePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "azure".to_string(),
+            base_url: "https://myresource.openai.azure.com".to_string(),
+            api_key: Some("d4d0a84e0a8944a29c8f5b2d7a4a5c2a".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_is_instance_configured_with_key() {
+        let plugin = AzurePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "azure".to_string(),
+            base_url: "https://myresource.openai.azure.com".to_string(),
+            api_key: Some("d4d0a84e0a8944a29c8f5b2d7a4a5c2a".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_is_instance_configured_without_key() {
+        let plugin = AzurePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "azure".to_string(),
+            base_url: "https://myresource.openai.azure.com".to_string(),
+            api_key: None,
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+}

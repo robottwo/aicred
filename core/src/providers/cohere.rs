@@ -7,6 +7,7 @@ use crate::plugins::ProviderPlugin;
 /// Plugin for scanning Cohere API keys and configuration files.
 pub struct CoherePlugin;
 
+#[async_trait::async_trait]
 impl ProviderPlugin for CoherePlugin {
     fn name(&self) -> &'static str {
         "cohere"
@@ -35,76 +36,6 @@ impl ProviderPlugin for CoherePlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         Ok(instance.has_non_empty_api_key())
-    }
-}
-
-#[async_trait::async_trait]
-impl crate::plugins::ProviderPlugin for CoherePlugin {
-    async fn validate_instance_async(
-        &self,
-        instance: &ProviderInstance,
-    ) -> crate::validation::Result<crate::validation::ValidationResult> {
-        let client = reqwest::Client::new();
-        let base_url = instance.base_url.trim_end_matches('/');
-
-        let api_key = match instance.api_key.as_ref() {
-            Some(key) if !key.is_empty() => key,
-            _ => {
-                return Ok(crate::validation::ValidationResult::failure(
-                    crate::validation::ValidationError::InvalidApiKey {
-                        details: Some("No API key provided".to_string()),
-                    },
-                ));
-            }
-        };
-
-        let confidence = self.confidence_score(api_key);
-        if confidence < 0.5 {
-            return Ok(crate::validation::ValidationResult::failure(
-                crate::validation::ValidationError::InvalidKeyFormat {
-                    expected: "Cohere API key".to_string(),
-                    actual: format!("Low confidence score ({:.2})", confidence),
-                },
-            ));
-        }
-
-        // Try to list models
-        let url = format!("{}/v1/models", base_url);
-        let resp = client
-            .get(&url)
-            .bearer_auth(api_key)
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await;
-
-        crate::providers::validation_helper::ValidationHandler::handle_response(
-            resp,
-            |response| {
-                match response.json::<serde_json::Value>().await {
-                    Ok(json) => {
-                        json["models"]
-                            .as_array()
-                            .map(|arr| {
-                                arr.iter()
-                                    .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
-                                    .collect()
-                            })
-                            .unwrap_or_default()
-                    }
-                    Err(_) => vec![],
-                }
-            },
-            crate::providers::validation_helper::RateLimitParser::parse_generic,
-            10,
-        )
-    }
-
-    async fn quick_validate(
-        &self,
-        api_key: &str,
-        _base_url: Option<&str>,
-    ) -> Result<bool> {
-        Ok(self.confidence_score(api_key) >= 0.5)
     }
 
     async fn probe_models_async(
@@ -155,5 +86,100 @@ impl crate::plugins::ProviderPlugin for CoherePlugin {
             .collect();
 
         Ok(models)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cohere_plugin_name() {
+        let plugin = CoherePlugin;
+        assert_eq!(plugin.name(), "cohere");
+    }
+
+    #[test]
+    fn test_cohere_confidence_score() {
+        let plugin = CoherePlugin;
+
+        // Test Cohere-prefixed key
+        let score1 = plugin.confidence_score("cohere-1234567890abcdef");
+        assert!(score1 > 0.9, "Expected score > 0.9 for cohere- prefix, got {score1}");
+
+        // Test alphanumeric key (32+ chars)
+        let score2 = plugin.confidence_score("abcdef1234567890abcdef1234567890");
+        assert!(score2 > 0.5, "Expected score > 0.5 for long alphanumeric, got {score2}");
+
+        // Test generic key
+        let score3 = plugin.confidence_score("sk-1234");
+        assert!(score3 < 0.5, "Expected score < 0.5 for generic key, got {score3}");
+    }
+
+    #[test]
+    fn test_validate_instance_empty_url() {
+        let plugin = CoherePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "cohere".to_string(),
+            base_url: "".to_string(),
+            api_key: Some("cohere-test123".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot be empty"));
+    }
+
+    #[test]
+    fn test_validate_instance_valid() {
+        let plugin = CoherePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "cohere".to_string(),
+            base_url: "https://api.cohere.ai".to_string(),
+            api_key: Some("cohere-test123".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.validate_instance(&instance);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_is_instance_configured_with_key() {
+        let plugin = CoherePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "cohere".to_string(),
+            base_url: "https://api.cohere.ai".to_string(),
+            api_key: Some("cohere-test123".to_string()),
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_is_instance_configured_without_key() {
+        let plugin = CoherePlugin;
+        let instance = ProviderInstance {
+            id: "test".to_string(),
+            provider_type: "cohere".to_string(),
+            base_url: "https://api.cohere.ai".to_string(),
+            api_key: None,
+            models: vec![],
+            metadata: None,
+        };
+
+        let result = plugin.is_instance_configured(&instance);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
     }
 }
