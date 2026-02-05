@@ -69,22 +69,9 @@ pub fn handle_wrap(
     // 5. Load provider instances from disk/config and convert to new API
     let provider_instances_collection = load_provider_instances(home_dir.as_deref())?;
     let provider_instances: Vec<aicred_core::ProviderInstance> = provider_instances_collection
-        .all_instances()
-        .iter()
-        .map(|old_inst| {
-            use aicred_core::ProviderInstance;
-            // Convert old ProviderInstance to new ProviderInstance
-            let api_key = old_inst.api_key.clone().unwrap_or_default();
-            let models: Vec<String> = old_inst.models.iter().map(|m| m.id.clone()).collect();
-            let metadata = old_inst.metadata.clone().unwrap_or_default();
-            ProviderInstance::new(
-                old_inst.id.clone(),
-                old_inst.provider_type.clone(),
-                old_inst.base_url.clone(),
-                api_key,
-                models,
-            )
-        })
+        .list()
+        .into_iter()
+        .cloned()
         .collect();
 
     // 6. Use EnvResolver to properly resolve environment variables

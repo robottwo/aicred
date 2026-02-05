@@ -14,8 +14,6 @@ pub mod config_validator;
 // ==== LEGACY SUPPORT (still used internally) ====
 pub mod discovered_key;  // Used by discovery modules
 pub mod provider_config; // Used by conversions
-pub mod provider_instance; // Used by old code
-pub mod provider_instances; // Used by old code
 pub mod provider_key;
 pub mod tag;
 pub mod tag_assignment;
@@ -72,8 +70,6 @@ pub use config_instance::ConfigInstance;
 // Legacy support (still used internally)
 pub use discovered_key::DiscoveredKey;
 pub use provider_config::ProviderConfig;
-pub use provider_instance::ProviderInstance as ProviderInstanceOld;
-pub use provider_instances::ProviderInstances;
 pub use provider_key::ProviderKey;
 pub use unified_label::UnifiedLabel;
 

@@ -3,7 +3,7 @@
 //! This module provides validation functions for YAML configuration files.
 //! It validates the structure and required fields of provider instance configurations.
 
-use crate::models::{ProviderInstance, ProviderInstances};
+use crate::models::{ProviderCollection, ProviderInstance};
 
 /// Validates a single provider instance YAML configuration.
 ///
@@ -54,14 +54,14 @@ pub fn validate_provider_instance_yaml(content: &str) -> Result<(), String> {
 /// Validates a provider instances collection YAML configuration.
 ///
 /// This function deserializes the YAML content and validates that it conforms
-/// to the `ProviderInstances` structure, which is a collection of provider instances
+/// to the `ProviderCollection` structure, which is a collection of provider instances
 /// stored as a flattened `HashMap`.
 ///
 /// # Arguments
 /// * `content` - The YAML content as a string slice
 ///
 /// # Returns
-/// * `Ok(())` if the YAML is valid and can be deserialized into a `ProviderInstances` collection
+/// * `Ok(())` if the YAML is valid and can be deserialized into a `ProviderCollection` collection
 /// * `Err(String)` with a descriptive error message if validation fails
 ///
 /// # Examples
@@ -95,13 +95,14 @@ pub fn validate_provider_instance_yaml(content: &str) -> Result<(), String> {
 /// ```
 pub fn validate_provider_instances_yaml(content: &str) -> Result<(), String> {
     // Attempt to deserialize the YAML content
-    let instances: ProviderInstances = serde_yaml::from_str(content)
-        .map_err(|e| format!("Failed to parse YAML as ProviderInstances: {e}"))?;
+    let instances: ProviderCollection = serde_yaml::from_str(content)
+        .map_err(|e| format!("Failed to parse YAML as ProviderCollection: {e}"))?;
 
-    // Validate the entire collection
-    instances
-        .validate()
-        .map_err(|e| format!("ProviderInstances collection validation failed: {e}"))?;
+    // Validate each instance
+    for instance in instances.list() {
+        instance.validate()
+            .map_err(|e| format!("Instance '{}' validation failed: {e}", instance.id))?;
+    }
 
     Ok(())
 }

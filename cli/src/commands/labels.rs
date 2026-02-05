@@ -239,7 +239,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
                 instance.models.len()
             );
             for model in &instance.models {
-                println!("    DEBUG: Model: {}", model.id);
+                println!("    DEBUG: Model: {}", model);
             }
         }
     }
@@ -335,7 +335,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
 
         for instance in provider_instances.all_instances() {
             for model in &instance.models {
-                let provider_model_str = format!("{}:{}", instance.provider_type, model.id);
+                let provider_model_str = format!("{}:{}", instance.provider_type, model);
 
                 if verbose {
                     println!("  DEBUG: Testing '{}' against patterns", provider_model_str);
@@ -828,13 +828,13 @@ pub fn get_labels_for_target(
             continue;
         }
 
-        // If model_id is provided, resolve the actual Model and compare against canonical ID and basename
+        // If model_id is provided, resolve the actual model ID
         if let Some(model_display_name) = model_id {
-            // Find the model in the instance by matching either display name or canonical ID
+            // Find the model in the instance by matching the ID
             let model = match instance
                 .models
                 .iter()
-                .find(|m| m.name == model_display_name || m.id == model_display_name)
+                .find(|m| *m == model_display_name)
             {
                 Some(model) => model,
                 None => {
@@ -843,24 +843,23 @@ pub fn get_labels_for_target(
                 }
             };
 
-            // Extract the basename from the canonical model ID for comparison
-            let model_basename = if let Some(slash_pos) = model.id.find('/') {
-                &model.id[slash_pos + 1..]
+            // Extract the basename from the model ID for comparison
+            let model_basename = if let Some(slash_pos) = model.find('/') {
+                &model[slash_pos + 1..]
             } else {
-                &model.id
+                model
             };
 
-            // The tuple model must match either the canonical model ID or its basename
-            if tuple_model != model.id && tuple_model != model_basename {
+            // The tuple model must match either the model ID or its basename
+            if tuple_model != *model && tuple_model != model_basename {
                 continue;
             }
         } else if !instance.models.iter().any(|model| {
             let basename = model
-                .id
                 .rsplit_once('/')
                 .map(|(_, name)| name)
-                .unwrap_or(&model.id);
-            tuple_model == model.id || tuple_model == basename
+                .unwrap_or(model);
+            tuple_model == *model || tuple_model == basename
         }) {
             continue;
         }

@@ -1,6 +1,6 @@
 use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::models::{
-    Model, ProviderInstanceOld, ProviderInstances, ProviderKey,
+    ProviderCollection, ProviderInstance, ProviderKey,
 };
 use aicred_core::models::discovered_key::Confidence;
 use aicred_core::models::provider_key::{Environment, ValidationStatus};
@@ -22,7 +22,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 #[allow(dead_code)]
 fn load_instances_from_providers(
     providers_dir: &PathBuf,
-    instances: &mut ProviderInstances,
+    instances: &mut ProviderCollection,
 ) -> Result<()> {
     use aicred_core::models::ProviderConfig;
 
@@ -74,11 +74,12 @@ fn load_instances_from_providers(
                             _ => ("unknown", "https://api.example.com"),
                         };
 
-                        let mut instance = ProviderInstanceOld::new(
+                        let mut instance = ProviderInstance::new(
                             instance_id,
-                            display_name,
                             provider_type.to_string(),
                             base_url.to_string(),
+                            String::new(),
+                            config.models.clone(),
                         );
 
                         // Copy API key - use the first key if available
@@ -88,13 +89,7 @@ fn load_instances_from_providers(
                             }
                         }
 
-                        // Convert model strings to Model objects
-                        for model_id in &config.models {
-                            let model = Model::new(model_id.clone(), model_id.clone());
-                            instance.add_model(model);
-                        }
-
-                        let _ = instances.add_instance(instance);
+                        instances.add(instance.id.clone(), instance);
                     }
                 }
             }
@@ -105,7 +100,7 @@ fn load_instances_from_providers(
 }
 
 /// Save provider instances to configuration directory
-fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
+fn save_provider_instances(instances: &ProviderCollection) -> Result<()> {
     let config_dir = dirs_next::home_dir()
         .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
         .join(".config")
@@ -133,7 +128,7 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
         );
         top.insert(
             Value::String("display_name".into()),
-            Value::String(instance.display_name.clone()),
+            Value::String(instance.id.clone()),  // Use id instead of display_name
         );
         top.insert(
             Value::String("provider_type".into()),
@@ -155,9 +150,10 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
                 Value::String(api_key.clone()),
             );
             // Include minimal discovered_at/created_at placeholders so older consumers are happy
+            let now = chrono::Utc::now();
             key_map.insert(
                 Value::String("discovered_at".into()),
-                Value::String(instance.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
+                Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
             );
             keys_seq.push(Value::Mapping(key_map));
         }
@@ -165,28 +161,29 @@ fn save_provider_instances(instances: &ProviderInstances) -> Result<()> {
 
         // Models: convert to simple mapping objects with model_id and name
         let mut models_seq = serde_yaml::Sequence::new();
-        for model in &instance.models {
+        for model_id in &instance.models {
             let mut m = serde_yaml::Mapping::new();
             m.insert(
                 Value::String("model_id".into()),
-                Value::String(model.id.clone()),
+                Value::String(model_id.clone()),
             );
             m.insert(
                 Value::String("name".into()),
-                Value::String(model.name.clone()),
+                Value::String(model_id.clone()),
             );
             models_seq.push(Value::Mapping(m));
         }
         top.insert(Value::String("models".into()), Value::Sequence(models_seq));
 
         // Timestamps
+        let now = chrono::Utc::now();
         top.insert(
             Value::String("created_at".into()),
-            Value::String(instance.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
+            Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
         );
         top.insert(
             Value::String("updated_at".into()),
-            Value::String(instance.updated_at.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
+            Value::String(now.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
         );
 
         let yaml_value = Value::Mapping(top);
@@ -220,7 +217,7 @@ pub fn handle_list_instances(
     println!("\n{}", "Configured Provider Instances:".green().bold());
 
     let all_instances = instances.all_instances();
-    let filtered_instances: Vec<&ProviderInstanceOld> = all_instances
+    let filtered_instances: Vec<&ProviderInstance> = all_instances
         .into_iter()
         .filter(|instance| {
             let type_match = provider_type
@@ -268,9 +265,8 @@ pub fn handle_list_instances(
         // Verbose mode: show detailed information for each instance
         for instance in filtered_instances {
             println!(
-                "\n{} {}",
-                instance.key_name().cyan().bold(),
-                format!("({})", instance.display_name).dimmed()
+                "\n{}",
+                instance.id.cyan().bold()
             );
             println!("  Provider Type: {}", instance.provider_type);
             println!("  Base URL: {}", instance.base_url);
@@ -294,25 +290,19 @@ pub fn handle_list_instances(
             println!("  Models: {} configured", instance.model_count());
 
             if !instance.models.is_empty() {
-                let model_names: Vec<String> =
-                    instance.models.iter().map(|m| m.id.clone()).collect();
+                let model_names: Vec<String> = instance.models.clone();
                 println!("  Available Models: {}", model_names.join(", "));
             }
 
-            if let Some(metadata) = &instance.metadata {
-                for (key, value) in metadata {
+            if !instance.metadata.is_empty() {
+                for (key, value) in &instance.metadata {
                     println!("  {}: {}", key, value);
                 }
             }
 
-            println!(
-                "  Created: {}",
-                instance.created_at.format("%Y-%m-%d %H:%M:%S UTC")
-            );
-            println!(
-                "  Updated: {}",
-                instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
-            );
+            // Note: created_at and updated_at not available in new ProviderInstance
+            println!("  Created: N/A");
+            println!("  Updated: N/A");
         }
     } else {
         // Table mode: show instances in a nicely formatted table
@@ -359,7 +349,7 @@ pub fn handle_add_instance(
         ));
     }
 
-    let mut instance = ProviderInstanceOld::new(id.clone(), name, provider_type, base_url);
+    let mut instance = ProviderInstance::new(id.clone(), provider_type, base_url, String::new(), Vec::new());
     instance.active = active;
 
     // Add API key if provided
@@ -381,8 +371,7 @@ pub fn handle_add_instance(
         for model_id in models_str.split(',') {
             let model_id = model_id.trim().to_string();
             if !model_id.is_empty() {
-                let model = Model::new(model_id.clone(), model_id);
-                instance.add_model(model);
+                instance.add_model(model_id);
             }
         }
     }
@@ -404,7 +393,7 @@ pub fn handle_add_instance(
     println!(
         "{} Provider instance '{}' added successfully.",
         "✓".green(),
-        instance.display_name.cyan()
+        instance.id.cyan()
     );
     println!("  ID: {}", instance.id);
     println!("  Type: {}", instance.provider_type);
@@ -443,9 +432,8 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
                 .bold()
         );
         println!(
-            "Instance: {} ({})",
-            instance.display_name.cyan(),
-            instance.id
+            "Instance: {}",
+            instance.id.cyan()
         );
         print!("Are you sure? (y/N): ");
 
@@ -494,13 +482,10 @@ pub fn handle_update_instance(
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
 
     // Store original values for later use
-    let instance_name = instance.display_name.clone();
     let instance_id = instance.id.clone();
 
     // Update fields if provided
-    if let Some(new_name) = name {
-        instance.display_name = new_name;
-    }
+    // Note: display_name is no longer supported, ignoring name parameter
 
     if let Some(new_base_url) = base_url {
         instance.base_url = new_base_url;
@@ -538,8 +523,7 @@ pub fn handle_update_instance(
         for model_id in models_str.split(',') {
             let model_id = model_id.trim().to_string();
             if !model_id.is_empty() {
-                let model = Model::new(model_id.clone(), model_id);
-                instance.add_model(model);
+                instance.add_model(model_id);
             }
         }
     }
@@ -558,9 +542,8 @@ pub fn handle_update_instance(
     println!(
         "{} Provider instance '{}' updated successfully.",
         "✓".green(),
-        instance_name.cyan()
+        instance_id.cyan()
     );
-    println!("  ID: {}", instance_id);
     println!(
         "  Status: {}",
         if final_active_status {
@@ -592,9 +575,8 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
 
     println!(
-        "\n{} {}",
-        instance.key_name().cyan().bold(),
-        format!("({})", instance.display_name).dimmed()
+        "\n{}",
+        instance.id.cyan().bold()
     );
     println!("{}", "─".repeat(50).dimmed());
 
@@ -608,14 +590,9 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
             "Inactive".red()
         }
     );
-    println!(
-        "Created: {}",
-        instance.created_at.format("%Y-%m-%d %H:%M:%S UTC")
-    );
-    println!(
-        "Updated: {}",
-        instance.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
-    );
+    // Note: created_at and updated_at not available in new ProviderInstance
+    println!("Created: N/A");
+    println!("Updated: N/A");
 
     // Show keys
     println!("\n{}", "API Keys:".green().bold());
@@ -640,41 +617,15 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
         println!("  {}", "No models configured".dimmed());
     } else {
         for model in &instance.models {
-            println!("  {} - {}", model.id.cyan(), model.name);
-            let mut caps = Vec::new();
-            if model.capabilities.chat {
-                caps.push("chat");
-            }
-            if model.capabilities.completion {
-                caps.push("completion");
-            }
-            if model.capabilities.embedding {
-                caps.push("embedding");
-            }
-            if model.capabilities.function_calling {
-                caps.push("function_calling");
-            }
-            if model.capabilities.vision {
-                caps.push("vision");
-            }
-            if model.capabilities.json_mode {
-                caps.push("json_mode");
-            }
-            if !caps.is_empty() {
-                println!("    Capabilities: {}", caps.join(", "));
-            }
-            if let Some(pricing) = &model.pricing {
-                println!("    Input cost: ${} per token", pricing.input_cost_per_token);
-                println!("    Output cost: ${} per token", pricing.output_cost_per_token);
-            }
-            println!();
+            println!("  {}", model.cyan());
         }
+        println!();
     }
 
     // Show metadata
-    if let Some(metadata) = &instance.metadata {
+    if !instance.metadata.is_empty() {
         println!("{}", "Metadata:".green().bold());
-        for (key, value) in metadata {
+        for (key, value) in &instance.metadata {
             println!("  {}: {}", key.cyan(), value);
         }
     }
@@ -702,14 +653,14 @@ pub fn handle_validate_instances(id: Option<String>, all_errors: bool) -> Result
                 println!(
                     "{} Instance '{}' is valid.",
                     "✓".green(),
-                    instance.display_name.cyan()
+                    instance.id.cyan()
                 );
             }
             Err(e) => {
                 println!(
                     "{} Instance '{}' has validation errors:",
                     "✗".red(),
-                    instance.display_name.cyan()
+                    instance.id.cyan()
                 );
                 println!("  {}", e);
                 std::process::exit(1);
@@ -717,24 +668,30 @@ pub fn handle_validate_instances(id: Option<String>, all_errors: bool) -> Result
         }
     } else {
         // Validate all instances
-        match instances.validate() {
-            Ok(()) => {
-                println!(
-                    "{} All {} provider instances are valid.",
-                    "✓".green(),
-                    instances.len()
-                );
+        let mut all_valid = true;
+        let mut errors = Vec::new();
+        for instance in instances.list() {
+            if let Err(e) = instance.validate() {
+                all_valid = false;
+                errors.push(format!("Instance '{}': {}", instance.id, e));
             }
-            Err(e) => {
-                println!("{} Validation errors found:", "✗".red());
-                for error in e.split(';') {
-                    println!("  {}", error.trim());
-                    if !all_errors {
-                        break;
-                    }
+        }
+
+        if all_valid {
+            println!(
+                "{} All {} provider instances are valid.",
+                "✓".green(),
+                instances.len()
+            );
+        } else {
+            println!("{} Validation errors found:", "✗".red());
+            for error in errors {
+                println!("  {}", error);
+                if !all_errors {
+                    break;
                 }
-                std::process::exit(1);
             }
+            std::process::exit(1);
         }
     }
 
@@ -808,7 +765,7 @@ pub fn handle_list_models(
     println!("\n{}", "Configured Models:".green().bold());
 
     // Collect all models from all instances
-    let mut all_models: Vec<(&ProviderInstanceOld, &Model)> = Vec::new();
+    let mut all_models: Vec<(&ProviderInstance, &String)> = Vec::new();
     for instance in instances.all_instances() {
         for model in &instance.models {
             all_models.push((instance, model));
@@ -821,7 +778,7 @@ pub fn handle_list_models(
     }
 
     // Filter models
-    let mut filtered_models: Vec<(&ProviderInstanceOld, &Model)> = all_models
+    let mut filtered_models: Vec<(&ProviderInstance, &String)> = all_models
         .into_iter()
         .filter(|(instance, model)| {
             let type_match = provider_type
@@ -833,7 +790,7 @@ pub fn handle_list_models(
                 tag.as_ref().is_none_or(
                     |tag_name| match crate::commands::tags::get_tags_for_target(
                         &instance.id,
-                        Some(model.id.as_str()),
+                        Some(model.as_str()),
                         home.as_deref(),
                     ) {
                         Ok(tags) => tags.iter().any(|t| t.name == *tag_name),
@@ -845,7 +802,7 @@ pub fn handle_list_models(
             let label_match = label.as_ref().is_none_or(|label_name| {
                 match crate::commands::labels::get_labels_for_target(
                     &instance.id,
-                    Some(model.id.as_str()),
+                    Some(model.as_str()),
                     home.as_deref(),
                 ) {
                     Ok(labels) => labels.iter().any(|l| l.name == *label_name),
@@ -867,50 +824,18 @@ pub fn handle_list_models(
     if verbose {
         println!("Found {} model(s):\n", total_count);
 
-        for (instance, model) in filtered_models {
+        for (instance, model_id) in filtered_models {
             println!(
-                "{} - {} ({})",
-                model.id.cyan(),
-                model.name,
+                "{} ({})",
+                model_id.cyan(),
                 instance.provider_type
             );
-            println!("  Instance: {} ({})", instance.display_name, instance.id);
-
-            // Show capabilities
-            let mut caps = Vec::new();
-            if model.capabilities.chat {
-                caps.push("chat");
-            }
-            if model.capabilities.completion {
-                caps.push("completion");
-            }
-            if model.capabilities.embedding {
-                caps.push("embedding");
-            }
-            if model.capabilities.function_calling {
-                caps.push("function_calling");
-            }
-            if model.capabilities.vision {
-                caps.push("vision");
-            }
-            if model.capabilities.json_mode {
-                caps.push("json_mode");
-            }
-            if !caps.is_empty() {
-                println!("  Capabilities: {}", caps.join(", "));
-            }
-
-            // Show cost information
-            if let Some(pricing) = &model.pricing {
-                println!("  Input cost: ${} per token", pricing.input_cost_per_token);
-                println!("  Output cost: ${} per token", pricing.output_cost_per_token);
-                println!("  Currency: {}", pricing.currency);
-            }
+            println!("  Instance: {} ({})", instance.id, instance.id);
 
             // Show tags
             if let Ok(tags) = crate::commands::tags::get_tags_for_target(
                 &instance.id,
-                Some(model.id.as_str()),
+                Some(model_id.as_str()),
                 home.as_deref(),
             ) {
                 if !tags.is_empty() {
@@ -929,7 +854,7 @@ pub fn handle_list_models(
             // Show labels
             if let Ok(labels) = crate::commands::labels::get_labels_for_target(
                 &instance.id,
-                Some(model.id.as_str()),
+                Some(model_id.as_str()),
                 home.as_deref(),
             ) {
                 if !labels.is_empty() {
@@ -943,12 +868,12 @@ pub fn handle_list_models(
             println!();
         }
     } else {
-        // Sort models by provider type, then by model name
+        // Sort models by provider type, then by model id
         filtered_models.sort_by(|(inst_a, model_a), (inst_b, model_b)| {
             inst_a
                 .provider_type
                 .cmp(&inst_b.provider_type)
-                .then_with(|| model_a.name.cmp(&model_b.name))
+                .then_with(|| model_a.cmp(model_b))
         });
 
         // Table mode: show models in a nicely formatted table
@@ -962,18 +887,18 @@ pub fn handle_list_models(
         );
         println!("{}", "-".repeat(105));
 
-        for (instance, model) in filtered_models {
+        for (instance, model_id) in filtered_models {
             // Extract basename from model_id (everything after the last slash)
-            let basename = if let Some(last_slash_pos) = model.id.rfind('/') {
-                &model.id[last_slash_pos + 1..]
+            let basename = if let Some(last_slash_pos) = model_id.rfind('/') {
+                &model_id[last_slash_pos + 1..]
             } else {
-                &model.id
+                model_id
             };
 
             // Get labels and tags for this model
             let labels = match crate::commands::labels::get_labels_for_target(
                 &instance.id,
-                Some(model.id.as_str()),
+                Some(model_id.as_str()),
                 home.as_deref(),
             ) {
                 Ok(labels) => labels
@@ -986,7 +911,7 @@ pub fn handle_list_models(
 
             let tags = match crate::commands::tags::get_tags_for_target(
                 &instance.id,
-                Some(model.id.as_str()),
+                Some(model_id.as_str()),
                 home.as_deref(),
             ) {
                 Ok(tags) => tags
@@ -1002,11 +927,11 @@ pub fn handle_list_models(
                 basename.cyan(),
                 format!(
                     "{} ({})",
-                    instance.display_name.trim_end_matches(" Instance"),
+                    instance.provider_type,
                     instance.id
                 )
                 .yellow(),
-                truncate_string(&model.id, 35),
+                truncate_string(model_id, 35),
                 if labels.is_empty() {
                     "-".dimmed()
                 } else {
