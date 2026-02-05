@@ -50,7 +50,7 @@ impl ProviderPlugin for OllamaPlugin {
         // But if models are configured, we should validate them
         if !instance.models.is_empty() {
             for model in &instance.models {
-                if model.model_id.is_empty() {
+                if model.is_empty() {
                     return Err(Error::PluginError(
                         "Ollama instance has empty model ID".to_string(),
                     ));

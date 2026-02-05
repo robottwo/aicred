@@ -396,8 +396,8 @@ impl ClaudeDesktopScanner {
         let mut all_models = Vec::new();
         for provider_instance in config_instance.provider_instances.all_instances() {
             for model in &provider_instance.models {
-                if !all_models.contains(&model.model_id) {
-                    all_models.push(model.model_id.clone());
+                if !all_models.contains(model) {
+                    all_models.push(model.clone());
                 }
             }
         }

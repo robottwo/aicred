@@ -134,8 +134,8 @@ mod tests {
 
         // Verify models are converted
         assert_eq!(instance.models.len(), 2);
-        assert_eq!(instance.models[0].model_id, "gpt-4");
-        assert_eq!(instance.models[1].model_id, "gpt-3.5-turbo");
+        assert_eq!(instance.models[0], "gpt-4");
+        assert_eq!(instance.models[1], "gpt-3.5-turbo");
     }
 
     #[test]
@@ -148,16 +148,16 @@ mod tests {
         let instance: ProviderInstance = config.into();
 
         // Verify no API key is present
-        assert_eq!(instance.api_key, None);
+        assert!(instance.api_key.is_empty());
         assert!(!instance.has_api_key());
         assert!(!instance.has_non_empty_api_key());
 
-        // Verify metadata is None when no keys exist
-        assert_eq!(instance.metadata, None);
+        // Verify metadata is empty when no keys exist
+        assert!(instance.metadata.is_empty());
 
         // Verify models are still converted
         assert_eq!(instance.models.len(), 1);
-        assert_eq!(instance.models[0].model_id, "claude-3-opus");
+        assert_eq!(instance.models[0], "claude-3-opus");
     }
 
     #[test]

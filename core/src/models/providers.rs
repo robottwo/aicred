@@ -305,8 +305,8 @@ impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
                 source: String::new(),  // No source info available from ProviderInstance
                 line_number: None,
                 confidence: OldConfidence::High,  // Default confidence
-                environment: OldEnvironment::Unknown,
-                validation_status: OldValidationStatus::NotValidated,
+                environment: OldEnvironment::Production,  // Default to production
+                validation_status: OldValidationStatus::Valid,  // Assume valid
             }]
         } else {
             Vec::new()
