@@ -219,9 +219,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         // Set a valid API key directly on the instance
@@ -255,9 +255,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         // Add a model but no keys
@@ -274,9 +274,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         // Add models
@@ -294,9 +294,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -308,9 +308,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         // Without keys, should return false
@@ -392,9 +392,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
+            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
-            String::new(),
         );
 
         // Add some pre-configured models

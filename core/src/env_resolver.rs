@@ -663,8 +663,8 @@ mod tests {
         let mut instance = ProviderInstance::new_without_models(
             "test-instance".to_string(),
             provider_type.to_string(),
-            provider_type.to_string(),
             format!("https://api.{provider_type}.com"),
+            String::new(),
         );
         instance.set_api_key(api_key.to_string());
 

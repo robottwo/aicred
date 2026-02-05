@@ -217,9 +217,9 @@ mod tests {
         let plugin = OpenAIPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance
@@ -237,9 +237,9 @@ mod tests {
         let plugin = OpenAIPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -253,13 +253,13 @@ mod tests {
         let plugin = OpenAIPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        
+
         instance.add_model("text-embedding-3-large".to_string());
 
         let result = plugin.validate_instance(&instance);
@@ -273,13 +273,13 @@ mod tests {
         let plugin = OpenAIPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Add models
-        
+
         instance.add_model("gpt-3.5-turbo".to_string());
         instance.add_model("text-embedding-3-small".to_string());
 
@@ -294,9 +294,9 @@ mod tests {
         let plugin = OpenAIPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -310,9 +310,9 @@ mod tests {
         let plugin = OpenAIPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
@@ -330,9 +330,9 @@ mod tests {
         let plugin = OpenAIPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance
@@ -405,9 +405,9 @@ mod tests {
         for url in valid_urls {
             let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
-                "Test OpenAI".to_string(),
                 "openai".to_string(),
                 url.to_string(),
+                String::new(),
             );
 
             let result = plugin.validate_instance(&instance);
@@ -438,9 +438,9 @@ mod tests {
         for url in invalid_urls {
             let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
-                "Test OpenAI".to_string(),
                 "openai".to_string(),
                 url.to_string(),
+                String::new(),
             );
 
             let result = plugin.validate_instance(&instance);

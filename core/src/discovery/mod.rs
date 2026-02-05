@@ -673,9 +673,9 @@ pub trait ScannerPluginExt: ScannerPlugin {
             // Create the provider instance
             let mut instance = ProviderInstance::new_without_models(
                 instance_id.clone(),
-                provider_name.clone(),
-                provider_name.to_lowercase(),
+                provider_name.to_lowercase(),  // Use lowercase for consistency
                 final_base_url,
+                String::new(),  // API key will be set below
             );
 
             // Set the API key from the first discovered key

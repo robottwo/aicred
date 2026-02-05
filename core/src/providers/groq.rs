@@ -141,9 +141,9 @@ mod tests {
         let plugin = GroqPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance
@@ -161,7 +161,7 @@ mod tests {
         let plugin = GroqPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
+            "groq".to_string(),
             "groq".to_string(),
             "https://invalid-url.com".to_string(),
         );
@@ -177,7 +177,7 @@ mod tests {
         let plugin = GroqPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
+            "groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
         );
@@ -197,7 +197,7 @@ mod tests {
         let plugin = GroqPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
+            "groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
         );
@@ -217,7 +217,7 @@ mod tests {
         let plugin = GroqPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
+            "groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
         );
@@ -233,7 +233,7 @@ mod tests {
         let plugin = GroqPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
+            "groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
         );

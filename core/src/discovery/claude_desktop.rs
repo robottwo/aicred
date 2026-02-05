@@ -562,7 +562,7 @@ mod tests {
 
         // Verify provider instance details
         assert_eq!(provider_instance.provider_type, "anthropic");
-        assert_eq!(provider_instance.id, "anthropic");
+        assert!(!provider_instance.id.is_empty());  // ID is now a hash, not the provider name
         assert!(provider_instance.has_non_empty_api_key());
 
         // Verify model was added to provider instance
