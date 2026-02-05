@@ -162,9 +162,11 @@ mod tests {
         let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "groq".to_string(),
-            "groq".to_string(),
+        
             "https://invalid-url.com".to_string(),
-        );
+        
+            String::new(),
+    );
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -178,9 +180,11 @@ mod tests {
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "groq".to_string(),
-            "groq".to_string(),
+        
             "https://api.groq.com".to_string(),
-        );
+        
+            String::new(),
+    );
 
         // Add a model but no keys
         
@@ -198,9 +202,11 @@ mod tests {
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "groq".to_string(),
-            "groq".to_string(),
+        
             "https://api.groq.com".to_string(),
-        );
+        
+            String::new(),
+    );
 
         // Add models
         instance.add_model("llama3-8b-8192".to_string());
@@ -218,9 +224,11 @@ mod tests {
         let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "groq".to_string(),
-            "groq".to_string(),
+        
             "https://api.groq.com".to_string(),
-        );
+        
+            String::new(),
+    );
 
         let models = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(models.len(), 2); // Should return only two models when no valid keys
@@ -234,9 +242,11 @@ mod tests {
         let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "groq".to_string(),
-            "groq".to_string(),
+        
             "https://api.groq.com".to_string(),
-        );
+        
+            String::new(),
+    );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());

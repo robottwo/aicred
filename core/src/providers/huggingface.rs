@@ -139,9 +139,9 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance
