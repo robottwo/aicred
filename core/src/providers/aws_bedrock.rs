@@ -7,6 +7,7 @@ use crate::plugins::ProviderPlugin;
 /// Plugin for scanning AWS Bedrock credentials and configuration files.
 pub struct AwsBedrockPlugin;
 
+#[async_trait::async_trait]
 impl ProviderPlugin for AwsBedrockPlugin {
     fn name(&self) -> &'static str {
         "aws-bedrock"
@@ -34,9 +35,7 @@ impl ProviderPlugin for AwsBedrockPlugin {
 
         // Check for valid AWS Bedrock base URL patterns
         let is_valid_bedrock_url = instance.base_url.contains("bedrock.")
-            || instance
-                .base_url
-                .contains("amazonaws.com");
+            || instance.base_url.contains("amazonaws.com");
 
         if !is_valid_bedrock_url {
             return Err(Error::PluginError(
@@ -50,63 +49,6 @@ impl ProviderPlugin for AwsBedrockPlugin {
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         // AWS Bedrock requires credentials
         Ok(instance.has_non_empty_api_key())
-    }
-}
-
-#[async_trait::async_trait]
-impl crate::plugins::ProviderPlugin for AwsBedrockPlugin {
-    async fn validate_instance_async(
-        &self,
-        instance: &ProviderInstance,
-    ) -> crate::validation::Result<crate::validation::ValidationResult> {
-        // AWS Bedrock validation would require AWS SDK
-        // For now, do format validation only
-        let api_key = match instance.api_key.as_ref() {
-            Some(key) if !key.is_empty() => key,
-            _ => {
-                return Ok(crate::validation::ValidationResult::failure(
-                    crate::validation::ValidationError::InvalidApiKey {
-                        details: Some("No API key provided".to_string()),
-                    },
-                ));
-            }
-        };
-
-        let confidence = self.confidence_score(api_key);
-        if confidence < 0.5 {
-            return Ok(crate::validation::ValidationResult::failure(
-                crate::validation::ValidationError::InvalidKeyFormat {
-                    expected: "AWS access key (starts with AKIA, 20 chars) or secret key (40 chars)".to_string(),
-                    actual: format!("Low confidence score ({:.2})", confidence),
-                },
-            ));
-        }
-
-        // Return success with known Bedrock models
-        Ok(crate::validation::ValidationResult::success(vec![
-            "anthropic.claude-3-5-sonnet-20241022-v2:0".into(),
-            "anthropic.claude-3-5-haiku-20241022-v1:0".into(),
-            "anthropic.claude-3-opus-20240229-v1:0".into(),
-            "anthropic.claude-3-sonnet-20240229-v1:0".into(),
-            "amazon.titan-text-premier-v1:0".into(),
-            "amazon.titan-text-express-v1".into(),
-            "ai21.j2-ultra-v1".into(),
-            "ai21.j2-mid-v1".into(),
-            "cohere.command-text-v14".into(),
-            "cohere.command-light-text-v14".into(),
-            "meta.llama2-13b-chat-v1".into(),
-            "meta.llama2-70b-chat-v1".into(),
-            "mistral.mistral-7b-instruct-v0:2".into(),
-            "mistral.mixtral-8x7b-instruct-v0:1".into(),
-        ]))
-    }
-
-    async fn quick_validate(
-        &self,
-        api_key: &str,
-        _base_url: Option<&str>,
-    ) -> Result<bool> {
-        Ok(self.confidence_score(api_key) >= 0.5)
     }
 
     async fn probe_models_async(

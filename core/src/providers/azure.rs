@@ -7,6 +7,7 @@ use crate::plugins::ProviderPlugin;
 /// Plugin for scanning Azure OpenAI credentials and configuration files.
 pub struct AzurePlugin;
 
+#[async_trait::async_trait]
 impl ProviderPlugin for AzurePlugin {
     fn name(&self) -> &'static str {
         "azure"
@@ -47,78 +48,6 @@ impl ProviderPlugin for AzurePlugin {
 
     fn is_instance_configured(&self, instance: &ProviderInstance) -> Result<bool> {
         Ok(instance.has_non_empty_api_key())
-    }
-}
-
-#[async_trait::async_trait]
-impl crate::plugins::ProviderPlugin for AzurePlugin {
-    async fn validate_instance_async(
-        &self,
-        instance: &ProviderInstance,
-    ) -> crate::validation::Result<crate::validation::ValidationResult> {
-        // Azure OpenAI uses similar API to OpenAI
-        let client = reqwest::Client::new();
-        let base_url = instance.base_url.trim_end_matches('/');
-
-        let api_key = match instance.api_key.as_ref() {
-            Some(key) if !key.is_empty() => key,
-            _ => {
-                return Ok(crate::validation::ValidationResult::failure(
-                    crate::validation::ValidationError::InvalidApiKey {
-                        details: Some("No API key provided".to_string()),
-                    },
-                ));
-            }
-        };
-
-        // Azure OpenAI API key format check
-        let confidence = self.confidence_score(api_key);
-        if confidence < 0.5 {
-            return Ok(crate::validation::ValidationResult::failure(
-                crate::validation::ValidationError::InvalidKeyFormat {
-                    expected: "32-character hex string".to_string(),
-                    actual: format!("Low confidence score ({:.2})", confidence),
-                },
-            ));
-        }
-
-        // Try to list deployments
-        let url = format!("{}/deployments?api-version=2024-02-15-preview", base_url);
-        let resp = client
-            .get(&url)
-            .header("api-key", api_key)
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await;
-
-        crate::providers::validation_helper::ValidationHandler::handle_response(
-            resp,
-            |response| {
-                match response.json::<serde_json::Value>().await {
-                    Ok(json) => {
-                        json["data"]
-                            .as_array()
-                            .map(|arr| {
-                                arr.iter()
-                                    .filter_map(|d| d["model"].as_str().map(|s| s.to_string()))
-                                    .collect()
-                            })
-                            .unwrap_or_default()
-                    }
-                    Err(_) => vec![],
-                }
-            },
-            crate::providers::validation_helper::RateLimitParser::parse_generic,
-            10,
-        )
-    }
-
-    async fn quick_validate(
-        &self,
-        api_key: &str,
-        _base_url: Option<&str>,
-    ) -> Result<bool> {
-        Ok(self.confidence_score(api_key) >= 0.5)
     }
 
     async fn probe_models_async(
