@@ -188,7 +188,7 @@ impl ProviderInstance {
 
         // Validate models
         for model in &self.models {
-            model.validate()?;
+            model.validate().map_err(|e| e.to_string())?;
         }
 
         Ok(())
