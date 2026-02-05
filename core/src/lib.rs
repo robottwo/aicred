@@ -131,7 +131,19 @@ pub use models::{
 };
 
 pub use parser::{ConfigParser, FileFormat};
-pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
+
+// Plugin API exports
+#[allow(deprecated)]
+pub use plugins::{
+    // Legacy API (still works, will be removed in v0.3.0)
+    register_builtin_plugins, PluginRegistry,
+    // New simplified API (v0.2.0+, preferred for new code)
+    ProviderRegistry, register_builtin_providers,
+    get_provider, list_providers, get_providers_for_file,
+    // Shared
+    ProviderPlugin, CommonConfigPlugin,
+};
+
 // Discovery system (application-specific credential scanners)
 pub use crate::discovery::{
     register_builtin_scanners,

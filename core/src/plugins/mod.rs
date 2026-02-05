@@ -201,7 +201,17 @@ pub trait ProviderPlugin: Send + Sync {
     }
 }
 
-/// Registry for managing provider plugins.
+/// Type alias for provider plugin registry (v0.2.0+ simplified API).
+///
+/// This is a simple HashMap that maps provider name to plugin.
+/// For backward compatibility, the old `PluginRegistry` wrapper is still available.
+pub type ProviderRegistry = HashMap<String, Arc<dyn ProviderPlugin>>;
+
+/// Legacy registry wrapper (deprecated in v0.2.0, use ProviderRegistry HashMap directly).
+///
+/// This wrapper adds Arc<RwLock<>> around a HashMap for thread-safety,
+/// but most use cases don't need the complexity. Prefer using `ProviderRegistry` directly.
+#[deprecated(since = "0.2.0", note = "Use ProviderRegistry (HashMap) with helper functions instead")]
 #[derive(Clone)]
 pub struct PluginRegistry {
     plugins: Arc<RwLock<HashMap<String, Arc<dyn ProviderPlugin>>>>,
@@ -383,7 +393,8 @@ impl ProviderPlugin for CommonConfigPlugin {
     }
 }
 
-/// Registers all built-in provider plugins.
+/// Registers all built-in provider plugins (legacy wrapper-based API).
+#[deprecated(since = "0.2.0", note = "Use register_builtin_providers() instead")]
 pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
     // Core AI provider plugins
     registry.register(Arc::new(OpenAIPlugin))?;
@@ -400,6 +411,73 @@ pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
     registry.register(Arc::new(CommonConfigPlugin))?;
 
     Ok(())
+}
+
+// ============================================================================
+// Simplified Plugin API (v0.2.0+) - Preferred
+// ============================================================================
+
+/// Register all built-in provider plugins (v0.2.0+ simplified API).
+///
+/// Returns a ready-to-use HashMap of provider plugins.
+/// This is the preferred way to get a provider registry.
+///
+/// # Example
+/// ```
+/// use aicred_core::plugins::{register_builtin_providers, get_provider};
+///
+/// let registry = register_builtin_providers();
+/// if let Some(plugin) = get_provider(&registry, "openai") {
+///     println!("Found OpenAI plugin");
+/// }
+/// ```
+pub fn register_builtin_providers() -> ProviderRegistry {
+    let mut registry = HashMap::new();
+
+    // Helper macro to register plugins
+    macro_rules! register {
+        ($plugin:expr) => {{
+            let plugin = Arc::new($plugin) as Arc<dyn ProviderPlugin>;
+            let name = plugin.name().to_string();
+            registry.insert(name, plugin);
+        }};
+    }
+
+    // Core AI provider plugins
+    register!(OpenAIPlugin);
+    register!(AnthropicPlugin);
+    register!(GroqPlugin);
+    register!(HuggingFacePlugin);
+    register!(OllamaPlugin);
+    register!(OpenRouterPlugin);
+
+    // Framework and tool plugins
+    register!(LiteLLMPlugin);
+
+    // Note: CommonConfigPlugin removed in v0.2.0 - not needed
+
+    registry
+}
+
+/// Get a plugin from the registry by name (v0.2.0+ API).
+#[inline]
+pub fn get_provider<'a>(registry: &'a ProviderRegistry, name: &str) -> Option<&'a dyn ProviderPlugin> {
+    registry.get(name).map(|arc| &**arc)
+}
+
+/// List all provider names in the registry (v0.2.0+ API).
+#[inline]
+pub fn list_providers(registry: &ProviderRegistry) -> Vec<&str> {
+    registry.keys().map(String::as_str).collect()
+}
+
+/// Get all plugins that can handle a specific file (v0.2.0+ API).
+pub fn get_providers_for_file(registry: &ProviderRegistry, path: &Path) -> Vec<Arc<dyn ProviderPlugin>> {
+    registry
+        .values()
+        .filter(|plugin| plugin.can_handle_file(path))
+        .cloned()
+        .collect()
 }
 
 #[cfg(test)]
