@@ -67,7 +67,7 @@ fn test_gsh_real_config_validation() {
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
-            println!("        - {} ({})", model.name, model.model_id);
+            println!("        - {} ({})", model, model);
         }
 
         let metadata = &instance.metadata; if !metadata.is_empty() {
@@ -165,7 +165,7 @@ fn test_claude_desktop_real_config_validation() {
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
-            println!("        - {} ({})", model.name, model.model_id);
+            println!("        - {} ({})", model, model);
         }
 
         let metadata = &instance.metadata; if !metadata.is_empty() {
@@ -256,7 +256,7 @@ fn test_roo_code_real_config_validation() {
         println!("      Models: {}", instance.model_count());
 
         for model in &instance.models {
-            println!("        - {} ({})", model.name, model.model_id);
+            println!("        - {} ({})", model, model);
         }
 
         let metadata = &instance.metadata; if !metadata.is_empty() {
@@ -407,9 +407,8 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
         println!("    Models: {}", instance.model_count());
 
         for model in &instance.models {
-            assert!(!model.name.is_empty(), "Model name should not be empty");
-            assert!(!model.model_id.is_empty(), "Model ID should not be empty");
-            println!("      - {} ({})", model.name, model.model_id);
+            assert!(!model.is_empty(), "Model ID should not be empty");
+            println!("      - {}", model);
         }
 
         let metadata = &instance.metadata; if !metadata.is_empty() {
