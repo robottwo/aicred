@@ -64,10 +64,7 @@ pub fn handle_list_registry_models(
     // Group by provider for display
     let mut by_provider: HashMap<&str, Vec<&ModelEntry>> = HashMap::new();
     for model in &models {
-        by_provider
-            .entry(&model.provider)
-            .or_default()
-            .push(model);
+        by_provider.entry(&model.provider).or_default().push(model);
     }
 
     println!("\n{}", "Available Models".green().bold());
@@ -85,7 +82,11 @@ pub fn handle_list_registry_models(
         }
     }
 
-    println!("\n{} {} models total", "Total:".green(), models.len().to_string().white());
+    println!(
+        "\n{} {} models total",
+        "Total:".green(),
+        models.len().to_string().white()
+    );
 
     Ok(())
 }
@@ -100,11 +101,7 @@ pub fn handle_get_model(model_id: &str) -> Result<()> {
             Ok(())
         }
         None => {
-            eprintln!(
-                "{} {}",
-                "Model not found:".red(),
-                model_id.red().bold()
-            );
+            eprintln!("{} {}", "Model not found:".red(), model_id.red().bold());
             eprintln!(
                 "{}",
                 "Use 'aicred models list' to see all available models.".dimmed()
@@ -120,7 +117,10 @@ pub fn handle_compare_models(model_ids: Vec<String>) -> Result<()> {
 
     if model_ids.is_empty() {
         eprintln!("{}", "No models specified for comparison.".red());
-        eprintln!("{}", "Usage: aicred models compare <model-id-1> <model-id-2> ...".dimmed());
+        eprintln!(
+            "{}",
+            "Usage: aicred models compare <model-id-1> <model-id-2> ...".dimmed()
+        );
         return Ok(());
     }
 
@@ -235,9 +235,20 @@ pub fn handle_model_stats() -> Result<()> {
     let mut cap_counts: HashMap<&str, usize> = HashMap::new();
     cap_counts.insert("text", registry.by_capability(CapabilityFilter::Text).len());
     cap_counts.insert("code", registry.by_capability(CapabilityFilter::Code).len());
-    cap_counts.insert("vision", registry.by_capability(CapabilityFilter::Vision).len());
-    cap_counts.insert("function", registry.by_capability(CapabilityFilter::FunctionCalling).len());
-    cap_counts.insert("streaming", registry.by_capability(CapabilityFilter::Streaming).len());
+    cap_counts.insert(
+        "vision",
+        registry.by_capability(CapabilityFilter::Vision).len(),
+    );
+    cap_counts.insert(
+        "function",
+        registry
+            .by_capability(CapabilityFilter::FunctionCalling)
+            .len(),
+    );
+    cap_counts.insert(
+        "streaming",
+        registry.by_capability(CapabilityFilter::Streaming).len(),
+    );
 
     println!("\n{}", "By Capability:".cyan().bold());
     let mut caps: Vec<_> = cap_counts.into_iter().collect();
@@ -262,11 +273,7 @@ pub fn handle_model_stats() -> Result<()> {
         "Maximum:".white(),
         max_context.unwrap_or(&0).to_string().yellow()
     );
-    println!(
-        "  {:<20} {:.0} tokens",
-        "Average:".white(),
-        avg_context
-    );
+    println!("  {:<20} {:.0} tokens", "Average:".white(), avg_context);
 
     Ok(())
 }
