@@ -8,27 +8,27 @@ mod tests {
 
     #[test]
     fn test_provider_creation() {
-        let provider = Provider::new(
-            "OpenAI".to_string(),
-            "openai".to_string(),
-            "https://api.openai.com".to_string(),
-        )
-        .with_description("OpenAI API provider".to_string());
+        // New Provider structure
+        let provider = Provider {
+            name: "openai".to_string(),
+            description: "OpenAI API provider".to_string(),
+            auth_methods: vec![crate::models::providers::AuthMethod::ApiKey],
+            rate_limits: None,
+            base_url_default: "https://api.openai.com".to_string(),
+        };
 
-        assert_eq!(provider.name, "OpenAI");
-        assert_eq!(provider.provider_type, "openai");
-        assert_eq!(provider.base_url, "https://api.openai.com");
-        assert_eq!(
-            provider.description,
-            Some("OpenAI API provider".to_string())
-        );
+        assert_eq!(provider.name, "openai");
+        assert_eq!(provider.description, "OpenAI API provider");
+        assert_eq!(provider.base_url_default, "https://api.openai.com");
     }
 
     #[test]
     fn test_model_creation() {
-        let model = Model::new("gpt-4".to_string(), "GPT-4".to_string()).with_context_window(8192);
+        // New Model structure
+        let mut model = Model::new("gpt-4".to_string(), "GPT-4".to_string());
+        model.context_window = Some(8192);
 
-        assert_eq!(model.model_id, "gpt-4");
+        assert_eq!(model.id, "gpt-4");
         assert_eq!(model.name, "GPT-4");
         assert_eq!(model.context_window, Some(8192));
     }
@@ -204,10 +204,7 @@ mod tests {
         assert_eq!(instance.api_key, "sk-minimal-key".to_string());
 
         // Verify metadata is present with required fields
-        let metadata = instance
-            .metadata
-            .as_ref()
-            .expect("Metadata should be present");
+        let metadata = &instance.metadata;
         assert_eq!(metadata.get("environment"), Some(&"production".to_string()));
         assert_eq!(metadata.get("confidence"), Some(&"Medium".to_string()));
         assert_eq!(metadata.get("source"), Some(&"/minimal/path".to_string()));

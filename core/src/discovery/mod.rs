@@ -974,7 +974,7 @@ mod tests {
         let instance = &instances[0];
         assert_eq!(instance.base_url, "https://api.openai.com");
         assert_eq!(instance.model_count(), 1);
-        assert_eq!(instance.models[0].model_id, "gpt-4");
+        assert_eq!(instance.models[0], "gpt-4");
         assert!(!instance.metadata.is_empty());
         assert_eq!(
             instance.metadata.get("temperature"),
@@ -1092,7 +1092,7 @@ mod tests {
 
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
-        let metadata = instance.metadata.as_ref().unwrap();
+        let metadata = &instance.metadata;
         assert_eq!(
             metadata.get("organization_id"),
             Some(&"org-123456".to_string())
