@@ -69,6 +69,25 @@ fn load_instances_from_providers(
                             }
                             s if s.contains("ollama") => ("ollama", "http://localhost:11434"),
                             s if s.contains("groq") => ("groq", "https://api.groq.com"),
+                            s if s.contains("openrouter") => ("openrouter", "https://openrouter.ai/api/v1"),
+                            s if s.contains("aws_bedrock") || s.contains("aws-bedrock") || s.contains("bedrock") => {
+                                ("aws-bedrock", "https://bedrock-runtime.us-east-1.amazonaws.com")
+                            }
+                            s if s.contains("azure") => ("azure", "https://YOUR_RESOURCE.openai.azure.com"),
+                            s if s.contains("cohere") => ("cohere", "https://api.cohere.ai/v1"),
+                            s if s.contains("deepinfra") || s.contains("deep_infra") => {
+                                ("deepinfra", "https://api.deepinfra.com/v1/openai")
+                            }
+                            s if s.contains("deepseek") => ("deepseek", "https://api.deepseek.com/v1"),
+                            s if s.contains("fireworks") => ("fireworks", "https://api.fireworks.ai/inference/v1"),
+                            s if s.contains("google") => ("google", "https://generativelanguage.googleapis.com/v1beta"),
+                            s if s.contains("grok") => ("grok", "https://api.x.ai/v1"),
+                            s if s.contains("mistral") => ("mistral", "https://api.mistral.ai/v1"),
+                            s if s.contains("moonshot") => ("moonshot", "https://api.moonshot.cn/v1"),
+                            s if s.contains("perplexity") => ("perplexity", "https://api.perplexity.ai"),
+                            s if s.contains("replicate") => ("replicate", "https://api.replicate.com/v1"),
+                            s if s.contains("together") => ("together", "https://api.together.xyz/v1"),
+                            s if s.contains("zai") => ("zai", "https://api.z.ai/v1"),
                             s if s.contains("test") => ("test", "https://api.example.com"),
                             _ => ("unknown", "https://api.example.com"),
                         };
@@ -767,6 +786,21 @@ pub fn handle_providers(verbose: bool) -> Result<()> {
         ("ollama", "Ollama local configurations"),
         ("litellm", "LiteLLM configurations"),
         ("groq", "Groq API keys"),
+        ("openrouter", "OpenRouter API keys"),
+        ("aws-bedrock", "AWS Bedrock credentials"),
+        ("azure", "Azure OpenAI Service"),
+        ("cohere", "Cohere API keys"),
+        ("deepinfra", "DeepInfra API keys"),
+        ("deepseek", "DeepSeek API keys"),
+        ("fireworks", "Fireworks AI API keys"),
+        ("google", "Google AI / Gemini API keys"),
+        ("grok", "xAI Grok API keys"),
+        ("mistral", "Mistral AI API keys"),
+        ("moonshot", "Moonshot AI API keys"),
+        ("perplexity", "Perplexity AI API keys"),
+        ("replicate", "Replicate API keys"),
+        ("together", "Together AI API keys"),
+        ("zai", "ZAI API keys"),
     ];
 
     for (name, desc) in providers {

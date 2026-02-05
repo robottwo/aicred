@@ -7,9 +7,13 @@
 use crate::error::{Error, Result};
 use crate::models::{ModelMetadata, ProviderInstance};
 use crate::providers::{
-    anthropic::AnthropicPlugin, groq::GroqPlugin, huggingface::HuggingFacePlugin,
-    litellm::LiteLLMPlugin, ollama::OllamaPlugin, openai::OpenAIPlugin,
-    openrouter::OpenRouterPlugin,
+    anthropic::AnthropicPlugin, aws_bedrock::AwsBedrockPlugin, azure::AzurePlugin,
+    cohere::CoherePlugin, deepinfra::DeepInfraPlugin, deepseek::DeepSeekPlugin,
+    fireworks::FireworksPlugin, google::GooglePlugin, grok::GrokPlugin, groq::GroqPlugin,
+    huggingface::HuggingFacePlugin, litellm::LiteLLMPlugin, mistral::MistralPlugin,
+    moonshot::MoonshotPlugin, ollama::OllamaPlugin, openai::OpenAIPlugin,
+    openrouter::OpenRouterPlugin, perplexity::PerplexityPlugin, replicate::ReplicatePlugin,
+    together::TogetherPlugin, zai::ZAIPlugin,
 };
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -199,6 +203,34 @@ pub trait ProviderPlugin: Send + Sync {
         // Default implementation - no async API probing
         Ok(Vec::new())
     }
+
+    /// Validates an API key by making a test request to the provider's API.
+    ///
+    /// This method performs a live validation by sending a minimal request to the provider's
+    /// API endpoint using the provided API key. This is useful for verifying that a key is
+    /// active, not expired, and has the necessary permissions.
+    ///
+    /// # Arguments
+    /// * `api_key` - The API key to validate
+    /// * `base_url` - Optional custom base URL for the API endpoint. If None, uses the provider's default
+    ///
+    /// # Returns
+    /// * `Ok(ValidationResult)` - Detailed validation result including status, error details, and rate limit info
+    /// * `Err(Error::ApiError)` - If validation request fails due to network errors or provider issues
+    ///
+    /// # Default Implementation
+    /// Returns an error indicating that validation is not implemented for this provider.
+    /// Providers that support API key validation should override this method.
+    async fn validate_key_async(
+        &self,
+        _api_key: &str,
+        _base_url: Option<&str>,
+    ) -> Result<crate::models::ValidationResult> {
+        // Default implementation - validation not supported
+        Err(Error::NotImplemented(
+            "Validation not implemented for this provider".to_string(),
+        ))
+    }
 }
 
 /// Registry for managing provider plugins.
@@ -385,16 +417,28 @@ impl ProviderPlugin for CommonConfigPlugin {
 
 /// Registers all built-in provider plugins.
 pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
-    // Core AI provider plugins
+    // Core AI provider plugins (21 providers)
     registry.register(Arc::new(OpenAIPlugin))?;
     registry.register(Arc::new(AnthropicPlugin))?;
     registry.register(Arc::new(GroqPlugin))?;
     registry.register(Arc::new(HuggingFacePlugin))?;
     registry.register(Arc::new(OllamaPlugin))?;
     registry.register(Arc::new(OpenRouterPlugin))?;
-
-    // Framework and tool plugins
     registry.register(Arc::new(LiteLLMPlugin))?;
+    registry.register(Arc::new(AwsBedrockPlugin))?;
+    registry.register(Arc::new(AzurePlugin))?;
+    registry.register(Arc::new(CoherePlugin))?;
+    registry.register(Arc::new(DeepInfraPlugin))?;
+    registry.register(Arc::new(DeepSeekPlugin))?;
+    registry.register(Arc::new(FireworksPlugin))?;
+    registry.register(Arc::new(GooglePlugin))?;
+    registry.register(Arc::new(GrokPlugin))?;
+    registry.register(Arc::new(MistralPlugin))?;
+    registry.register(Arc::new(MoonshotPlugin))?;
+    registry.register(Arc::new(PerplexityPlugin))?;
+    registry.register(Arc::new(ReplicatePlugin))?;
+    registry.register(Arc::new(TogetherPlugin))?;
+    registry.register(Arc::new(ZAIPlugin))?;
 
     // Common config plugin (should be registered last as fallback)
     registry.register(Arc::new(CommonConfigPlugin))?;
