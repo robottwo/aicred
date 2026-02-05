@@ -8,6 +8,11 @@ repository.workspace = true
 homepage.workspace = true
 description = "Core library for aicred - discovers AI API keys in configuration files"
 
+[features]
+default = []
+# Backward compatibility with 0.1.x API (provides type aliases for renamed types)
+compat_v0_1 = []
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
