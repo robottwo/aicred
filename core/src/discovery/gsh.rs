@@ -3,8 +3,7 @@
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
 use crate::models::discovered_key::{Confidence, ValueType};
-use crate::models::provider_key::{Environment, ValidationStatus};
-use crate::models::{ConfigInstance, DiscoveredKey, Model, ProviderKey};
+use crate::models::{ConfigInstance, DiscoveredKey};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

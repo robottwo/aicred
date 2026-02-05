@@ -59,9 +59,8 @@ pub use roo_code::RooCodeScanner;
 
 use crate::error::{Error, Result};
 use crate::models::discovered_key::{Confidence, ValueType};
-use crate::models::provider_key::{Environment, ValidationStatus};
-use crate::models::{ConfigInstance, DiscoveredKey, Model, ProviderInstance, ProviderKey};
-use sha2::{Digest, Sha256};
+use crate::models::{ConfigInstance, DiscoveredKey, Model, ProviderInstance};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

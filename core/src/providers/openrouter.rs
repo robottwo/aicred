@@ -4,7 +4,7 @@ use crate::error::{Error, Result};
 use crate::models::ModelMetadata;
 use crate::plugins::ProviderPlugin;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 

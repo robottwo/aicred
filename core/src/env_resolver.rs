@@ -1,7 +1,7 @@
 //! Environment variable resolution logic for mapping labels to provider configurations.
 
-use crate::error::{Error, Result};
-use crate::models::{DiscoveredKey, ProviderInstance, UnifiedLabel};
+use crate::error::Result;
+use crate::models::{ProviderInstance, UnifiedLabel};
 use crate::scanners::{EnvVarDeclaration, LabelMapping};
 use crate::utils::ProviderModelTuple;
 use std::collections::HashMap;
@@ -571,7 +571,7 @@ impl EnvResolverBuilder {
 
     /// Generates default environment variable schema and label mappings
     fn generate_default_schema(
-        provider_instances: &[ProviderInstance],
+        _provider_instances: &[ProviderInstance],
         labels: &[UnifiedLabel],
     ) -> (Vec<EnvVarDeclaration>, Vec<LabelMapping>) {
         let mut env_schema = Vec::new();

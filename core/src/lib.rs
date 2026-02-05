@@ -1,21 +1,23 @@
 // Allow specific clippy lints that are too pedantic for this codebase
-#![allow(clippy::option_if_let_else)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::struct_excessive_bools)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::unnecessary_wraps)]
-#![allow(clippy::match_wildcard_for_single_variants)]
-#![allow(clippy::significant_drop_tightening)]
-#![allow(clippy::unused_self)]
-#![allow(clippy::if_same_then_else)]
-#![allow(clippy::implicit_clone)]
-#![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_borrow)]
-#![allow(clippy::module_inception)]
-#![allow(clippy::float_cmp)]
-#![allow(clippy::len_zero)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
+// Phase 4 cleanup: Removing allows one by one
+#![allow(clippy::option_if_let_else)]           // TODO: Use combinator methods
+#![allow(clippy::missing_errors_doc)]            // TODO: Add # Errors docs
+#![allow(clippy::struct_excessive_bools)]        // TODO: Use enums/bitflags
+#![allow(clippy::cast_precision_loss)]           // TODO: Review casts
+#![allow(clippy::unnecessary_wraps)]             // TODO: Return T not Result<T>
+#![allow(clippy::match_wildcard_for_single_variants)]  // TODO: Be explicit
+#![allow(clippy::significant_drop_tightening)]   // TODO: Tighten scopes
+#![allow(clippy::unused_self)]                   // TODO: Make associated fn
+#![allow(clippy::if_same_then_else)]            // TODO: Deduplicate
+#![allow(clippy::implicit_clone)]                // TODO: Explicit .clone()
+#![allow(clippy::too_many_lines)]               // TODO: Extract helpers
+// Removed - let's fix these now:
+// #![allow(clippy::needless_borrow)]
+// #![allow(clippy::module_inception)]
+// #![allow(clippy::float_cmp)]
+// #![allow(clippy::len_zero)]
+// #![allow(unused_imports)]
+// #![allow(unused_variables)]
 
 //! Core library for aicred - discovers AI API keys in configuration files.
 //!
