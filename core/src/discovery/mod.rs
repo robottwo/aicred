@@ -334,6 +334,11 @@ impl Default for ScannerRegistry {
     }
 }
 
+// =============================================================================
+// Discovery Helper Functions
+// =============================================================================
+// These functions help reduce code duplication across scanner implementations
+
 /// Helper function to parse JSON config files.
 /// # Errors
 /// Returns an error if the JSON content cannot be parsed.
@@ -348,6 +353,33 @@ pub fn parse_json_config(content: &str) -> Result<serde_json::Value> {
 pub fn parse_yaml_config(content: &str) -> Result<serde_yaml::Value> {
     serde_yaml::from_str(content)
         .map_err(|e| Error::ConfigError(format!("Failed to parse YAML: {e}")))
+}
+
+/// Helper function to read and parse a JSON file.
+/// # Errors
+/// Returns an error if the file cannot be read or parsed.
+pub fn read_json_file(path: &Path) -> Result<serde_json::Value> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| Error::ConfigError(format!("Failed to read {}: {e}", path.display())))?;
+    parse_json_config(&content)
+}
+
+/// Helper function to read and parse a YAML file.
+/// # Errors
+/// Returns an error if the file cannot be read or parsed.
+pub fn read_yaml_file(path: &Path) -> Result<serde_yaml::Value> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| Error::ConfigError(format!("Failed to read {}: {e}", path.display())))?;
+    parse_yaml_config(&content)
+}
+
+/// Helper to find config files that exist from a list of potential paths.
+pub fn find_existing_configs(home_dir: &Path, relative_paths: &[&str]) -> Vec<PathBuf> {
+    relative_paths
+        .iter()
+        .map(|p| home_dir.join(p))
+        .filter(|p| p.exists())
+        .collect()
 }
 
 /// Helper function to extract keys from environment variable format.
