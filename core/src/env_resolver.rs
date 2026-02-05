@@ -2,10 +2,26 @@
 
 use crate::error::Result;
 use crate::models::ProviderInstance;
-use crate::models::unified_label::UnifiedLabel;
 use crate::scanners::{EnvVarDeclaration, LabelMapping};
 use crate::utils::ProviderModelTuple;
 use std::collections::HashMap;
+
+/// A label with its target provider:model assignment.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabelWithTarget {
+    /// Label name (e.g., "fast", "smart")
+    pub label_name: String,
+    /// Target provider:model tuple
+    pub target: ProviderModelTuple,
+}
+
+impl LabelWithTarget {
+    /// Creates a new label with target assignment
+    #[must_use]
+    pub fn new(label_name: String, target: ProviderModelTuple) -> Self {
+        Self { label_name, target }
+    }
+}
 
 /// Environment variable mapping for representing label-to-env-var mappings
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,7 +112,7 @@ pub struct EnvResolver {
     /// Available provider instances from scanned configurations
     provider_instances: Vec<ProviderInstance>,
     /// Label assignments
-    labels: Vec<UnifiedLabel>,
+    labels: Vec<LabelWithTarget>,
     /// Environment variable schema from scanner
     env_schema: Vec<EnvVarDeclaration>,
     /// Label mappings from scanner
@@ -108,7 +124,7 @@ impl EnvResolver {
     #[must_use]
     pub const fn new(
         provider_instances: Vec<ProviderInstance>,
-        labels: Vec<UnifiedLabel>,
+        labels: Vec<LabelWithTarget>,
         env_schema: Vec<EnvVarDeclaration>,
         label_mappings: Vec<LabelMapping>,
     ) -> Self {
@@ -204,7 +220,7 @@ impl EnvResolver {
         instance: &ProviderInstance,
         result: &mut EnvResolutionResult,
         dry_run: bool,
-        label: &UnifiedLabel,
+        label: &LabelWithTarget,
     ) {
         // Find all environment variables that belong to this group
         let group_vars: Vec<&EnvVarDeclaration> = self
@@ -447,7 +463,7 @@ impl EnvResolver {
     /// Returns an error if resolution fails due to missing required variables or invalid configuration
     pub fn resolve_from_mappings(
         provider_instances: Vec<ProviderInstance>,
-        labels: Vec<UnifiedLabel>,
+        labels: Vec<LabelWithTarget>,
         env_var_mappings: Vec<EnvVarMapping>,
         dry_run: bool,
     ) -> Result<EnvResolutionResult> {
@@ -496,7 +512,7 @@ impl EnvResolver {
 /// Builder for creating environment variable resolvers
 pub struct EnvResolverBuilder {
     provider_instances: Vec<ProviderInstance>,
-    labels: Vec<UnifiedLabel>,
+    labels: Vec<LabelWithTarget>,
     env_schema: Vec<EnvVarDeclaration>,
     label_mappings: Vec<LabelMapping>,
 }
@@ -522,7 +538,7 @@ impl EnvResolverBuilder {
 
     /// Sets the label assignments
     #[must_use]
-    pub fn with_labels(mut self, labels: Vec<UnifiedLabel>) -> Self {
+    pub fn with_labels(mut self, labels: Vec<LabelWithTarget>) -> Self {
         self.labels = labels;
         self
     }
@@ -563,7 +579,7 @@ impl EnvResolverBuilder {
     /// Generates default environment variable schema and label mappings
     fn generate_default_schema(
         _provider_instances: &[ProviderInstance],
-        labels: &[UnifiedLabel],
+        labels: &[LabelWithTarget],
     ) -> (Vec<EnvVarDeclaration>, Vec<LabelMapping>) {
         let mut env_schema = Vec::new();
         let mut label_mappings = Vec::new();
@@ -667,7 +683,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -703,7 +719,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -724,7 +740,7 @@ mod tests {
     fn test_missing_required_variable() {
         let provider_instances = vec![]; // No instances available
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -763,7 +779,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];

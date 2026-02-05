@@ -130,9 +130,6 @@ pub use models::{
     ConfigInstance,
 };
 
-// Temporary export for wrap.rs compatibility
-pub use models::unified_label::UnifiedLabel;
-
 pub use parser::{ConfigParser, FileFormat};
 
 // Plugin API exports

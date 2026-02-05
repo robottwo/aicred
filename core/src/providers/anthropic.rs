@@ -191,10 +191,7 @@ impl AnthropicPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{credentials::Confidence,
-        provider_key::{Environment, ProviderKey, ValidationStatus},
-        ProviderInstance,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_anthropic_plugin_name() {
@@ -227,16 +224,8 @@ mod tests {
             "https://api.anthropic.com".to_string(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-ant-test123".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-ant-test123".to_string());
 
         // Add a model
         instance.add_model("claude-3-sonnet".to_string());
@@ -327,16 +316,8 @@ mod tests {
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-ant-test123".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-ant-test123".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

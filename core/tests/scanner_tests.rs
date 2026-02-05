@@ -1103,7 +1103,6 @@ fn test_scanner_plugin_ext_multiple_models() {
 
 #[test]
 fn test_scanner_plugin_ext_confidence_to_environment_mapping() {
-    use aicred_core::models::provider_key::Environment;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
@@ -1708,7 +1707,6 @@ fn test_all_key_types_comprehensive() {
 
 #[test]
 fn test_confidence_levels_all_environments() {
-    use aicred_core::models::provider_key::Environment;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
@@ -1766,7 +1764,6 @@ fn test_confidence_levels_all_environments() {
 
 #[test]
 fn test_provider_instance_validation_status() {
-    use aicred_core::models::provider_key::ValidationStatus;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 

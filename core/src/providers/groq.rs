@@ -110,9 +110,7 @@ impl GroqPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{credentials::Confidence,
-         provider_key::{Environment, ProviderKey, ValidationStatus}, ProviderInstance,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_groq_plugin_name() {
@@ -148,19 +146,10 @@ mod tests {
             "https://api.groq.com".to_string(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("gsk_test1234567890abcdef1234567890abcdef".to_string());
 
         // Add a model
-        
         instance.add_model("llama3-8b-8192".to_string());
 
         let result = plugin.validate_instance(&instance);
@@ -252,16 +241,8 @@ mod tests {
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("gsk_test1234567890abcdef1234567890abcdef".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

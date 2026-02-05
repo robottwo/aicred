@@ -1,6 +1,7 @@
 //! Label management commands for the aicred CLI.
 
 use crate::utils::provider_loader::load_provider_instances;
+use aicred_core::env_resolver::LabelWithTarget;
 use aicred_core::models::{Label, LabelAssignment, LabelTarget};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
@@ -10,56 +11,43 @@ use std::path::Path;
 use tempfile::NamedTempFile;
 use tracing::{debug, error, info};
 
-/// Temporary compatibility function - load UnifiedLabel format for backward compatibility
-/// TODO: Remove when wrap.rs is migrated to use LabelAssignment directly
-#[deprecated(note = "Use LabelAssignment instead")]
-pub fn load_unified_labels_with_home(home: Option<&Path>) -> Result<Vec<aicred_core::UnifiedLabel>> {
+/// Load labels with their target assignments for use with EnvResolver
+pub fn load_labels_with_targets(home: Option<&Path>) -> Result<Vec<LabelWithTarget>> {
     let assignments = load_label_assignments_with_home(home)?;
-    let labels_metadata = load_labels_with_home(home)?;
     let provider_instances = load_provider_instances(home)?;
 
-    // Convert LabelAssignments to UnifiedLabel format
-    let mut unified_labels = Vec::new();
+    // Convert LabelAssignments to LabelWithTarget format
+    let mut labels_with_targets = Vec::new();
     for assignment in assignments {
-        if let Some(label_metadata) = labels_metadata.get(&assignment.label_name) {
-            // Convert LabelTarget to ProviderModelTuple
-            let tuple = match &assignment.target {
-                LabelTarget::ProviderInstance { instance_id } => {
-                    // Find provider instance
-                    if let Some(instance) = provider_instances.get_instance(instance_id) {
-                        // Use first model if available
-                        if let Some(model_id) = instance.models.first() {
-                            ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
-                        } else {
-                            ProviderModelTuple::new(instance.provider_type.clone(), String::new())
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-                LabelTarget::ProviderModel { instance_id, model_id } => {
-                    // Find provider instance
-                    if let Some(instance) = provider_instances.get_instance(instance_id) {
+        // Convert LabelTarget to ProviderModelTuple
+        let tuple = match &assignment.target {
+            LabelTarget::ProviderInstance { instance_id } => {
+                // Find provider instance
+                if let Some(instance) = provider_instances.get_instance(instance_id) {
+                    // Use first model if available
+                    if let Some(model_id) = instance.models.first() {
                         ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
                     } else {
-                        continue;
+                        ProviderModelTuple::new(instance.provider_type.clone(), String::new())
                     }
+                } else {
+                    continue;
                 }
-            };
+            }
+            LabelTarget::ProviderModel { instance_id, model_id } => {
+                // Find provider instance
+                if let Some(instance) = provider_instances.get_instance(instance_id) {
+                    ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
+                } else {
+                    continue;
+                }
+            }
+        };
 
-            unified_labels.push(aicred_core::UnifiedLabel {
-                label_name: assignment.label_name.clone(),
-                target: tuple,
-                description: label_metadata.description.clone(),
-                color: None,  // Color not supported in new Label
-                metadata: None,  // Metadata not converted for now
-                created_at: assignment.assigned_at,
-                updated_at: chrono::Utc::now(),
-            });
-        }
+        labels_with_targets.push(LabelWithTarget::new(assignment.label_name, tuple));
     }
 
-    Ok(unified_labels)
+    Ok(labels_with_targets)
 }
 
 /// Load all label assignments from the configuration directory

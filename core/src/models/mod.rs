@@ -11,16 +11,6 @@ pub mod scan;
 pub mod config_instance;
 pub mod config_validator;
 
-// ==== INTERNAL SUPPORT (for core library internal use only) ====
-// These modules are deprecated and kept only for internal compatibility.
-// They should NOT be exported in the public API.
-pub mod provider_config;
-pub mod provider_key;
-pub mod unified_label;
-
-#[cfg(test)]
-mod tests;
-
 // ==== PRIMARY API (v0.2.0) ====
 
 // Credentials & Discovery
