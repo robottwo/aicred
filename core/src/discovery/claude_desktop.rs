@@ -573,8 +573,8 @@ mod tests {
         );
 
         // Verify temperature and max_tokens are in provider instance metadata
-        assert!(provider_instance.metadata.is_some());
-        let metadata = provider_instance.metadata.as_ref().unwrap();
+        assert!(!provider_instance.metadata.is_empty());
+        let metadata = &provider_instance.metadata;
         assert_eq!(metadata.get("temperature"), Some(&"0.7".to_string()));
         assert_eq!(metadata.get("max_tokens"), Some(&"4096".to_string()));
 

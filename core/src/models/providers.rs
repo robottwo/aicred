@@ -265,6 +265,32 @@ impl ProviderCollection {
     pub fn all_instances(&self) -> Vec<&ProviderInstance> {
         self.list()
     }
+    
+    /// Adds or replaces an instance (backward compat)
+    pub fn add_or_replace_instance(&mut self, instance: ProviderInstance) {
+        let id = instance.id.clone();
+        self.add(id, instance);
+    }
+    
+    /// Removes an instance by ID (backward compat)
+    pub fn remove_instance(&mut self, id: &str) -> Option<ProviderInstance> {
+        self.remove(id)
+    }
+    
+    /// Gets all active instances (backward compat)
+    #[must_use]
+    pub fn active_instances(&self) -> Vec<&ProviderInstance> {
+        self.instances.values().filter(|i| i.active).collect()
+    }
+    
+    /// Gets instances by provider type (backward compat)
+    #[must_use]
+    pub fn instances_by_type(&self, provider_type: &str) -> Vec<&ProviderInstance> {
+        self.instances
+            .values()
+            .filter(|i| i.provider_type == provider_type)
+            .collect()
+    }
 }
 
 // ==== BACKWARD COMPATIBILITY CONVERSIONS ====

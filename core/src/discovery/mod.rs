@@ -671,7 +671,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
             let instance_id = full_hash[..4].to_string();
 
             // Create the provider instance
-            let mut instance = ProviderInstance::new(
+            let mut instance = ProviderInstance::new_without_models(
                 instance_id.clone(),
                 provider_name.clone(),
                 provider_name.to_lowercase(),
@@ -755,7 +755,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
                 instance = instance.with_metadata(metadata);
                 tracing::debug!(
                     "Added {} metadata entries to instance '{}'",
-                    instance.metadata.as_ref().map_or(0, HashMap::len),
+                    instance.metadata.len(),
                     instance_id
                 );
             }
@@ -975,9 +975,9 @@ mod tests {
         assert_eq!(instance.base_url, "https://api.openai.com");
         assert_eq!(instance.model_count(), 1);
         assert_eq!(instance.models[0].model_id, "gpt-4");
-        assert!(instance.metadata.is_some());
+        assert!(!instance.metadata.is_empty());
         assert_eq!(
-            instance.metadata.as_ref().unwrap().get("temperature"),
+            instance.metadata.get("temperature"),
             Some(&"0.7".to_string())
         );
     }
@@ -1166,12 +1166,8 @@ mod tests {
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
         assert!(
-            instance.metadata.is_none()
-                || !instance
-                    .metadata
-                    .as_ref()
-                    .unwrap()
-                    .contains_key("temperature")
+            instance.metadata.is_empty()
+                || !instance.metadata.contains_key("temperature")
         );
     }
 

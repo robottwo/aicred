@@ -643,7 +643,7 @@ mod tests {
         api_key: &str,
         models: Vec<&str>,
     ) -> ProviderInstance {
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-instance".to_string(),
             provider_type.to_string(),
             provider_type.to_string(),

@@ -114,10 +114,7 @@ mod tests {
         assert!(instance.has_non_empty_api_key());
 
         // Verify metadata fields are captured
-        let metadata = instance
-            .metadata
-            .as_ref()
-            .expect("Metadata should be present");
+        let metadata = &instance.metadata;
         assert_eq!(metadata.get("environment"), Some(&"staging".to_string()));
         assert_eq!(metadata.get("confidence"), Some(&"Very High".to_string()));
         assert_eq!(
@@ -244,7 +241,7 @@ mod tests {
             config.add_key(key);
             let instance: ProviderInstance = config.into();
 
-            let metadata = instance.metadata.as_ref().unwrap();
+            let metadata = &instance.metadata;
             assert_eq!(metadata.get("environment"), Some(&expected_str.to_string()));
         }
     }
@@ -272,7 +269,7 @@ mod tests {
             config.add_key(key);
             let instance: ProviderInstance = config.into();
 
-            let metadata = instance.metadata.as_ref().unwrap();
+            let metadata = &instance.metadata;
             assert_eq!(metadata.get("confidence"), Some(&expected_str.to_string()));
         }
     }
@@ -303,7 +300,7 @@ mod tests {
             config.add_key(key);
             let instance: ProviderInstance = config.into();
 
-            let metadata = instance.metadata.as_ref().unwrap();
+            let metadata = &instance.metadata;
             assert_eq!(
                 metadata.get("validation_status"),
                 Some(&expected_str.to_string())
@@ -318,7 +315,7 @@ mod tests {
     #[test]
     fn test_provider_instance_to_config_with_full_metadata() {
         // Create a ProviderInstance with full metadata
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-instance".to_string(),
             "Test Instance".to_string(),
             "openai".to_string(),
@@ -364,7 +361,7 @@ mod tests {
     #[test]
     fn test_provider_instance_to_config_without_api_key() {
         // Create a ProviderInstance without an API key
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "no-key-instance".to_string(),
             "No Key Instance".to_string(),
             "anthropic".to_string(),
@@ -381,7 +378,7 @@ mod tests {
     #[test]
     fn test_provider_instance_to_config_without_metadata() {
         // Create a ProviderInstance with API key but no metadata
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "simple-instance".to_string(),
             "Simple Instance".to_string(),
             "openai".to_string(),
@@ -534,7 +531,7 @@ mod tests {
         // Verify only the first key is used
         assert_eq!(instance.api_key, Some("sk-first-key".to_string()));
 
-        let metadata = instance.metadata.as_ref().unwrap();
+        let metadata = &instance.metadata;
         assert_eq!(metadata.get("environment"), Some(&"production".to_string()));
         assert_eq!(metadata.get("source"), Some(&"/path1".to_string()));
     }
@@ -542,7 +539,7 @@ mod tests {
     #[test]
     fn test_malformed_metadata_handling() {
         // Test that malformed metadata in instance doesn't crash conversion
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "malformed-instance".to_string(),
             "Malformed Instance".to_string(),
             "openai".to_string(),
@@ -585,7 +582,7 @@ mod tests {
     #[test]
     fn test_has_api_key_vs_has_non_empty_api_key() {
         // Test the distinction between has_api_key() and has_non_empty_api_key()
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test".to_string(),
             "Test".to_string(),
             "openai".to_string(),
