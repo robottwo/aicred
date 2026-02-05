@@ -22,7 +22,17 @@
 //! This library provides functionality to scan home directories and configuration
 //! files for AI service API keys from various providers like `OpenAI`, `Anthropic`, Google, etc.
 //!
-//! # Example
+//! # API Versions
+//!
+//! As of v0.2.0, two APIs are available:
+//!
+//! - **Legacy API** (v0.1.x): `DiscoveredKey`, `Provider`, `Model`, etc. - Still works, deprecated.
+//! - **New API** (v0.2.0+): `DiscoveredCredential`, `ProviderNew`, `ModelNew`, `LabelNew`, etc. - Recommended.
+//!
+//! The new API provides cleaner naming and better structure. Both APIs work in v0.2.x.
+//! Legacy types will be removed in v0.3.0.
+//!
+//! # Example (Legacy API)
 //!
 //! ```rust
 //! use aicred_core::{scan, ScanOptions, PluginRegistry};
@@ -50,6 +60,32 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Example (New API v0.2.0+)
+//!
+//! ```rust
+//! use aicred_core::{scan, ScanOptions};
+//! use aicred_core::{DiscoveredCredential, LabelNew, ProviderNew};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let temp_dir = tempfile::tempdir()?;
+//! let options = ScanOptions {
+//!     home_dir: Some(temp_dir.path().to_path_buf()),
+//!     include_full_values: false,
+//!     max_file_size: 1024 * 1024,
+//!     only_providers: None,
+//!     exclude_providers: None,
+//!     probe_models: false,
+//!     probe_timeout_secs: 30,
+//! };
+//!
+//! let result = scan(&options)?;
+//! println!("Found {} credentials", result.total_keys());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! See `MIGRATION_0.1_to_0.2.md` for migration guide.
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]
@@ -68,10 +104,32 @@ pub mod utils;
 
 pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
 pub use error::{Error, Result};
+
+// Primary API exports (currently old types, will migrate to new types in 0.3.0)
 pub use models::{
     AuthMethod, Capabilities, Confidence, ConfigInstance, DiscoveredKey, Model, Provider,
     RateLimit, ScanResult, ScanSummary, UnifiedLabel, ValueType,
 };
+
+// New API exports (available now for early adopters)
+pub use models::{
+    CredentialValue,
+    DiscoveredCredential,
+    LabelNew,
+    LabelAssignmentNew,
+    LabelTarget,
+    LabelWithAssignments,
+    ModelNew,
+    ModelCapabilities,
+    ProviderNew,
+    ProviderInstanceNew,
+    ProviderCollection,
+    ConfidenceNew,
+    ValueTypeNew,
+    AuthMethodNew,
+    RateLimitNew,
+};
+
 pub use parser::{ConfigParser, FileFormat};
 pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
 pub use scanner::{Scanner, ScannerConfig, DEFAULT_MAX_FILE_SIZE};
