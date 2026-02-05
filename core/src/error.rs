@@ -50,6 +50,10 @@ pub enum Error {
     /// HTTP request errors.
     #[error("HTTP error: {0}")]
     HttpError(#[from] reqwest::Error),
+
+    /// Export-related errors (e.g., template not found, invalid format).
+    #[error("Export error: {0}")]
+    ExportError(String),
 }
 
 /// Result type alias for the core library.
