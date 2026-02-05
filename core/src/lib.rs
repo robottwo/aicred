@@ -128,30 +128,21 @@ pub use models::{
     ScanSummary,
     // Config
     ConfigInstance,
-};
-
-// Backward compatibility (v0.1.x - deprecated, will be removed in v0.3.0)
-#[allow(deprecated)]
-pub use models::{
-    DiscoveredKey,      // Use DiscoveredCredential instead
-    Tag,                // Use Label instead
-    UnifiedLabel,       // Use LabelWithAssignments instead
-    ProviderConfig,     // Use ProviderInstance instead
-    ProviderInstances,  // Use ProviderCollection instead
-    ProviderKey,        // Merged into DiscoveredCredential
+    // Legacy (for tests)
+    ProviderKey,
+    Tag,
 };
 
 pub use parser::{ConfigParser, FileFormat};
 
 // Plugin API exports
-#[allow(deprecated)]
 pub use plugins::{
-    // Legacy API (still works, will be removed in v0.3.0)
-    register_builtin_plugins, PluginRegistry,
-    // New simplified API (v0.2.0+, preferred for new code)
+    // Provider registry (v0.2.0)
     ProviderRegistry, register_builtin_providers,
     get_provider, list_providers, get_providers_for_file,
-    // Shared
+    // Legacy (still used internally)
+    PluginRegistry, register_builtin_plugins,
+    // Core traits
     ProviderPlugin, CommonConfigPlugin,
 };
 

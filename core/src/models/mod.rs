@@ -11,35 +11,15 @@ pub mod scan;
 pub mod config_instance;
 pub mod config_validator;
 
-// ==== OLD MODELS (v0.1.x - DEPRECATED, kept for backward compatibility) ====
-#[allow(deprecated)]
-pub mod discovered_key;
-#[allow(deprecated)]
-pub mod label;
-#[allow(deprecated)]
-pub mod label_assignment;
-#[allow(deprecated)]
-pub mod model;
-#[allow(deprecated)]
-pub mod model_metadata;
-#[allow(deprecated)]
-pub mod provider;
-#[allow(deprecated)]
-pub mod provider_config;
-#[allow(deprecated)]
-pub mod provider_instance;
-#[allow(deprecated)]
-pub mod provider_instances;
-#[allow(deprecated)]
+// ==== LEGACY SUPPORT (still used internally) ====
+pub mod discovered_key;  // Used by discovery modules
+pub mod provider_config; // Used by conversions
+pub mod provider_instance; // Used by old code
+pub mod provider_instances; // Used by old code
 pub mod provider_key;
-#[allow(deprecated)]
-pub mod scan_result;
-#[allow(deprecated)]
 pub mod tag;
-#[allow(deprecated)]
 pub mod tag_assignment;
-#[allow(deprecated)]
-pub mod unified_label;
+pub mod unified_label; // Used by label system
 
 #[cfg(test)]
 mod tests;
@@ -86,81 +66,17 @@ pub use providers::{
 // Scan Results
 pub use scan::{ScanResult, ScanSummary};
 
-// Config Instance (not deprecated)
+// Config Instance
 pub use config_instance::ConfigInstance;
 
-// ==== BACKWARD COMPATIBILITY ALIASES (v0.1.x) ====
-// These type aliases allow old code to continue working.
-// They point to the new types via type aliases.
-
-// Re-export old module types for external backward compatibility
-#[allow(deprecated)]
-pub use discovered_key::{
-    Confidence as ConfidenceOld,
-    DiscoveredKey,
-    ValueType as ValueTypeOld,
-};
-
-#[allow(deprecated)]
-pub use label::Label as LabelOld;
-
-#[allow(deprecated)]
-pub use label_assignment::{
-    LabelAssignment as LabelAssignmentOld,
-    LabelAssignmentTarget,
-};
-
-#[allow(deprecated)]
-pub use model::{
-    Capabilities as CapabilitiesOld,
-    Model as ModelOld,
-    TokenCost as TokenCostOld,
-};
-
-#[allow(deprecated)]
-pub use model_metadata::{
-    ModelArchitecture,
-    ModelMetadata as ModelMetadataOld,
-    ModelPricing as ModelPricingOld,
-};
-
-#[allow(deprecated)]
-pub use provider::{
-    AuthMethod as AuthMethodOld,
-    Provider as ProviderOld,
-    RateLimit as RateLimitOld,
-};
-
-#[allow(deprecated)]
+// Legacy support (still used internally)
+pub use discovered_key::DiscoveredKey;
 pub use provider_config::ProviderConfig;
-
-#[allow(deprecated)]
 pub use provider_instance::ProviderInstance as ProviderInstanceOld;
-
-#[allow(deprecated)]
 pub use provider_instances::ProviderInstances;
-
-#[allow(deprecated)]
-pub use provider_key::{
-    Environment as EnvironmentOld,
-    ProviderKey,
-    ValidationStatus as ValidationStatusOld,
-};
-
-#[allow(deprecated)]
-pub use scan_result::{
-    ScanResult as ScanResultOld,
-    ScanSummary as ScanSummaryOld,
-};
-
-#[allow(deprecated)]
-pub use tag::Tag;
-
-#[allow(deprecated)]
-pub use tag_assignment::{
-    TagAssignment,
-    TagAssignmentTarget,
-};
-
-#[allow(deprecated)]
+pub use provider_key::ProviderKey;
 pub use unified_label::UnifiedLabel;
+
+// Tags (still used)
+pub use tag::Tag;
+pub use tag_assignment::{TagAssignment, TagAssignmentTarget};
