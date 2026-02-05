@@ -106,7 +106,6 @@ mod tests {
         let score3 = plugin.confidence_score("sk-1234567890");
         assert!(score3 < 0.5, "Expected score < 0.5, got {score3}");
     }
-}
 
     #[test]
     fn test_validate_instance_empty_url() {
