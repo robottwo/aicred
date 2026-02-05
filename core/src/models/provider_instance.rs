@@ -1,4 +1,7 @@
 //! Provider instance model for managing individual provider configurations with enhanced metadata.
+//!
+//! **DEPRECATED**: This module contains the legacy `ProviderInstance` type (aliased as `ProviderInstanceOld`).
+//! New code should use `crate::models::providers::ProviderInstance` instead.
 
 use crate::models::{Model, ProviderKey};
 use chrono::{DateTime, Utc};

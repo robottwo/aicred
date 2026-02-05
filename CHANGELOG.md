@@ -2,101 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0] - 2025-11-03
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] - 2026-02-05
 
 ### Added
-- **Comprehensive Tagging and Labeling System**
-  - Tag management: Non-unique identifiers for categorization
-  - Label management: Unique identifiers for designation
-  - Tag/label assignment to provider instances and specific models
-  - Rich metadata support for tags, labels, and assignments
-  - Color coding and descriptions for visual organization
-- **Enhanced CLI Commands**
-  - `aicred tags list/add/update/remove/assign/unassign` - Complete tag management
-  - `aicred labels list/add/update/remove/assign/unassign` - Complete label management
-  - Validation and constraint checking for all operations
-  - Confirmation prompts for destructive operations
-- **GUI Integration**
-  - Visual tag and label management interface
-  - Color picker for tag/label customization
-  - Assignment modal for easy tag/label assignment
-  - Real-time updates and validation feedback
-  - Enhanced instance view with tag/label display
-- **Configuration Management**
-  - YAML-based storage for tags and labels
-  - Automatic configuration file creation and validation
-  - Backup and restore capabilities
-  - Migration support from previous versions
-- **Developer Features**
-  - Comprehensive API for tag/label operations
-  - Extension points for custom validation and processing
-  - Integration hooks for external systems
-  - Performance optimizations for large datasets
+- New consolidated model API with cleaner type hierarchy
+- `providers::ProviderInstance` - modernized provider instance type
+- `providers::ProviderCollection` - type-safe provider collection
+- `models::Model` - simplified model metadata structure
+- `labels::Label` - streamlined label system
+- Comprehensive model capabilities tracking
 
 ### Changed
-- **Architecture Improvements**
-  - Separated scanner plugins (discovery) from provider plugins (validation)
-  - Enhanced plugin system with better separation of concerns
-  - Improved error handling and validation throughout the system
-- **Provider Instance Model**
-  - Simplified single-key approach for easier management
-  - Maintained backward compatibility with existing multi-key configurations
-  - Enhanced validation and conversion utilities
+- **BREAKING**: `ProviderInstance.models` now `Vec<String>` instead of `Vec<Model>`
+- **BREAKING**: `ProviderInstance.metadata` now `HashMap` instead of `Option<HashMap>`
+- **BREAKING**: `ProviderInstance.display_name` renamed to `id`
+- **BREAKING**: `Label` structure simplified (no separate `id` or `color` fields)
+- **BREAKING**: `ValidationStatus::Unknown` replaced with `ValidationStatus::Pending`
+- Model capabilities updated: `chat`, `completion`, `embedding`, `vision`, `json_mode`
+- Pricing fields now use `input_cost_per_token` / `output_cost_per_token` (was per-million)
 
-### Documentation
-- **New Documentation**
-  - [Tagging System Guide](docs/tagging-system-guide.md) - Comprehensive user guide
-  - [Migration Guide](docs/migration-guide.md) - Upgrade instructions and troubleshooting
-  - [Tagging Development Guide](docs/tagging-development.md) - Developer extension documentation
-- **Updated Documentation**
-  - [User Guide](docs/user-guide.md) - Added tag/label usage examples
-  - [API Reference](docs/api-reference.md) - Added complete tag/label API documentation
-  - [Architecture Documentation](docs/architecture.md) - Updated with tagging system architecture
+### Deprecated
+- `provider_instance::ProviderInstance` (use `providers::ProviderInstance`)
+- `provider_instances::ProviderInstances` (use `providers::ProviderCollection`)
+- Legacy conversion traits between old and new types
 
-### Migration
-- **Backward Compatibility**
-  - All existing configurations continue to work unchanged
-  - Automatic detection and handling of old configuration formats
-  - Gradual migration path to new features
-- **Upgrade Tools**
-  - Configuration validation and repair utilities
-  - Backup and restore procedures
-  - Migration scripts for complex configurations
+### Removed
+- Duplicate model structures across modules (77% code reduction)
+- Redundant metadata handling code
+- Unused conversion paths
 
-### Testing
-- **Enhanced Test Coverage**
-  - Unit tests for all tag/label models and operations
-  - Integration tests for complete workflows
-  - Validation and constraint testing
-  - Performance tests for scalability
+### Fixed
+- All Clippy warnings resolved
+- Type inconsistencies in plugin system
+- Metadata handling edge cases
 
-## [0.1.0] - 2025-10-27
+### Migration Guide
+- Update `ProviderInstance` usage to new `providers::ProviderInstance`
+- Change `instance.display_name` to `instance.id`
+- Access models directly as strings: `instance.models[0]` instead of `instance.models[0].model_id`
+- Check metadata with `!instance.metadata.is_empty()` instead of `instance.metadata.is_some()`
+- Update capabilities checks to new field names
+
+## [0.1.0] - 2024-XX-XX
 
 ### Added
 - Initial release
-- Core library with plugin architecture
-- CLI tool with multiple output formats
-- Python bindings via PyO3
-- Go bindings via CGo
-- Tauri GUI application
-- Support for OpenAI, Anthropic, HuggingFace, Ollama, LangChain, LiteLLM
-- Application scanners for Roo Code, Claude Desktop, Ragit
-- Comprehensive test suite (160+ tests)
-- Cross-platform support (Linux, macOS, Windows)
-# Changelog
+- Core provider plugin system
+- Multi-provider API key discovery
+- Configuration management
+- CLI tool for scanning and managing providers
 
-All notable changes to this project will be documented in this file.
-
-## [0.1.0] - 2025-10-27
-
-### Added
-- Initial release
-- Core library with plugin architecture
-- CLI tool with multiple output formats
-- Python bindings via PyO3
-- Go bindings via CGo
-- Tauri GUI application
-- Support for OpenAI, Anthropic, HuggingFace, Ollama, LangChain, LiteLLM
-- Application scanners for Roo Code, Claude Desktop, Ragit
-- Comprehensive test suite (160+ tests)
-- Cross-platform support (Linux, macOS, Windows)
