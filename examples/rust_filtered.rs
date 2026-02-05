@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_full_values(false) // keep secrets redacted
         .with_max_file_size(1_048_576);
 
-    let result = scan(options)?;
+    let result = scan(&options)?;
 
     println!("Providers scanned: {:?}", result.providers_scanned);
     println!("Found {} keys ({} config instances)", result.keys.len(), result.config_instances.len());
