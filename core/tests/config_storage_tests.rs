@@ -3,7 +3,9 @@
 //! This module tests the configuration storage system that manages provider
 //! configurations across multiple YAML files with a manifest-based approach.
 
-use aicred_core::models::{Confidence, Environment, ProviderKey, ValidationStatus};
+use aicred_core::models::ProviderKey;
+use aicred_core::models::discovered_key::Confidence;
+use aicred_core::models::provider_key::{Environment, ValidationStatus};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -301,7 +303,7 @@ fn test_empty_providers_handling() {
 
     assert!(loaded_config.keys.is_empty());
     assert!(loaded_config.models.is_empty());
-    assert!(loaded_config.metadata.is_none());
+    assert!(loaded_config.metadata.as_ref().map(|m| m.is_empty()).unwrap_or(true));
 }
 
 #[test]
@@ -385,7 +387,7 @@ updated_at: "2023-01-01T00:00:00Z"
     );
     let minimal_config = minimal_result.unwrap();
     assert!(minimal_config.keys.is_empty());
-    assert!(minimal_config.metadata.is_none());
+    assert!(minimal_config.metadata.as_ref().map(|m| m.is_empty()).unwrap_or(true));
 }
 
 #[test]

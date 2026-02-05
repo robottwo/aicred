@@ -60,7 +60,7 @@ fn test_gsh_real_config_validation() {
     println!("    Total Providers: {}", provider_instances.len());
 
     for instance in &provider_instances {
-        println!("\n    Provider: {}", instance.display_name);
+        println!("\n    Provider: {}", instance.id);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
         println!("    Keys: {}", instance.has_api_key() as usize);
@@ -70,7 +70,7 @@ fn test_gsh_real_config_validation() {
             println!("        - {} ({})", model.name, model.model_id);
         }
 
-        if let Some(metadata) = &instance.metadata {
+        let metadata = &instance.metadata; if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -107,7 +107,7 @@ fn test_gsh_real_config_validation() {
     // Verify settings are captured
     let instances_with_settings: Vec<_> = provider_instances
         .iter()
-        .filter(|p| p.metadata.is_some() && !p.metadata.as_ref().unwrap().is_empty())
+        .filter(|p| !p.metadata.is_empty() && !&p.metadata.is_empty())
         .collect();
     assert!(
         !instances_with_settings.is_empty(),
@@ -158,7 +158,7 @@ fn test_claude_desktop_real_config_validation() {
     println!("    Total Providers: {}", provider_instances.len());
 
     for instance in &provider_instances {
-        println!("\n    Provider: {}", instance.display_name);
+        println!("\n    Provider: {}", instance.id);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
         println!("    Keys: {}", instance.has_api_key() as usize);
@@ -168,7 +168,7 @@ fn test_claude_desktop_real_config_validation() {
             println!("        - {} ({})", model.name, model.model_id);
         }
 
-        if let Some(metadata) = &instance.metadata {
+        let metadata = &instance.metadata; if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -196,11 +196,11 @@ fn test_claude_desktop_real_config_validation() {
 
     // Verify settings are captured
     assert!(
-        anthropic_instance.metadata.is_some(),
+        !anthropic_instance.metadata.is_empty(),
         "Should have settings (temperature, max_tokens, etc.)"
     );
 
-    let metadata = anthropic_instance.metadata.as_ref().unwrap();
+    let metadata = &anthropic_instance.metadata;
     assert!(
         metadata.contains_key("temperature") || metadata.contains_key("max_tokens"),
         "Should capture temperature or max_tokens setting"
@@ -249,7 +249,7 @@ fn test_roo_code_real_config_validation() {
     println!("    Total Providers: {}", provider_instances.len());
 
     for instance in &provider_instances {
-        println!("\n    Provider: {}", instance.display_name);
+        println!("\n    Provider: {}", instance.id);
         println!("      Type: {}", instance.provider_type);
         println!("      Base URL: {}", instance.base_url);
         println!("      Keys: {}", instance.has_api_key() as usize);
@@ -259,7 +259,7 @@ fn test_roo_code_real_config_validation() {
             println!("        - {} ({})", model.name, model.model_id);
         }
 
-        if let Some(metadata) = &instance.metadata {
+        let metadata = &instance.metadata; if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -294,7 +294,7 @@ fn test_roo_code_real_config_validation() {
     // Verify settings are captured
     let instances_with_settings: Vec<_> = provider_instances
         .iter()
-        .filter(|p| p.metadata.is_some() && !p.metadata.as_ref().unwrap().is_empty())
+        .filter(|p| !p.metadata.is_empty() && !&p.metadata.is_empty())
         .collect();
     assert!(
         !instances_with_settings.is_empty(),
@@ -392,7 +392,7 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
             "Provider type should not be empty"
         );
         assert!(
-            !instance.display_name.is_empty(),
+            !instance.id.is_empty(),
             "Display name should not be empty"
         );
         assert!(
@@ -400,7 +400,7 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
             "Base URL should not be empty"
         );
 
-        println!("  Provider: {}", instance.display_name);
+        println!("  Provider: {}", instance.id);
         println!("    Type: {}", instance.provider_type);
         println!("    Base URL: {}", instance.base_url);
         println!("      Keys: {}", instance.has_api_key() as usize);
@@ -412,7 +412,7 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
             println!("      - {} ({})", model.name, model.model_id);
         }
 
-        if let Some(metadata) = &instance.metadata {
+        let metadata = &instance.metadata; if !metadata.is_empty() {
             println!("    Settings: {} entries", metadata.len());
             for (key, value) in metadata {
                 assert!(!key.is_empty(), "Setting key should not be empty");

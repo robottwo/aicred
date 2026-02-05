@@ -3,7 +3,9 @@
 // Allow clippy lints for multi-key tests
 #![allow(unused_imports)]
 
-use aicred_core::models::{Confidence, Environment, ProviderConfig, ProviderKey, ValidationStatus};
+use aicred_core::models::{ProviderConfig, ProviderKey};
+use aicred_core::models::discovered_key::Confidence;
+use aicred_core::models::provider_key::{Environment, ValidationStatus};
 use chrono::{DateTime, Utc};
 
 #[test]
