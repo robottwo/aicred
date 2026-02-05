@@ -418,16 +418,17 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             .into_iter()
             .map(|key| {
                 // Keep full values for non-sensitive value types
+                use crate::models::discovered_key::ValueType as OldValueType;
                 let should_preserve = match &key.value_type {
-                    ValueType::ModelId => {
+                    OldValueType::ModelId => {
                         tracing::debug!("Preserving ModelId key: {}", key.redacted_value());
                         true
                     }
-                    ValueType::Custom(name) if name == "ModelId" || name.contains("Model") => {
+                    OldValueType::Custom(name) if name == "ModelId" || name.contains("Model") => {
                         tracing::debug!("Preserving custom Model key: {}", name);
                         true
                     }
-                    ValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => true,
+                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => true,
                     // Redact sensitive values like API keys
                     _ => false,
                 };
@@ -448,7 +449,7 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             result
                 .keys
                 .iter()
-                .filter(|k| matches!(k.value_type, ValueType::ModelId))
+                .filter(|k| matches!(k.value_type, crate::models::discovered_key::ValueType::ModelId))
                 .count()
         );
     }

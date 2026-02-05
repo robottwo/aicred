@@ -294,7 +294,8 @@ impl From<crate::models::provider_config::ProviderConfig> for ProviderInstance {
 #[allow(deprecated)]
 impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
     fn from(instance: ProviderInstance) -> Self {
-        use crate::models::{provider_key::ProviderKey, Confidence};
+        use crate::models::provider_key::{ProviderKey, Environment as OldEnvironment, ValidationStatus as OldValidationStatus};
+        use crate::models::discovered_key::Confidence as OldConfidence;
         
         let keys = if !instance.api_key.is_empty() {
             vec![ProviderKey {
@@ -303,9 +304,9 @@ impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
                 discovered_at: chrono::Utc::now(),
                 source: String::new(),  // No source info available from ProviderInstance
                 line_number: None,
-                confidence: Confidence::High,  // Default confidence
-                environment: crate::models::Environment::Unknown,
-                validation_status: crate::models::ValidationStatus::NotValidated,
+                confidence: OldConfidence::High,  // Default confidence
+                environment: OldEnvironment::Unknown,
+                validation_status: OldValidationStatus::NotValidated,
             }]
         } else {
             Vec::new()

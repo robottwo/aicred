@@ -690,8 +690,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
 
             // Add models if any were discovered
             for model_id in &model_ids {
-                let model = Model::new(model_id.clone(), model_id.clone());
-                instance.add_model(model);
+                instance.add_model(model_id.clone());
                 tracing::debug!("Added model '{}' to instance '{}'", model_id, instance_id);
             }
 
@@ -716,9 +715,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
                                                 instance_id
                                             );
                                         for model_id in probed_models {
-                                            let model =
-                                                Model::new(model_id.clone(), model_id.clone());
-                                            instance.add_model(model);
+                                            instance.add_model(model_id.clone());
                                         }
                                     }
                                     Ok(_) => {
