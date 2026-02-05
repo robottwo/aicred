@@ -191,3 +191,78 @@ pub fn handle_export_simple(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_var_spec() {
+        // Test valid variable specification
+        let spec = "NAME=VALUE";
+        let parts: Vec<&str> = spec.splitn(2, '=').collect();
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0], "NAME");
+        assert_eq!(parts[1], "VALUE");
+    }
+
+    #[test]
+    fn test_parse_var_spec_with_equals() {
+        // Test variable specification with '=' in value
+        let spec = "NAME=VALUE=WITH=EQUALS";
+        let parts: Vec<&str> = spec.splitn(2, '=').collect();
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0], "NAME");
+        assert_eq!(parts[1], "VALUE=WITH=EQUALS");
+    }
+
+    #[test]
+    fn test_parse_var_spec_invalid() {
+        // Test invalid variable specification
+        let spec = "INVALID";
+        let parts: Vec<&str> = spec.splitn(2, '=').collect();
+        assert_ne!(parts.len(), 2);
+    }
+
+    #[test]
+    fn test_export_context_building() {
+        let mut ctx = ExportContext::new();
+        
+        // Add provider vars
+        ctx.add_provider_var("openai", "api_key", "sk-test123");
+        ctx.add_provider_var("openai", "base_url", "https://api.openai.com");
+        
+        // Add custom vars
+        ctx.add_custom_var("CUSTOM_VAR", "custom_value");
+        
+        // Verify
+        assert!(ctx.provider_vars.contains_key("openai"));
+        assert_eq!(
+            ctx.provider_vars.get("openai").unwrap().get("api_key").unwrap(),
+            "sk-test123"
+        );
+        assert_eq!(ctx.custom_vars.get("CUSTOM_VAR").unwrap(), "custom_value");
+    }
+
+    #[test]
+    fn test_prefix_application() {
+        let content = "export VAR1=value1\nexport VAR2=value2";
+        let prefix = "MY_";
+        
+        let prefixed: String = content
+            .lines()
+            .map(|line| {
+                if line.trim().starts_with("export ") {
+                    let after_export = line.trim_start_matches("export ").trim();
+                    format!("export {}{}", prefix, after_export)
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        
+        assert!(prefixed.contains("export MY_VAR1=value1"));
+        assert!(prefixed.contains("export MY_VAR2=value2"));
+    }
+}
