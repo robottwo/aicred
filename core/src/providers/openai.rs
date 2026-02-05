@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = OpenAIPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = OpenAIPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -330,7 +330,7 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -358,7 +358,7 @@ mod tests {
     #[test]
     fn test_initialize_instance() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
             "Test OpenAI".to_string(),
             "openai".to_string(),
@@ -441,7 +441,7 @@ mod tests {
         ];
 
         for url in valid_urls {
-            let instance = ProviderInstance::new(
+            let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
                 "Test OpenAI".to_string(),
                 "openai".to_string(),
@@ -474,7 +474,7 @@ mod tests {
         ];
 
         for url in invalid_urls {
-            let instance = ProviderInstance::new(
+            let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
                 "Test OpenAI".to_string(),
                 "openai".to_string(),

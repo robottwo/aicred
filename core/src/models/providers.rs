@@ -60,9 +60,16 @@ pub struct ProviderInstance {
     pub models: Vec<String>,
     /// Provider capabilities
     pub capabilities: Capabilities,
+    /// Whether this instance is active (backward compatibility)
+    #[serde(default = "default_active")]
+    pub active: bool,
     /// Additional metadata
     #[serde(default)]
     pub metadata: HashMap<String, String>,
+}
+
+fn default_active() -> bool {
+    true
 }
 
 impl ProviderInstance {
@@ -124,6 +131,7 @@ impl ProviderInstance {
             api_key,
             models,
             capabilities: Capabilities::default(),
+            active: true,
             metadata: HashMap::new(),
         }
     }
@@ -227,6 +235,36 @@ impl ProviderCollection {
     pub fn is_empty(&self) -> bool {
         self.instances.is_empty()
     }
+    
+    // ==== Backward Compatibility Methods ====
+    
+    /// Gets an instance by ID (backward compat alias for `get`)
+    #[must_use]
+    pub fn get_instance(&self, id: &str) -> Option<&ProviderInstance> {
+        self.get(id)
+    }
+    
+    /// Gets a mutable instance by ID (backward compat)
+    #[must_use]
+    pub fn get_instance_mut(&mut self, id: &str) -> Option<&mut ProviderInstance> {
+        self.instances.get_mut(id)
+    }
+    
+    /// Adds an instance (backward compat - returns Result for consistency with old API)
+    ///
+    /// # Errors
+    /// Never returns an error (kept for API compatibility).
+    pub fn add_instance(&mut self, instance: ProviderInstance) -> Result<(), String> {
+        let id = instance.id.clone();
+        self.add(id, instance);
+        Ok(())
+    }
+    
+    /// Gets all instances (backward compat alias for `list`)
+    #[must_use]
+    pub fn all_instances(&self) -> Vec<&ProviderInstance> {
+        self.list()
+    }
 }
 
 // ==== BACKWARD COMPATIBILITY CONVERSIONS ====
@@ -256,23 +294,31 @@ impl From<crate::models::provider_config::ProviderConfig> for ProviderInstance {
 #[allow(deprecated)]
 impl From<ProviderInstance> for crate::models::provider_config::ProviderConfig {
     fn from(instance: ProviderInstance) -> Self {
-        use crate::models::provider_key::ProviderKey;
+        use crate::models::{provider_key::ProviderKey, Confidence};
         
         let keys = if !instance.api_key.is_empty() {
             vec![ProviderKey {
+                id: instance.id.clone(),
                 value: Some(instance.api_key),
-                hash: None,
-                source: None,
                 discovered_at: chrono::Utc::now(),
+                source: String::new(),  // No source info available from ProviderInstance
+                line_number: None,
+                confidence: Confidence::High,  // Default confidence
+                environment: crate::models::Environment::Unknown,
+                validation_status: crate::models::ValidationStatus::NotValidated,
             }]
         } else {
             Vec::new()
         };
         
         Self {
+            id: Some(instance.id),
             keys,
             models: instance.models,
             metadata: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            schema_version: 1,
         }
     }
 }

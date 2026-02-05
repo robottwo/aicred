@@ -102,6 +102,23 @@ impl Model {
         }
     }
 
+    /// Gets the model ID (backward compatibility accessor).
+    ///
+    /// Old code used `model.model_id`, new code uses `model.id`.
+    /// This method bridges the gap.
+    #[must_use]
+    pub fn model_id(&self) -> &str {
+        &self.id
+    }
+
+    /// Gets the context length (backward compatibility accessor).
+    ///
+    /// Old code may use `model.context_length`, new code uses `model.context_window`.
+    #[must_use]
+    pub const fn context_length(&self) -> Option<u32> {
+        self.context_window
+    }
+
     /// Validates the model configuration (stub for backward compatibility).
     ///
     /// # Errors

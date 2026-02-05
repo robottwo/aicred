@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::models::{DiscoveredKey, ProviderInstance, ProviderInstances};
+use crate::models::{DiscoveredKey, ProviderInstance, ProviderCollection};
 
 /// Represents a specific instance of an application configuration
 /// For example, multiple Roo Code installations in different directories
@@ -23,7 +23,7 @@ pub struct ConfigInstance {
     pub keys: Vec<DiscoveredKey>,
     /// Provider instances for this configuration
     #[serde(default)]
-    pub provider_instances: ProviderInstances,
+    pub provider_instances: ProviderCollection,
     /// Optional metadata (version, settings, etc.)
     pub metadata: HashMap<String, String>,
 }
@@ -38,14 +38,14 @@ impl ConfigInstance {
             config_path,
             discovered_at: Utc::now(),
             keys: Vec::new(),
-            provider_instances: ProviderInstances::new(),
+            provider_instances: ProviderCollection::new(),
             metadata: HashMap::new(),
         }
     }
 
     /// Creates a new config instance with provider instances.
     #[must_use]
-    pub fn with_provider_instances(mut self, provider_instances: ProviderInstances) -> Self {
+    pub fn with_provider_instances(mut self, provider_instances: ProviderCollection) -> Self {
         self.provider_instances = provider_instances;
         self
     }

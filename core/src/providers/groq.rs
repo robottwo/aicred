@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = GroqPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),
@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = GroqPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
             "Test Groq".to_string(),
             "groq".to_string(),

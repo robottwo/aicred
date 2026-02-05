@@ -264,11 +264,9 @@ impl EnvResolver {
                     }
 
                     // Handle metadata variables
-                    if let Some(metadata) = &instance.metadata {
-                        for (key, value) in metadata {
-                            let meta_var_name = format!("{}_{}", prefix, key.to_uppercase());
-                            result.add_variable(meta_var_name, value.clone());
-                        }
+                    for (key, value) in &instance.metadata {
+                        let meta_var_name = format!("{}_{}", prefix, key.to_uppercase());
+                        result.add_variable(meta_var_name, value.clone());
                     }
                 }
 
@@ -367,14 +365,12 @@ fn resolve_model_id(
 /// Resolves temperature value
 fn resolve_temperature(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if temperature is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(temp) = metadata.get("temperature") {
-            return Some(temp.clone());
-        }
-        // Also check for uppercase key
-        if let Some(temp) = metadata.get("TEMPERATURE") {
-            return Some(temp.clone());
-        }
+    if let Some(temp) = instance.metadata.get("temperature") {
+        return Some(temp.clone());
+    }
+    // Also check for uppercase key
+    if let Some(temp) = instance.metadata.get("TEMPERATURE") {
+        return Some(temp.clone());
     }
 
     // Fall back to default value if specified
@@ -384,14 +380,12 @@ fn resolve_temperature(var: &EnvVarDeclaration, instance: &ProviderInstance) -> 
 /// Resolves max tokens value
 fn resolve_max_tokens(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if max_tokens is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(tokens) = metadata.get("MAX_TOKENS") {
-            return Some(tokens.clone());
-        }
-        // Also check for lowercase key
-        if let Some(tokens) = metadata.get("max_tokens") {
-            return Some(tokens.clone());
-        }
+    if let Some(tokens) = instance.metadata.get("MAX_TOKENS") {
+        return Some(tokens.clone());
+    }
+    // Also check for lowercase key
+    if let Some(tokens) = instance.metadata.get("max_tokens") {
+        return Some(tokens.clone());
     }
 
     // Fall back to default value if specified
@@ -404,10 +398,8 @@ fn resolve_parallel_tool_calls(
     instance: &ProviderInstance,
 ) -> Option<String> {
     // Check if parallel tool calls is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(ptc) = metadata.get("parallel_tool_calls") {
-            return Some(ptc.clone());
-        }
+    if let Some(ptc) = instance.metadata.get("parallel_tool_calls") {
+        return Some(ptc.clone());
     }
 
     // Fall back to default value if specified
@@ -417,10 +409,8 @@ fn resolve_parallel_tool_calls(
 /// Resolves headers value
 fn resolve_headers(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if headers are in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(headers) = metadata.get("headers") {
-            return Some(headers.clone());
-        }
+    if let Some(headers) = instance.metadata.get("headers") {
+        return Some(headers.clone());
     }
 
     // Fall back to default value if specified
@@ -662,8 +652,7 @@ mod tests {
         instance.set_api_key(api_key.to_string());
 
         for model_id in models {
-            let model = Model::new(model_id.to_string(), model_id.to_string());
-            instance.add_model(model);
+            instance.add_model(model_id.to_string());
         }
 
         instance

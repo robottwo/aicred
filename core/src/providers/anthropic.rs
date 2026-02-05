@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = AnthropicPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = AnthropicPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -324,7 +324,7 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),
@@ -416,7 +416,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_valid_configured_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
             "Test Anthropic".to_string(),
             "anthropic".to_string(),

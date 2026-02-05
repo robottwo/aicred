@@ -165,7 +165,7 @@ impl ProviderInstance {
     /// Gets a model by ID.
     #[must_use]
     pub fn get_model(&self, model_id: &str) -> Option<&Model> {
-        self.models.iter().find(|model| model.model_id == model_id)
+        self.models.iter().find(|model| model.model_id() == model_id)
     }
 
     /// Validates the instance configuration.
@@ -414,7 +414,7 @@ impl From<ProviderInstance> for crate::models::ProviderConfig {
         config.models = instance
             .models
             .into_iter()
-            .map(|model| model.model_id)
+            .map(|model| model.id.clone())
             .collect();
 
         config

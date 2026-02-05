@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = HuggingFacePlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = HuggingFacePlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
             "Test Hugging Face".to_string(),
             "huggingface".to_string(),

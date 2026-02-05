@@ -93,36 +93,9 @@ pub trait ProviderPlugin: Send + Sync {
             crate::error::Error::PluginError(format!("Failed to parse model file: {e}"))
         })?;
 
-        // Apply provider-specific overrides from metadata
-        if let Some(metadata) = &instance.metadata {
-            if let Some(model_overrides_json) = metadata.get("model_overrides") {
-                // Parse the JSON string to get the model overrides
-                if let Ok(model_overrides) =
-                    serde_json::from_str::<serde_json::Value>(model_overrides_json)
-                {
-                    if let Some(model_override) = model_overrides.get(model_id) {
-                        if let Some(temp_value) = model_override.get("temperature") {
-                            if let Some(temp_str) = temp_value.as_str() {
-                                if let Ok(temperature) = temp_str.parse::<f32>() {
-                                    // Create a new temperature field or update existing one
-                                    // This would need to be added to the Model struct
-                                    // For now, we'll store it in the model's metadata
-                                    if model.metadata.is_none() {
-                                        model.metadata = Some(std::collections::HashMap::new());
-                                    }
-                                    if let Some(ref mut metadata) = model.metadata {
-                                        metadata.insert(
-                                            "temperature".to_string(),
-                                            serde_json::Value::String(temperature.to_string()),
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // TODO: Re-implement provider-specific overrides for v0.2.0 metadata structure
+        // The old model.metadata field was Option<HashMap>, but the new Model.metadata
+        // is a ModelMetadata struct. Override logic needs to be updated.
 
         Ok(Some(model))
     }

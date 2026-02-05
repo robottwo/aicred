@@ -911,8 +911,8 @@ fn probe_provider_instances_async(
                                 e
                             );
                             stats.probe_failures += 1;
-                            metadata.insert("probe_success".to_string(), "false".to_string());
-                            metadata.insert("probe_error".to_string(), e.to_string());
+                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
+                            provider_instance.metadata.insert("probe_error".to_string(), e.to_string());
                         }
                         Err(_) => {
                             tracing::warn!(
@@ -921,8 +921,8 @@ fn probe_provider_instances_async(
                                 instance_id
                             );
                             stats.probe_failures += 1;
-                            metadata.insert("probe_success".to_string(), "false".to_string());
-                            metadata.insert("probe_error".to_string(), "timeout".to_string());
+                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
+                            provider_instance.metadata.insert("probe_error".to_string(), "timeout".to_string());
                         }
                     }
                     break;

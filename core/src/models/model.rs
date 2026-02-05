@@ -109,10 +109,10 @@ impl From<crate::models::ModelMetadata> for Model {
         }
 
         Self {
-            model_id: metadata.id,
-            name: metadata.name,
+            model_id: metadata.id.unwrap_or_default(),
+            name: metadata.name.unwrap_or_default(),
             quantization: None,
-            context_window: metadata.context_length,
+            context_window: None,  // context_length doesn't exist on new ModelMetadata
             capabilities: None,
             temperature: None,
             tags: None,

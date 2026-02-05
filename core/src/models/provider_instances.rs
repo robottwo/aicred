@@ -1,8 +1,11 @@
 //! Provider instances collection for managing multiple provider configurations.
 
-use crate::models::ProviderInstance;
+use crate::models::provider_instance::ProviderInstance as ProviderInstanceOld;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+// This file uses the old ProviderInstance type for backward compatibility
+type ProviderInstance = ProviderInstanceOld;
 
 /// Collection of provider instances with lookup and filtering capabilities.
 #[derive(Debug, Clone, Serialize, Deserialize)]

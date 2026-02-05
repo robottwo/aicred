@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = LiteLLMPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -224,7 +224,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = LiteLLMPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn test_initialize_instance() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
             "Test LiteLLM".to_string(),
             "litellm".to_string(),

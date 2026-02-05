@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = OllamaPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = OllamaPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn test_validate_empty_model_id() {
         let plugin = OllamaPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = OllamaPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = OllamaPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -238,7 +238,7 @@ mod tests {
         let plugin = OllamaPlugin;
 
         // With valid URL, should return true (no keys required)
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -247,7 +247,7 @@ mod tests {
         assert!(plugin.is_instance_configured(&instance).unwrap());
 
         // With invalid URL, should return false
-        let invalid_instance = ProviderInstance::new(
+        let invalid_instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn test_initialize_instance() {
         let plugin = OllamaPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
             "Test Ollama".to_string(),
             "ollama".to_string(),
