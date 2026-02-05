@@ -532,9 +532,9 @@ fn test_scanner_plugin_ext_with_metadata() {
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
     assert_eq!(instance.base_url, "https://api.openai.com");
-    assert!(instance.metadata.is_some());
+    assert!(!instance.metadata.is_empty());
     assert_eq!(
-        instance.metadata.as_ref().unwrap().get("temperature"),
+        instance.metadata.get("temperature"),
         Some(&"0.7".to_string())
     );
 }
@@ -657,7 +657,7 @@ fn test_scanner_plugin_ext_custom_value_types() {
 
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(
         metadata.get("organization_id"),
         Some(&"org-123456".to_string())
@@ -732,12 +732,8 @@ fn test_scanner_plugin_ext_invalid_temperature() {
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
     assert!(
-        instance.metadata.is_none()
-            || !instance
-                .metadata
-                .as_ref()
-                .unwrap()
-                .contains_key("temperature")
+        instance.metadata.is_empty()
+            || !instance.metadata.contains_key("temperature")
     );
 }
 
@@ -900,7 +896,7 @@ fn test_scanner_plugin_ext_all_value_types() {
     assert!(instance.has_api_key());
 
     // Verify metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.8".to_string()));
     assert_eq!(
         metadata.get("parallel_tool_calls"),
@@ -1098,7 +1094,7 @@ fn test_scanner_plugin_ext_multiple_models() {
     let model_ids: Vec<&str> = instance
         .models
         .iter()
-        .map(|m| m.model_id.as_str())
+        .map(|m| m.as_str())
         .collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));
@@ -1256,7 +1252,7 @@ fn test_provider_instances_with_multiple_value_types() {
     assert_eq!(instance.model_count(), 2, "Should have 2 models");
 
     // Verify metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.7".to_string()));
     assert_eq!(
         metadata.get("organization"),
@@ -1267,7 +1263,7 @@ fn test_provider_instances_with_multiple_value_types() {
     let model_ids: Vec<&str> = instance
         .models
         .iter()
-        .map(|m| m.model_id.as_str())
+        .map(|m| m.as_str())
         .collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));
@@ -1543,7 +1539,7 @@ fn test_edge_case_invalid_temperature_value() {
     let instance = &instances[0];
 
     // Temperature should not be in metadata
-    if let Some(metadata) = &instance.metadata {
+    let metadata = &instance.metadata; if !metadata.is_empty() {
         assert!(
             !metadata.contains_key("temperature"),
             "Invalid temperature should be skipped"
@@ -1697,7 +1693,7 @@ fn test_all_key_types_comprehensive() {
     assert_eq!(instance.base_url, "https://custom.api.com");
 
     // Should have metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.9".to_string()));
     assert_eq!(
         metadata.get("parallel_tool_calls"),
@@ -1960,7 +1956,7 @@ fn test_multiple_models_same_provider() {
     let model_ids: Vec<&str> = instance
         .models
         .iter()
-        .map(|m| m.model_id.as_str())
+        .map(|m| m.as_str())
         .collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));

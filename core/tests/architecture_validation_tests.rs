@@ -58,7 +58,7 @@ fn test_gsh_scanner_architecture() {
     for (i, instance) in provider_instances.iter().enumerate() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
-        println!("  Display Name: {}", instance.display_name);
+        println!("  Display Name: {}", instance.id);
         println!("  Key Count: {}", instance.has_api_key() as usize);
         println!("  Has Valid Keys: {}", instance.has_api_key());
         println!("  Model Count: {}", instance.model_count());
@@ -70,7 +70,7 @@ fn test_gsh_scanner_architecture() {
             "Provider type should not be empty"
         );
         assert!(
-            !instance.display_name.is_empty(),
+            !instance.id.is_empty(),
             "Display name should not be empty"
         );
         assert!(
@@ -224,7 +224,7 @@ fn test_claude_desktop_scanner_architecture() {
     let provider_instance = provider_instances[0];
     println!("\nProvider Instance:");
     println!("  Type: {}", provider_instance.provider_type);
-    println!("  Display Name: {}", provider_instance.display_name);
+    println!("  Display Name: {}", provider_instance.id);
     println!("  Key Count: {}", provider_instance.has_api_key() as usize);
     println!("  Has Valid Keys: {}", provider_instance.has_api_key());
 
@@ -234,7 +234,7 @@ fn test_claude_desktop_scanner_architecture() {
         "Should be anthropic provider"
     );
     assert_eq!(
-        provider_instance.display_name, "anthropic",
+        provider_instance.id, "anthropic",
         "Display name should match provider type"
     );
     assert_eq!(
@@ -255,12 +255,12 @@ fn test_claude_desktop_scanner_architecture() {
         "Should have exactly one model"
     );
     assert_eq!(
-        provider_instance.models[0].model_id, "claude-3-opus-20240229",
+        provider_instance.models[0], "claude-3-opus-20240229",
         "Model ID should match the config"
     );
 
     // Verify temperature was added to provider instance metadata
-    if let Some(metadata) = &provider_instance.metadata {
+    let metadata = &provider_instance.metadata; if !metadata.is_empty() {
         assert_eq!(
             metadata.get("temperature"),
             Some(&"0.7".to_string()),
@@ -346,7 +346,7 @@ fn test_roo_code_scanner_architecture() {
     for (i, instance) in provider_instances.iter().enumerate() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
-        println!("  Display Name: {}", instance.display_name);
+        println!("  Display Name: {}", instance.id);
         println!("  Key Count: {}", instance.has_api_key() as usize);
         println!("  Model Count: {}", instance.model_count());
         println!("  Has Valid Keys: {}", instance.has_api_key());
@@ -358,7 +358,7 @@ fn test_roo_code_scanner_architecture() {
             "Provider type should not be empty"
         );
         assert!(
-            !instance.display_name.is_empty(),
+            !instance.id.is_empty(),
             "Display name should not be empty"
         );
         assert!(
@@ -657,7 +657,7 @@ fn test_settings_mapping() {
         .expect("Should have groq provider instance");
 
     println!("\nGroq Provider Instance Metadata:");
-    if let Some(metadata) = &groq_instance.metadata {
+    let metadata = &groq_instance.metadata; if !metadata.is_empty() {
         for (key, value) in metadata {
             println!("  {}: {}", key, value);
         }
@@ -686,7 +686,7 @@ fn test_settings_mapping() {
         "Groq instance should have 1 model"
     );
     assert_eq!(
-        groq_instance.models[0].model_id, "llama3-70b-8192",
+        groq_instance.models[0], "llama3-70b-8192",
         "Model ID should be correctly mapped"
     );
 
