@@ -147,7 +147,7 @@ pub fn handle_list_tags(home: Option<&Path>) -> Result<()> {
 /// Handle the tags add command
 pub fn handle_add_tag(
     name: String,
-    _color: Option<String>,  // Color not supported in Label
+    _color: Option<String>, // Color not supported in Label
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
@@ -159,7 +159,7 @@ pub fn handle_add_tag(
     }
 
     let now = chrono::Utc::now();
-    let mut tag = Label {
+    let tag = Label {
         name: name.clone(),
         description,
         created_at: now,
@@ -243,7 +243,7 @@ pub fn handle_remove_tag(name: String, force: bool, home: Option<&Path>) -> Resu
 /// Handle the tags update command
 pub fn handle_update_tag(
     name: String,
-    _color: Option<String>,  // Color not supported in Label
+    _color: Option<String>, // Color not supported in Label
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
@@ -330,11 +330,24 @@ pub fn handle_assign_tag(
 
     // Check if assignment already exists
     let assignment_exists = assignments.iter().any(|existing| {
-        existing.label_name == assignment.label_name && match (&existing.target, &assignment.target) {
-            (LabelTarget::ProviderInstance { instance_id: e_i }, LabelTarget::ProviderInstance { instance_id: a_i }) => e_i == a_i,
-            (LabelTarget::ProviderModel { instance_id: e_i, model_id: e_m }, LabelTarget::ProviderModel { instance_id: a_i, model_id: a_m }) => e_i == a_i && e_m == a_m,
-            _ => false,
-        }
+        existing.label_name == assignment.label_name
+            && match (&existing.target, &assignment.target) {
+                (
+                    LabelTarget::ProviderInstance { instance_id: e_i },
+                    LabelTarget::ProviderInstance { instance_id: a_i },
+                ) => e_i == a_i,
+                (
+                    LabelTarget::ProviderModel {
+                        instance_id: e_i,
+                        model_id: e_m,
+                    },
+                    LabelTarget::ProviderModel {
+                        instance_id: a_i,
+                        model_id: a_m,
+                    },
+                ) => e_i == a_i && e_m == a_m,
+                _ => false,
+            }
     });
 
     if assignment_exists {
@@ -402,13 +415,16 @@ pub fn handle_unassign_tag(
         let matches_target = match &assignment.target {
             LabelTarget::ProviderInstance { instance_id } => {
                 // Match if instance IDs match and model_id is None
-                if let Some(model_id) = &target_model_id {
-                    false  // Should not match if model_id is specified
+                if let Some(_model_id) = &target_model_id {
+                    false // Should not match if model_id is specified
                 } else {
                     instance_id == &target_instance_id
                 }
             }
-            LabelTarget::ProviderModel { instance_id, model_id } => {
+            LabelTarget::ProviderModel {
+                instance_id,
+                model_id,
+            } => {
                 // Match if both instance and model match
                 match target_model_id.as_ref() {
                     Some(m) => instance_id == &target_instance_id && model_id == m,
@@ -455,10 +471,19 @@ pub fn get_tags_for_target(
 
     for assignment in assignments {
         let matches_target = match (&assignment.target, model_id) {
-            (LabelTarget::ProviderInstance { instance_id: inst_id }, None) => inst_id == instance_id,
-            (LabelTarget::ProviderModel { instance_id: inst_id, model_id: mod_id }, Some(model)) => {
-                inst_id == instance_id && mod_id == model
-            }
+            (
+                LabelTarget::ProviderInstance {
+                    instance_id: inst_id,
+                },
+                None,
+            ) => inst_id == instance_id,
+            (
+                LabelTarget::ProviderModel {
+                    instance_id: inst_id,
+                    model_id: mod_id,
+                },
+                Some(model),
+            ) => inst_id == instance_id && mod_id == model,
             _ => false,
         };
 

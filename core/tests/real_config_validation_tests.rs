@@ -41,7 +41,7 @@ fn test_gsh_real_config_validation() {
 
     for key in &result.keys {
         println!("\n  Discovered Key:");
-        println!("    Source: {}", key.source);
+        println!("    Source: {}", key.source());
         println!("    Provider: {}", key.provider);
         println!("    Type: {:?}", key.value_type);
     }
@@ -70,7 +70,8 @@ fn test_gsh_real_config_validation() {
             println!("        - {} ({})", model, model);
         }
 
-        let metadata = &instance.metadata; if !metadata.is_empty() {
+        let metadata = &instance.metadata;
+        if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -139,7 +140,7 @@ fn test_claude_desktop_real_config_validation() {
 
     for key in &result.keys {
         println!("\n  Discovered Key:");
-        println!("    Source: {}", key.source);
+        println!("    Source: {}", key.source());
         println!("    Provider: {}", key.provider);
         println!("    Type: {:?}", key.value_type);
     }
@@ -168,7 +169,8 @@ fn test_claude_desktop_real_config_validation() {
             println!("        - {} ({})", model, model);
         }
 
-        let metadata = &instance.metadata; if !metadata.is_empty() {
+        let metadata = &instance.metadata;
+        if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -230,7 +232,7 @@ fn test_roo_code_real_config_validation() {
 
     for key in &result.keys {
         println!("\n  Discovered Key:");
-        println!("    Source: {}", key.source);
+        println!("    Source: {}", key.source());
         println!("    Provider: {}", key.provider);
         println!("    Type: {:?}", key.value_type);
     }
@@ -259,7 +261,8 @@ fn test_roo_code_real_config_validation() {
             println!("        - {} ({})", model, model);
         }
 
-        let metadata = &instance.metadata; if !metadata.is_empty() {
+        let metadata = &instance.metadata;
+        if !metadata.is_empty() {
             println!("      Settings:");
             for (key, value) in metadata {
                 println!("        {}: {}", key, value);
@@ -391,10 +394,7 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
             !instance.provider_type.is_empty(),
             "Provider type should not be empty"
         );
-        assert!(
-            !instance.id.is_empty(),
-            "Display name should not be empty"
-        );
+        assert!(!instance.id.is_empty(), "Display name should not be empty");
         assert!(
             !instance.base_url.is_empty(),
             "Base URL should not be empty"
@@ -411,7 +411,8 @@ fn test_format_for_scanner(name: &str, scanner: &dyn ScannerPlugin, filename: &s
             println!("      - {}", model);
         }
 
-        let metadata = &instance.metadata; if !metadata.is_empty() {
+        let metadata = &instance.metadata;
+        if !metadata.is_empty() {
             println!("    Settings: {} entries", metadata.len());
             for (key, value) in metadata {
                 assert!(!key.is_empty(), "Setting key should not be empty");

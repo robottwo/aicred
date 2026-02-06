@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::models::credentials::DiscoveredCredential;
-use crate::models::{ProviderInstance, ProviderCollection};
+use crate::models::{ProviderCollection, ProviderInstance};
 
 /// Represents a specific instance of an application configuration
 /// For example, multiple Roo Code installations in different directories

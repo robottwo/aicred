@@ -30,7 +30,7 @@ pub enum AuthMethod {
     /// HTTP Basic authentication
     Basic {
         /// Username for basic auth
-        username: String
+        username: String,
     },
 }
 
@@ -68,16 +68,16 @@ pub struct ProviderInstance {
     pub metadata: HashMap<String, String>,
 }
 
-fn default_active() -> bool {
+const fn default_active() -> bool {
     true
 }
 
 impl ProviderInstance {
     /// Gets the API key for this instance (for backward compatibility).
     ///
-    /// Returns Some(&api_key) if the key is non-empty, None otherwise.
+    /// Returns `Some(&api_key)` if the key is non-empty, None otherwise.
     #[must_use]
-    pub fn get_api_key(&self) -> Option<&String> {
+    pub const fn get_api_key(&self) -> Option<&String> {
         if self.api_key.is_empty() {
             None
         } else {
@@ -87,13 +87,13 @@ impl ProviderInstance {
 
     /// Checks if this instance has a non-empty API key.
     #[must_use]
-    pub fn has_non_empty_api_key(&self) -> bool {
+    pub const fn has_non_empty_api_key(&self) -> bool {
         !self.api_key.is_empty()
     }
 
     /// Checks if this instance has an API key (backward compatibility).
     #[must_use]
-    pub fn has_api_key(&self) -> bool {
+    pub const fn has_api_key(&self) -> bool {
         !self.api_key.is_empty()
     }
 
@@ -111,7 +111,7 @@ impl ProviderInstance {
 
     /// Gets the number of models (backward compatibility).
     #[must_use]
-    pub fn model_count(&self) -> usize {
+    pub const fn model_count(&self) -> usize {
         self.models.len()
     }
 
@@ -166,14 +166,14 @@ impl ProviderInstance {
         }
         Ok(())
     }
-    
+
     /// Builder: sets metadata (backward compatibility).
     #[must_use]
     pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
         self.metadata = metadata;
         self
     }
-    
+
     /// Checks if a model exists in this instance (backward compatibility).
     ///
     /// Returns true if the model ID is in the models list.
@@ -216,55 +216,55 @@ impl ProviderCollection {
             instances: HashMap::new(),
         }
     }
-    
+
     /// Adds an instance to the collection
     pub fn add(&mut self, id: String, instance: ProviderInstance) {
         self.instances.insert(id, instance);
     }
-    
+
     /// Gets an instance by ID
     #[must_use]
     pub fn get(&self, id: &str) -> Option<&ProviderInstance> {
         self.instances.get(id)
     }
-    
+
     /// Removes an instance by ID
     pub fn remove(&mut self, id: &str) -> Option<ProviderInstance> {
         self.instances.remove(id)
     }
-    
+
     /// Lists all instances
     #[must_use]
     pub fn list(&self) -> Vec<&ProviderInstance> {
         self.instances.values().collect()
     }
-    
+
     /// Gets the number of instances
     #[must_use]
     pub fn len(&self) -> usize {
         self.instances.len()
     }
-    
+
     /// Checks if the collection is empty
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.instances.is_empty()
     }
-    
+
     // ==== Backward Compatibility Methods ====
-    
+
     /// Gets an instance by ID (backward compat alias for `get`)
     #[must_use]
     pub fn get_instance(&self, id: &str) -> Option<&ProviderInstance> {
         self.get(id)
     }
-    
+
     /// Gets a mutable instance by ID (backward compat)
     #[must_use]
     pub fn get_instance_mut(&mut self, id: &str) -> Option<&mut ProviderInstance> {
         self.instances.get_mut(id)
     }
-    
+
     /// Adds an instance (backward compat - returns Result for consistency with old API)
     ///
     /// # Errors
@@ -274,30 +274,30 @@ impl ProviderCollection {
         self.add(id, instance);
         Ok(())
     }
-    
+
     /// Gets all instances (backward compat alias for `list`)
     #[must_use]
     pub fn all_instances(&self) -> Vec<&ProviderInstance> {
         self.list()
     }
-    
+
     /// Adds or replaces an instance (backward compat)
     pub fn add_or_replace_instance(&mut self, instance: ProviderInstance) {
         let id = instance.id.clone();
         self.add(id, instance);
     }
-    
+
     /// Removes an instance by ID (backward compat)
     pub fn remove_instance(&mut self, id: &str) -> Option<ProviderInstance> {
         self.remove(id)
     }
-    
+
     /// Gets all active instances (backward compat)
     #[must_use]
     pub fn active_instances(&self) -> Vec<&ProviderInstance> {
         self.instances.values().filter(|i| i.active).collect()
     }
-    
+
     /// Gets instances by provider type (backward compat)
     #[must_use]
     pub fn instances_by_type(&self, provider_type: &str) -> Vec<&ProviderInstance> {

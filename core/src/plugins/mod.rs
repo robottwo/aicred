@@ -68,7 +68,7 @@ pub trait ProviderPlugin: Send + Sync {
     /// provider-specific overrides from the instance metadata.
     fn get_model_with_overrides(
         &self,
-        instance: &ProviderInstance,
+        _instance: &ProviderInstance,
         model_id: &str,
         home_dir: &std::path::Path,
     ) -> Result<Option<crate::models::Model>> {
@@ -89,7 +89,7 @@ pub trait ProviderPlugin: Send + Sync {
             crate::error::Error::PluginError(format!("Failed to read model file: {e}"))
         })?;
 
-        let mut model: Model = serde_yaml::from_str(&model_content).map_err(|e| {
+        let model: Model = serde_yaml::from_str(&model_content).map_err(|e| {
             crate::error::Error::PluginError(format!("Failed to parse model file: {e}"))
         })?;
 
@@ -182,7 +182,10 @@ pub type ProviderRegistry = HashMap<String, Arc<dyn ProviderPlugin>>;
 ///
 /// This wrapper adds Arc<`RwLock`<>> around a `HashMap` for thread-safety,
 /// but most use cases don't need the complexity. Prefer using `ProviderRegistry` directly.
-#[deprecated(since = "0.2.0", note = "Use ProviderRegistry (HashMap) with helper functions instead")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ProviderRegistry (HashMap) with helper functions instead"
+)]
 #[derive(Clone)]
 pub struct PluginRegistry {
     plugins: Arc<RwLock<HashMap<String, Arc<dyn ProviderPlugin>>>>,
@@ -402,7 +405,7 @@ pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
 ///     println!("Found OpenAI plugin");
 /// }
 /// ```
-#[must_use] 
+#[must_use]
 pub fn register_builtin_providers() -> ProviderRegistry {
     let mut registry = HashMap::new();
 
@@ -433,8 +436,11 @@ pub fn register_builtin_providers() -> ProviderRegistry {
 
 /// Get a plugin from the registry by name (v0.2.0+ API).
 #[inline]
-#[must_use] 
-pub fn get_provider<'a>(registry: &'a ProviderRegistry, name: &str) -> Option<&'a dyn ProviderPlugin> {
+#[must_use]
+pub fn get_provider<'a>(
+    registry: &'a ProviderRegistry,
+    name: &str,
+) -> Option<&'a dyn ProviderPlugin> {
     registry.get(name).map(|arc| &**arc)
 }
 
@@ -445,8 +451,11 @@ pub fn list_providers(registry: &ProviderRegistry) -> Vec<&str> {
 }
 
 /// Get all plugins that can handle a specific file (v0.2.0+ API).
-#[must_use] 
-pub fn get_providers_for_file(registry: &ProviderRegistry, path: &Path) -> Vec<Arc<dyn ProviderPlugin>> {
+#[must_use]
+pub fn get_providers_for_file(
+    registry: &ProviderRegistry,
+    path: &Path,
+) -> Vec<Arc<dyn ProviderPlugin>> {
     registry
         .values()
         .filter(|plugin| plugin.can_handle_file(path))

@@ -1,7 +1,7 @@
 //! Integration tests for ID consistency between discovery, storage, and retrieval
 //! This test file would have caught the "Instance not found" bug
 
-use aicred_core::models::{ProviderInstance, ProviderInstances};
+use aicred_core::models::{ProviderCollection, ProviderInstance};
 use aicred_core::scanners::{ScanResult, ScannerPlugin};
 use aicred_core::ScanOptions;
 use std::fs;
@@ -146,7 +146,7 @@ fn test_label_assignment_for_newly_discovered_instances() {
     // Test that we can get labels/tags for instances that don't exist in storage yet
     // This simulates the scenario during scan output where instances are discovered
     // but not yet persisted to storage
-    let provider_instances = ProviderInstances::new();
+    let provider_instances = ProviderCollection::new();
 
     for instance in test_instances {
         // This should NOT fail with "Instance not found" for newly discovered instances
@@ -289,7 +289,7 @@ fn test_complete_scan_update_workflow_with_id_validation() {
     }
 
     // Step 4: Simulate label/tag retrieval (this is where the error occurred)
-    let provider_instances = ProviderInstances::new();
+    let provider_instances = ProviderCollection::new();
 
     for instance_id in discovered_ids {
         // This should NOT fail with "Instance not found"
@@ -307,7 +307,7 @@ fn test_complete_scan_update_workflow_with_id_validation() {
 // Helper function that simulates the fixed get_labels_for_target behavior
 fn get_labels_for_target(
     instance_id: &str,
-    provider_instances: &ProviderInstances,
+    provider_instances: &ProviderCollection,
 ) -> Result<Vec<aicred_core::models::Label>, Box<dyn std::error::Error>> {
     match provider_instances.get_instance(instance_id) {
         Some(_instance) => {

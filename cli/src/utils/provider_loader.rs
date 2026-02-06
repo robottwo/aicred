@@ -44,9 +44,6 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                 #[allow(clippy::collapsible_match)]
                 if let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(&content) {
                     if let serde_yaml::Value::Mapping(map) = value {
-                        use chrono::DateTime;
-                        use chrono::Utc;
-
                         // Helper to extract string fields
                         let get_str = |k: &str| -> Option<String> {
                             map.get(serde_yaml::Value::String(k.to_string()))
@@ -60,8 +57,8 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                                 .to_string()
                         });
 
-                        let provider_type = get_str("provider_type")
-                            .unwrap_or_else(|| "unknown".to_string());
+                        let provider_type =
+                            get_str("provider_type").unwrap_or_else(|| "unknown".to_string());
                         let base_url = get_str("base_url")
                             .unwrap_or_else(|| "https://api.example.com".to_string());
 
@@ -93,17 +90,13 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                                 if !seq.is_empty() {
                                     if let Some(first_key) = seq[0].as_mapping() {
                                         let api_key = first_key
-                                            .get(serde_yaml::Value::String(
-                                                "api_key".to_string(),
-                                            ))
+                                            .get(serde_yaml::Value::String("api_key".to_string()))
                                             .or_else(|| {
                                                 first_key.get(serde_yaml::Value::String(
                                                     "value".to_string(),
                                                 ))
                                             })
-                                            .and_then(|v| {
-                                                v.as_str().map(|s| s.to_string())
-                                            });
+                                            .and_then(|v| v.as_str().map(|s| s.to_string()));
                                         if let Some(k) = api_key {
                                             instance.api_key = k;
                                         }
@@ -124,9 +117,7 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                                         instance.add_model(s.to_string());
                                     } else if let Some(m) = item.as_mapping() {
                                         if let Some(model_id_val) =
-                                            m.get(serde_yaml::Value::String(
-                                                "model_id".to_string(),
-                                            ))
+                                            m.get(serde_yaml::Value::String("model_id".to_string()))
                                         {
                                             if let Some(model_id) = model_id_val.as_str() {
                                                 instance.add_model(model_id.to_string());

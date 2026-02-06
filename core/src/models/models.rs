@@ -51,7 +51,7 @@ pub struct ModelPricing {
 
 /// Extended model metadata.
 ///
-/// Note: For backward compatibility with probe_models_async, this also includes
+/// Note: For backward compatibility with `probe_models_async`, this also includes
 /// id, name, and pricing fields. In the future, consider separating probed
 /// model info from static metadata.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -138,7 +138,7 @@ impl Model {
         self.pricing.as_ref().map(|p| {
             let input_cost = f64::from(input_tokens) * p.input_cost_per_token;
             let output_cost = f64::from(output_tokens) * p.output_cost_per_token;
-            
+
             TokenCost {
                 total_cost: input_cost + output_cost,
                 input_cost,
@@ -147,7 +147,7 @@ impl Model {
             }
         })
     }
-    
+
     /// Checks if the model supports a specific capability
     #[must_use]
     pub fn has_capability(&self, capability: &str) -> bool {
@@ -185,7 +185,7 @@ mod tests {
 
         let cost = model.token_cost(1000, 500);
         assert!(cost.is_some());
-        
+
         let cost_value = cost.unwrap();
         assert!((cost_value.input_cost - 0.03).abs() < 0.0001);
         assert!((cost_value.output_cost - 0.03).abs() < 0.0001);

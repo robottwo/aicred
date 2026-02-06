@@ -196,7 +196,7 @@ impl DiscoveredCredential {
         )
     }
 
-    /// Gets the source field name for backward compatibility with DiscoveredKey
+    /// Gets the source field name for backward compatibility with `DiscoveredKey`
     #[must_use]
     pub const fn source(&self) -> &String {
         &self.source_file
@@ -226,7 +226,7 @@ pub enum CredentialValue {
         /// SHA-256 hash of the full value
         sha256: String,
         /// First few characters (for identification)
-        prefix: String
+        prefix: String,
     },
 }
 
@@ -240,25 +240,25 @@ impl CredentialValue {
         } else {
             key.to_string()
         };
-        
+
         Self::Redacted {
             sha256: hex::encode(hash),
             prefix,
         }
     }
-    
+
     /// Creates a full credential value
     #[must_use]
     pub const fn full(key: String) -> Self {
         Self::Full(key)
     }
-    
+
     /// Checks if this is a redacted value
     #[must_use]
     pub const fn is_redacted(&self) -> bool {
         matches!(self, Self::Redacted { .. })
     }
-    
+
     /// Gets the full value if available
     #[must_use]
     pub const fn as_full(&self) -> Option<&String> {
@@ -284,10 +284,15 @@ pub enum Confidence {
 
 impl From<f32> for Confidence {
     fn from(score: f32) -> Self {
-        if score < 0.5 { Self::Low }
-        else if score < 0.7 { Self::Medium }
-        else if score < 0.9 { Self::High }
-        else { Self::VeryHigh }
+        if score < 0.5 {
+            Self::Low
+        } else if score < 0.7 {
+            Self::Medium
+        } else if score < 0.9 {
+            Self::High
+        } else {
+            Self::VeryHigh
+        }
     }
 }
 
@@ -354,7 +359,7 @@ pub enum Environment {
     /// Project-specific configuration
     ProjectConfig {
         /// Path to the project
-        project_path: String
+        project_path: String,
     },
     /// Environment variable
     EnvironmentVariable,
@@ -372,7 +377,7 @@ pub enum ValidationStatus {
     /// Validated but invalid/expired
     Invalid {
         /// Reason for invalidity
-        reason: String
+        reason: String,
     },
     /// Rate limited during validation
     RateLimited,

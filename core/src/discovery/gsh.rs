@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
+use crate::models::credentials::DiscoveredCredential;
 use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -105,7 +105,7 @@ impl GshScanner {
         &self,
         path: &Path,
         content: &str,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<ScanResult> {
         let mut result = ScanResult::new();
 
@@ -200,7 +200,7 @@ impl GshScanner {
     pub fn scan_instances_with_registry(
         &self,
         home_dir: &Path,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<Vec<ConfigInstance>> {
         let mut instances = Vec::new();
 
@@ -414,7 +414,11 @@ impl GshScanner {
     }
 
     /// Extract keys from shell script format (KEY=value pairs).
-    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
+    fn extract_keys_from_shell_script(
+        &self,
+        content: &str,
+        path: &Path,
+    ) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Common API key patterns in shell scripts - handle both quoted and unquoted values

@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
 use crate::error::Result;
+use crate::models::credentials::DiscoveredCredential;
 use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -253,7 +253,7 @@ impl RooCodeScanner {
         &self,
         path: &Path,
         content: &str,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<ScanResult> {
         let mut result = ScanResult::new();
 

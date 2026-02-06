@@ -18,7 +18,7 @@ pub struct LabelWithTarget {
 impl LabelWithTarget {
     /// Creates a new label with target assignment
     #[must_use]
-    pub fn new(label_name: String, target: ProviderModelTuple) -> Self {
+    pub const fn new(label_name: String, target: ProviderModelTuple) -> Self {
         Self { label_name, target }
     }
 }
@@ -653,7 +653,7 @@ impl Default for EnvResolverBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Model, ProviderInstance};
+    use crate::models::ProviderInstance;
 
     fn create_test_provider_instance(
         provider_type: &str,

@@ -15,39 +15,18 @@ pub mod config_validator;
 
 // Credentials & Discovery
 pub use credentials::{
-    Confidence,
-    CredentialValue,
-    DiscoveredCredential,
-    Environment,
-    ValidationStatus,
-    ValueType,
+    Confidence, CredentialValue, DiscoveredCredential, Environment, ValidationStatus, ValueType,
 };
 
 // Labels (semantic tagging)
-pub use labels::{
-    Label,
-    LabelAssignment,
-    LabelTarget,
-    LabelWithAssignments,
-};
+pub use labels::{Label, LabelAssignment, LabelTarget, LabelWithAssignments};
 
 // Models & Metadata
-pub use models::{
-    Model,
-    ModelCapabilities,
-    ModelMetadata,
-    ModelPricing,
-    TokenCost,
-};
+pub use models::{Model, ModelCapabilities, ModelMetadata, ModelPricing, TokenCost};
 
 // Providers & Instances
 pub use providers::{
-    AuthMethod,
-    Capabilities,
-    Provider,
-    ProviderCollection,
-    ProviderInstance,
-    RateLimit,
+    AuthMethod, Capabilities, Provider, ProviderCollection, ProviderInstance, RateLimit,
 };
 
 // Scan Results

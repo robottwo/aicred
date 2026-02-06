@@ -1,4 +1,4 @@
-use aicred_core::{ScanResult, models::Label};
+use aicred_core::{models::Label, ScanResult};
 use colored::*;
 use tracing::debug;
 
@@ -57,7 +57,8 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     let settings_display = if provider_instance.metadata.is_empty() {
                         "-".dimmed().to_string()
                     } else {
-                        let settings_str = provider_instance.metadata
+                        let settings_str = provider_instance
+                            .metadata
                             .iter()
                             .map(|(k, v)| format!("{}={}", k, v))
                             .collect::<Vec<_>>()
@@ -248,9 +249,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 }
 
 /// Get tags for a specific instance
-fn get_tags_for_instance(
-    instance_id: &str,
-) -> Result<Vec<Label>, anyhow::Error> {
+fn get_tags_for_instance(instance_id: &str) -> Result<Vec<Label>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
     get_tags_for_target(instance_id, None, None)
 }

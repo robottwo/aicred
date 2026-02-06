@@ -83,13 +83,13 @@
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 
+pub mod discovery;
 pub mod env_resolver;
 pub mod error;
 pub mod models;
 pub mod parser;
 pub mod plugins;
 pub mod providers;
-pub mod discovery;
 pub mod scanners; // Backward compatibility re-export
 pub mod utils;
 
@@ -98,13 +98,15 @@ pub use error::{Error, Result};
 
 // Primary API exports (v0.2.0 - canonical types)
 pub use models::{
+    AuthMethod,
+    Capabilities,
+    Confidence,
+    // Config
+    ConfigInstance,
+    CredentialValue,
     // Credentials & Discovery
     DiscoveredCredential,
-    CredentialValue,
-    Confidence,
-    ValueType,
     Environment,
-    ValidationStatus,
     // Labels
     Label,
     LabelAssignment,
@@ -112,44 +114,43 @@ pub use models::{
     LabelWithAssignments,
     // Models
     Model,
-    ModelMetadata,
     ModelCapabilities,
+    ModelMetadata,
     ModelPricing,
-    TokenCost,
     // Providers
     Provider,
-    ProviderInstance,
     ProviderCollection,
-    AuthMethod,
+    ProviderInstance,
     RateLimit,
-    Capabilities,
     // Scan
     ScanResult,
     ScanSummary,
-    // Config
-    ConfigInstance,
+    TokenCost,
+    ValidationStatus,
+    ValueType,
 };
 
 pub use parser::{ConfigParser, FileFormat};
 
 // Plugin API exports
 pub use plugins::{
-    // Provider registry (v0.2.0)
-    ProviderRegistry, register_builtin_providers,
-    get_provider, list_providers, get_providers_for_file,
+    get_provider,
+    get_providers_for_file,
+    list_providers,
+    register_builtin_plugins,
+    register_builtin_providers,
+    CommonConfigPlugin,
     // Legacy (still used internally)
-    PluginRegistry, register_builtin_plugins,
+    PluginRegistry,
     // Core traits
-    ProviderPlugin, CommonConfigPlugin,
+    ProviderPlugin,
+    // Provider registry (v0.2.0)
+    ProviderRegistry,
 };
 
 // Discovery system (application-specific credential scanners)
 pub use crate::discovery::{
-    register_builtin_scanners,
-    ScannerConfig,
-    ScannerPlugin,
-    ScannerRegistry,
-    DEFAULT_MAX_FILE_SIZE,
+    register_builtin_scanners, ScannerConfig, ScannerPlugin, ScannerRegistry, DEFAULT_MAX_FILE_SIZE,
 };
 pub use utils::provider_model_tuple::ProviderModelTuple;
 
@@ -289,7 +290,10 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
     let scan_started_at = chrono::Utc::now();
     let mut result = ScanResult::new(
         home_dir.display().to_string(),
-        filtered_provider_registry.list(),
+        list_providers(&filtered_provider_registry)
+            .into_iter()
+            .map(String::from)
+            .collect(),
         scan_started_at,
     );
 
@@ -416,7 +420,9 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
                         tracing::debug!("Preserving custom Model key: {}", name);
                         true
                     }
-                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => true,
+                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => {
+                        true
+                    }
                     // Redact sensitive values like API keys
                     _ => false,
                 };
@@ -449,13 +455,8 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
 }
 
 /// Creates a default plugin registry with built-in plugins.
-fn create_default_registry() -> Result<PluginRegistry> {
-    let registry = PluginRegistry::new();
-
-    // Register all built-in plugins
-    register_builtin_plugins(&registry)?;
-
-    Ok(registry)
+fn create_default_registry() -> Result<ProviderRegistry> {
+    Ok(register_builtin_providers())
 }
 
 /// Creates a default scanner registry with built-in scanners.
@@ -472,7 +473,7 @@ fn create_default_scanner_registry() -> Result<ScannerRegistry> {
 #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 fn scan_with_scanners(
     scanner_registry: &ScannerRegistry,
-    plugin_registry: &PluginRegistry,
+    plugin_registry: &ProviderRegistry,
     home_dir: &std::path::Path,
 ) -> Vec<(String, scanners::ScanResult)> {
     let mut results = Vec::new();
@@ -761,10 +762,9 @@ pub struct ProbeStatistics {
 #[allow(clippy::too_many_lines)]
 fn probe_provider_instances_async(
     instances: &mut [ConfigInstance],
-    plugin_registry: &PluginRegistry,
+    plugin_registry: &ProviderRegistry,
     timeout_secs: u64,
 ) -> ProbeStatistics {
-    use std::collections::HashMap;
     use tokio::time::{timeout, Duration};
 
     let mut stats = ProbeStatistics {
@@ -862,7 +862,9 @@ fn probe_provider_instances_async(
                     .get_instance_mut(&provider_instance_id)
                 {
                     // Update metadata
-                    provider_instance.metadata.insert("probe_attempted".to_string(), "true".to_string());
+                    provider_instance
+                        .metadata
+                        .insert("probe_attempted".to_string(), "true".to_string());
                     provider_instance.metadata.insert(
                         "probe_timestamp".to_string(),
                         chrono::Utc::now().to_rfc3339(),
@@ -879,14 +881,14 @@ fn probe_provider_instances_async(
 
                             // Extract model IDs from ModelMetadata
                             provider_instance.models =
-                                models.into_iter()
-                                    .filter_map(|m| m.id)
-                                    .collect();
+                                models.into_iter().filter_map(|m| m.id).collect();
 
                             stats.probed_successfully += 1;
                             stats.total_models_discovered += provider_instance.models.len();
 
-                            provider_instance.metadata.insert("probe_success".to_string(), "true".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "true".to_string());
                             provider_instance.metadata.insert(
                                 "models_count".to_string(),
                                 provider_instance.models.len().to_string(),
@@ -900,8 +902,12 @@ fn probe_provider_instances_async(
                                 e
                             );
                             stats.probe_failures += 1;
-                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
-                            provider_instance.metadata.insert("probe_error".to_string(), e.to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "false".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_error".to_string(), e.to_string());
                         }
                         Err(_) => {
                             tracing::warn!(
@@ -910,8 +916,12 @@ fn probe_provider_instances_async(
                                 instance_id
                             );
                             stats.probe_failures += 1;
-                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
-                            provider_instance.metadata.insert("probe_error".to_string(), "timeout".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "false".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_error".to_string(), "timeout".to_string());
                         }
                     }
                     break;
@@ -945,10 +955,10 @@ fn filter_scanner_registry(
 }
 
 /// Filters the plugin registry based on scan options.
-fn filter_registry(registry: &PluginRegistry, options: &ScanOptions) -> Result<PluginRegistry> {
-    let filtered_registry = PluginRegistry::new();
+fn filter_registry(registry: &ProviderRegistry, options: &ScanOptions) -> Result<ProviderRegistry> {
+    let mut filtered_registry = ProviderRegistry::new();
 
-    let all_plugins = registry.list();
+    let all_plugins = list_providers(registry);
 
     for plugin_name in all_plugins {
         // Check if we should include this plugin
@@ -957,14 +967,16 @@ fn filter_registry(registry: &PluginRegistry, options: &ScanOptions) -> Result<P
                 options
                     .exclude_providers
                     .as_ref()
-                    .is_none_or(|exclude_providers| !exclude_providers.contains(&plugin_name))
+                    .is_none_or(|exclude_providers| {
+                        !exclude_providers.iter().any(|p| p == plugin_name)
+                    })
             },
-            |only_providers| only_providers.contains(&plugin_name),
+            |only_providers| only_providers.iter().any(|p| p == plugin_name),
         );
 
         if should_include {
-            if let Some(plugin) = registry.get(&plugin_name) {
-                filtered_registry.register(plugin)?;
+            if let Some(plugin) = registry.get(plugin_name) {
+                filtered_registry.insert(plugin_name.to_string(), plugin.clone());
             }
         }
     }
@@ -1046,7 +1058,8 @@ mod tests {
     fn test_create_default_registry() {
         let registry = create_default_registry().unwrap();
         assert!(!registry.is_empty());
-        assert!(registry.get("common-config").is_some());
+        assert!(registry.get("openai").is_some());
+        assert!(registry.get("anthropic").is_some());
     }
 
     #[test]
@@ -1054,13 +1067,15 @@ mod tests {
         let registry = create_default_registry().unwrap();
 
         // Test with only_providers
-        let options = ScanOptions::new().with_only_providers(vec!["common-config".to_string()]);
+        let options = ScanOptions::new().with_only_providers(vec!["openai".to_string()]);
         let filtered = filter_registry(&registry, &options).unwrap();
         assert!(!filtered.is_empty());
+        assert!(filtered.contains_key("openai"));
 
         // Test with exclude_providers
-        let options = ScanOptions::new().with_exclude_providers(vec!["nonexistent".to_string()]);
+        let options = ScanOptions::new().with_exclude_providers(vec!["openai".to_string()]);
         let filtered = filter_registry(&registry, &options).unwrap();
         assert!(!filtered.is_empty());
+        assert!(!filtered.contains_key("openai"));
     }
 }

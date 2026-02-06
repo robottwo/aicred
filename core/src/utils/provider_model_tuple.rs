@@ -1,6 +1,6 @@
 //! Provider-Model Tuple utilities for parsing and identifying provider:model combinations.
 
-use crate::models::{Model, ProviderInstance};
+use crate::models::ProviderInstance;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -219,7 +219,7 @@ mod tests {
             "openai-prod".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
-            String::new(),  // api_key
+            String::new(), // api_key
         );
 
         // Add a model to the instance

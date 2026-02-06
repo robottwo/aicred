@@ -78,7 +78,7 @@ impl ClaudeDesktopScanner {
         &self,
         path: &Path,
         content: &str,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<ScanResult> {
         let mut result = ScanResult::new();
 
@@ -164,7 +164,7 @@ impl ClaudeDesktopScanner {
     pub fn scan_instances_with_registry(
         &self,
         home_dir: &Path,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<Vec<ConfigInstance>> {
         let mut instances = Vec::new();
 
@@ -562,15 +562,12 @@ mod tests {
 
         // Verify provider instance details
         assert_eq!(provider_instance.provider_type, "anthropic");
-        assert!(!provider_instance.id.is_empty());  // ID is now a hash, not the provider name
+        assert!(!provider_instance.id.is_empty()); // ID is now a hash, not the provider name
         assert!(provider_instance.has_non_empty_api_key());
 
         // Verify model was added to provider instance
         assert_eq!(provider_instance.model_count(), 1);
-        assert_eq!(
-            provider_instance.models[0],
-            "claude-3-opus-20240229"
-        );
+        assert_eq!(provider_instance.models[0], "claude-3-opus-20240229");
 
         // Verify temperature and max_tokens are in provider instance metadata
         assert!(!provider_instance.metadata.is_empty());

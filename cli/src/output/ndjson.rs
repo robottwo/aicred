@@ -19,17 +19,22 @@ pub fn output_ndjson(result: &ScanResult, _verbose: bool) -> Result<()> {
                     let tag_names: Vec<String> = tags.iter().map(|tag| tag.name.clone()).collect();
                     let tags_json = serde_json::to_string(&tag_names)
                         .map_err(|e| anyhow::anyhow!("Failed to serialize tags: {}", e))?;
-                    provider_instance.metadata.insert("tags".to_string(), tags_json);
+                    provider_instance
+                        .metadata
+                        .insert("tags".to_string(), tags_json);
                 }
             }
 
             // Get labels for this provider instance
             if let Ok(labels) = get_labels_for_target(&instance.instance_id, None, None) {
                 if !labels.is_empty() {
-                    let label_names: Vec<String> = labels.iter().map(|label| label.name.clone()).collect();
+                    let label_names: Vec<String> =
+                        labels.iter().map(|label| label.name.clone()).collect();
                     let labels_json = serde_json::to_string(&label_names)
                         .map_err(|e| anyhow::anyhow!("Failed to serialize labels: {}", e))?;
-                    provider_instance.metadata.insert("labels".to_string(), labels_json);
+                    provider_instance
+                        .metadata
+                        .insert("labels".to_string(), labels_json);
                 }
             }
 

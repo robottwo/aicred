@@ -2,7 +2,6 @@ use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::models::{ProviderCollection, ProviderInstance};
 use anyhow::Result;
 use colored::*;
-use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
 /// Truncate a string to a maximum length, adding "..." if truncated
@@ -108,10 +107,7 @@ pub fn handle_list_instances(
     if verbose {
         // Verbose mode: show detailed information for each instance
         for instance in filtered_instances {
-            println!(
-                "\n{}",
-                instance.id.cyan().bold()
-            );
+            println!("\n{}", instance.id.cyan().bold());
             println!("  Provider Type: {}", instance.provider_type);
             println!("  Base URL: {}", instance.base_url);
             println!(
@@ -176,7 +172,7 @@ pub fn handle_list_instances(
 /// Handle the add-instance command
 pub fn handle_add_instance(
     id: String,
-    _name: String,  // display_name not supported in new ProviderInstance
+    _name: String, // display_name not supported in new ProviderInstance
     provider_type: String,
     base_url: String,
     api_key: Option<String>,
@@ -193,7 +189,13 @@ pub fn handle_add_instance(
         ));
     }
 
-    let mut instance = ProviderInstance::new(id.clone(), provider_type, base_url, String::new(), Vec::new());
+    let mut instance = ProviderInstance::new(
+        id.clone(),
+        provider_type,
+        base_url,
+        String::new(),
+        Vec::new(),
+    );
     instance.active = active;
 
     // Add API key if provided
@@ -266,10 +268,7 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
                 .yellow()
                 .bold()
         );
-        println!(
-            "Instance: {}",
-            instance.id.cyan()
-        );
+        println!("Instance: {}", instance.id.cyan());
         print!("Are you sure? (y/N): ");
 
         use std::io::{self, Write};
@@ -303,7 +302,7 @@ pub fn handle_remove_instance(id: String, force: bool) -> Result<()> {
 /// Handle the update-instance command
 pub fn handle_update_instance(
     id: String,
-    _name: Option<String>,  // display_name not supported in new ProviderInstance
+    _name: Option<String>, // display_name not supported in new ProviderInstance
     base_url: Option<String>,
     api_key: Option<String>,
     models: Option<String>,
@@ -390,10 +389,7 @@ pub fn handle_get_instance(home: Option<PathBuf>, id: String, include_values: bo
         .get_instance(&id)
         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
 
-    println!(
-        "\n{}",
-        instance.id.cyan().bold()
-    );
+    println!("\n{}", instance.id.cyan().bold());
     println!("{}", "─".repeat(50).dimmed());
 
     println!("Provider Type: {}", instance.provider_type.yellow());
@@ -641,11 +637,7 @@ pub fn handle_list_models(
         println!("Found {} model(s):\n", total_count);
 
         for (instance, model_id) in filtered_models {
-            println!(
-                "{} ({})",
-                model_id.cyan(),
-                instance.provider_type
-            );
+            println!("{} ({})", model_id.cyan(), instance.provider_type);
             println!("  Instance: {} ({})", instance.id, instance.id);
 
             // Show tags
@@ -736,12 +728,7 @@ pub fn handle_list_models(
             println!(
                 "{:<25} {:<20} {:<35} {:<15} {:<15}",
                 basename.cyan(),
-                format!(
-                    "{} ({})",
-                    instance.provider_type,
-                    instance.id
-                )
-                .yellow(),
+                format!("{} ({})", instance.provider_type, instance.id).yellow(),
                 truncate_string(model_id, 35),
                 if labels.is_empty() {
                     "-".dimmed()

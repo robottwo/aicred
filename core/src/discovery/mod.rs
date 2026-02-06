@@ -54,7 +54,7 @@ pub use roo_code::RooCodeScanner;
 
 use crate::error::{Error, Result};
 use crate::models::credentials::{Confidence, DiscoveredCredential, ValueType};
-use crate::models::{ConfigInstance, Model, ProviderInstance};
+use crate::models::{ConfigInstance, ProviderInstance};
 use sha2::Digest;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -368,7 +368,7 @@ pub fn read_yaml_file(path: &Path) -> Result<serde_yaml::Value> {
 }
 
 /// Helper to find config files that exist from a list of potential paths.
-#[must_use] 
+#[must_use]
 pub fn find_existing_configs(home_dir: &Path, relative_paths: &[&str]) -> Vec<PathBuf> {
     relative_paths
         .iter()
@@ -473,9 +473,7 @@ pub fn extract_env_keys_with_metadata(
                         "ModelId" => ValueType::ModelId,
                         "BaseUrl" => ValueType::BaseUrl,
                         "Temperature" => ValueType::Temperature,
-                        _ => ValueType::Custom(
-                            (*custom_type).to_string(),
-                        ),
+                        _ => ValueType::Custom((*custom_type).to_string()),
                     };
 
                     let discovered_key = DiscoveredCredential::new(
@@ -554,7 +552,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
         &self,
         grouped_keys: HashMap<String, Vec<DiscoveredCredential>>,
         source_path: &str,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<Vec<ProviderInstance>> {
         let mut instances = Vec::new();
 
@@ -673,9 +671,9 @@ pub trait ScannerPluginExt: ScannerPlugin {
             // Create the provider instance
             let mut instance = ProviderInstance::new_without_models(
                 instance_id.clone(),
-                provider_name.to_lowercase(),  // Use lowercase for consistency
+                provider_name.to_lowercase(), // Use lowercase for consistency
                 final_base_url,
-                String::new(),  // API key will be set below
+                String::new(), // API key will be set below
             );
 
             // Set the API key from the first discovered key
@@ -802,7 +800,7 @@ pub trait ScannerPluginExt: ScannerPlugin {
         &self,
         keys: &[DiscoveredCredential],
         source_path: &str,
-        plugin_registry: Option<&crate::plugins::PluginRegistry>,
+        plugin_registry: Option<&crate::plugins::ProviderRegistry>,
     ) -> Result<Vec<ProviderInstance>> {
         tracing::info!(
             "Building provider instances from {} discovered keys in {}",
@@ -1165,10 +1163,7 @@ mod tests {
         // Should still create instance, just skip invalid temperature
         assert_eq!(instances.len(), 1);
         let instance = &instances[0];
-        assert!(
-            instance.metadata.is_empty()
-                || !instance.metadata.contains_key("temperature")
-        );
+        assert!(instance.metadata.is_empty() || !instance.metadata.contains_key("temperature"));
     }
 
     #[test]

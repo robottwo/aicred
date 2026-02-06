@@ -353,11 +353,11 @@ GOOGLE_API_KEY=AIzaSyTest1234567890abcdef
     assert_eq!(result.keys[0].provider, "openai");
     assert_eq!(
         result.keys[0].value_type,
-        aicred_core::models::discovered_key::ValueType::ApiKey
+        aicred_core::models::ValueType::ApiKey
     );
     assert_eq!(
         result.keys[0].confidence,
-        aicred_core::models::discovered_key::Confidence::High
+        aicred_core::models::Confidence::High
     );
 
     // Check instance
@@ -483,9 +483,9 @@ export COHERE_API_KEY="sk-cohere1234567890abcdef"
     for key in &result.keys {
         assert!(matches!(
             key.confidence,
-            aicred_core::models::discovered_key::Confidence::High
-                | aicred_core::models::discovered_key::Confidence::Medium
-                | aicred_core::models::discovered_key::Confidence::Low
+            aicred_core::models::Confidence::High
+                | aicred_core::models::Confidence::Medium
+                | aicred_core::models::Confidence::Low
         ));
     }
 }

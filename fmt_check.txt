@@ -1,0 +1,2186 @@
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:34:
+                     continue;
+                 }
+             }
+-            LabelTarget::ProviderModel { instance_id, model_id } => {
++            LabelTarget::ProviderModel {
++                instance_id,
++                model_id,
++            } => {
+                 // Find provider instance
+                 if let Some(instance) = provider_instances.get_instance(instance_id) {
+                     ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:258:
+         LabelTarget::ProviderInstance { instance_id } => {
+             format!("instance:{}", instance_id)
+         }
+-        LabelTarget::ProviderModel { instance_id, model_id } => {
++        LabelTarget::ProviderModel {
++            instance_id,
++            model_id,
++        } => {
+             format!("instance:{}|model:{}", instance_id, model_id)
+         }
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:557:
+             // Create label assignment
+             let assignment = LabelAssignment {
+                 label_name: label_name.clone(),
+-                target: if let Some(instance) = provider_instances.all_instances()
++                target: if let Some(instance) = provider_instances
++                    .all_instances()
+                     .iter()
+                     .find(|inst| inst.provider_type == tuple.provider())
+                 {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:583:
+             };
+ 
+             // Check if assignment already exists and update it
+-            let existing_index = existing_assignments.iter().position(|a| a.label_name == assignment.label_name);
++            let existing_index = existing_assignments
++                .iter()
++                .position(|a| a.label_name == assignment.label_name);
+             if let Some(index) = existing_index {
+                 if verbose {
+                     println!(
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:604:
+ 
+             // Ensure label metadata exists
+             if !existing_labels_metadata.contains_key(&label_name) {
+-                existing_labels_metadata.insert(label_name.clone(), Label {
+-                    name: label_name.clone(),
+-                    description: None,
+-                    created_at: chrono::Utc::now(),
+-                    metadata: std::collections::HashMap::new(),
+-                });
++                existing_labels_metadata.insert(
++                    label_name.clone(),
++                    Label {
++                        name: label_name.clone(),
++                        description: None,
++                        created_at: chrono::Utc::now(),
++                        metadata: std::collections::HashMap::new(),
++                    },
++                );
+             }
+         } else if verbose {
+             eprintln!("  ❌ No matches found for label '{}'", label_name);
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:727:
+ pub fn handle_set_label(
+     label_name: String,
+     tuple_str: String,
+-    _color: Option<String>,  // Color not supported in new Label
++    _color: Option<String>, // Color not supported in new Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:752:
+     let provider_instance = provider_instances_list
+         .iter()
+         .find(|inst| inst.provider_type == tuple.provider())
+-        .ok_or_else(|| anyhow::anyhow!("No provider instance found for provider: {}", tuple.provider()))?;
++        .ok_or_else(|| {
++            anyhow::anyhow!(
++                "No provider instance found for provider: {}",
++                tuple.provider()
++            )
++        })?;
+ 
+     // Create label assignment target
+     let target = if let Some(model) = provider_instance.models.iter().find(|m| {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:802:
+ 
+     // Update label metadata
+     if description.is_some() || !labels_metadata.contains_key(&label_name) {
+-        let label = labels_metadata.entry(label_name.clone()).or_insert_with(|| Label {
+-            name: label_name.clone(),
+-            description: None,
+-            created_at: chrono::Utc::now(),
+-            metadata: std::collections::HashMap::new(),
+-        });
++        let label = labels_metadata
++            .entry(label_name.clone())
++            .or_insert_with(|| Label {
++                name: label_name.clone(),
++                description: None,
++                created_at: chrono::Utc::now(),
++                metadata: std::collections::HashMap::new(),
++            });
+ 
+         label.description = description;
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:825:
+     let mut labels_metadata = load_labels_with_home(home)?;
+ 
+     // Find the assignment by name
+-    let assignment_index = assignments.iter().position(|assignment| assignment.label_name == name);
++    let assignment_index = assignments
++        .iter()
++        .position(|assignment| assignment.label_name == name);
+ 
+     if assignment_index.is_none() {
+         return Err(anyhow::anyhow!("Label '{}' not found", name));
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:841:
+                 .bold()
+         );
+         println!("Label: {}", name.cyan());
+-        println!("Assigned to: {}", assignment_target_to_string(&assignment.target));
++        println!(
++            "Assigned to: {}",
++            assignment_target_to_string(&assignment.target)
++        );
+         println!("Use --force to confirm removal.");
+         return Ok(());
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:887:
+     for assignment in assignments {
+         // Check if this assignment's target matches the instance and model
+         let matches_target = match (&assignment.target, model_id) {
+-            (LabelTarget::ProviderInstance { instance_id: target_inst }, None) => {
+-                target_inst == instance_id
+-            }
+-            (LabelTarget::ProviderModel { instance_id: target_inst, model_id: target_model }, Some(model)) => {
+-                target_inst == instance_id && target_model == model
+-            }
++            (
++                LabelTarget::ProviderInstance {
++                    instance_id: target_inst,
++                },
++                None,
++            ) => target_inst == instance_id,
++            (
++                LabelTarget::ProviderModel {
++                    instance_id: target_inst,
++                    model_id: target_model,
++                },
++                Some(model),
++            ) => target_inst == instance_id && target_model == model,
+             _ => false,
+         };
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:108:
+     if verbose {
+         // Verbose mode: show detailed information for each instance
+         for instance in filtered_instances {
+-            println!(
+-                "\n{}",
+-                instance.id.cyan().bold()
+-            );
++            println!("\n{}", instance.id.cyan().bold());
+             println!("  Provider Type: {}", instance.provider_type);
+             println!("  Base URL: {}", instance.base_url);
+             println!(
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:176:
+ /// Handle the add-instance command
+ pub fn handle_add_instance(
+     id: String,
+-    _name: String,  // display_name not supported in new ProviderInstance
++    _name: String, // display_name not supported in new ProviderInstance
+     provider_type: String,
+     base_url: String,
+     api_key: Option<String>,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:193:
+         ));
+     }
+ 
+-    let mut instance = ProviderInstance::new(id.clone(), provider_type, base_url, String::new(), Vec::new());
++    let mut instance = ProviderInstance::new(
++        id.clone(),
++        provider_type,
++        base_url,
++        String::new(),
++        Vec::new(),
++    );
+     instance.active = active;
+ 
+     // Add API key if provided
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:266:
+                 .yellow()
+                 .bold()
+         );
+-        println!(
+-            "Instance: {}",
+-            instance.id.cyan()
+-        );
++        println!("Instance: {}", instance.id.cyan());
+         print!("Are you sure? (y/N): ");
+ 
+         use std::io::{self, Write};
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:303:
+ /// Handle the update-instance command
+ pub fn handle_update_instance(
+     id: String,
+-    _name: Option<String>,  // display_name not supported in new ProviderInstance
++    _name: Option<String>, // display_name not supported in new ProviderInstance
+     base_url: Option<String>,
+     api_key: Option<String>,
+     models: Option<String>,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:390:
+         .get_instance(&id)
+         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
+ 
+-    println!(
+-        "\n{}",
+-        instance.id.cyan().bold()
+-    );
++    println!("\n{}", instance.id.cyan().bold());
+     println!("{}", "─".repeat(50).dimmed());
+ 
+     println!("Provider Type: {}", instance.provider_type.yellow());
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:641:
+         println!("Found {} model(s):\n", total_count);
+ 
+         for (instance, model_id) in filtered_models {
+-            println!(
+-                "{} ({})",
+-                model_id.cyan(),
+-                instance.provider_type
+-            );
++            println!("{} ({})", model_id.cyan(), instance.provider_type);
+             println!("  Instance: {} ({})", instance.id, instance.id);
+ 
+             // Show tags
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:736:
+             println!(
+                 "{:<25} {:<20} {:<35} {:<15} {:<15}",
+                 basename.cyan(),
+-                format!(
+-                    "{} ({})",
+-                    instance.provider_type,
+-                    instance.id
+-                )
+-                .yellow(),
++                format!("{} ({})", instance.provider_type, instance.id).yellow(),
+                 truncate_string(model_id, 35),
+                 if labels.is_empty() {
+                     "-".dimmed()
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:1:
+ use aicred_core::models::{Model, ProviderInstance};
+ use aicred_core::plugins::PluginRegistry;
+ use aicred_core::providers::anthropic::AnthropicPlugin;
+-use aicred_core::{scan, ScanOptions, DiscoveredCredential};
++use aicred_core::{scan, DiscoveredCredential, ScanOptions};
+ use anyhow::Result;
+ use colored::*;
+ use sha2::{Digest, Sha256};
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:338:
+             // Find API keys in this group
+             let api_keys: Vec<&DiscoveredCredential> = keys
+                 .iter()
+-                .filter(|k| {
+-                    matches!(
+-                        k.value_type,
+-                        aicred_core::ValueType::ApiKey
+-                    )
+-                })
++                .filter(|k| matches!(k.value_type, aicred_core::ValueType::ApiKey))
+                 .collect();
+ 
+             // Also check for other key types that can serve as primary keys
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:494:
+                                     }
+                                 }
+                             }
+-                            aicred_core::ValueType::Custom(
+-                                ref custom_type,
+-                            ) => {
++                            aicred_core::ValueType::Custom(ref custom_type) => {
+                                 let custom_type_lower = custom_type.to_lowercase();
+ 
+                                 if custom_type_lower == "baseurl" {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:613:
+                         instance.id,
+                         instance.models.len()
+                     );
+-                    tracing::debug!(
+-                        "Instance models before save: {:?}",
+-                        instance.models
+-                    );
++                    tracing::debug!("Instance models before save: {:?}", instance.models);
+ 
+                     // Save the instance configuration
+                     let yaml_content = serde_yaml::to_string(&instance)?;
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:681:
+                     metadata_map.remove("modelid");
+ 
+                     for key in &keys {
+-                        if let aicred_core::ValueType::Custom(
+-                            ref custom_type,
+-                        ) = key.value_type
+-                        {
++                        if let aicred_core::ValueType::Custom(ref custom_type) = key.value_type {
+                             let custom_type_lower = custom_type.to_lowercase();
+ 
+                             if custom_type_lower == "baseurl" {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:147:
+ /// Handle the tags add command
+ pub fn handle_add_tag(
+     name: String,
+-    _color: Option<String>,  // Color not supported in Label
++    _color: Option<String>, // Color not supported in Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:243:
+ /// Handle the tags update command
+ pub fn handle_update_tag(
+     name: String,
+-    _color: Option<String>,  // Color not supported in Label
++    _color: Option<String>, // Color not supported in Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:330:
+ 
+     // Check if assignment already exists
+     let assignment_exists = assignments.iter().any(|existing| {
+-        existing.label_name == assignment.label_name && match (&existing.target, &assignment.target) {
+-            (LabelTarget::ProviderInstance { instance_id: e_i }, LabelTarget::ProviderInstance { instance_id: a_i }) => e_i == a_i,
+-            (LabelTarget::ProviderModel { instance_id: e_i, model_id: e_m }, LabelTarget::ProviderModel { instance_id: a_i, model_id: a_m }) => e_i == a_i && e_m == a_m,
+-            _ => false,
+-        }
++        existing.label_name == assignment.label_name
++            && match (&existing.target, &assignment.target) {
++                (
++                    LabelTarget::ProviderInstance { instance_id: e_i },
++                    LabelTarget::ProviderInstance { instance_id: a_i },
++                ) => e_i == a_i,
++                (
++                    LabelTarget::ProviderModel {
++                        instance_id: e_i,
++                        model_id: e_m,
++                    },
++                    LabelTarget::ProviderModel {
++                        instance_id: a_i,
++                        model_id: a_m,
++                    },
++                ) => e_i == a_i && e_m == a_m,
++                _ => false,
++            }
+     });
+ 
+     if assignment_exists {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:403:
+             LabelTarget::ProviderInstance { instance_id } => {
+                 // Match if instance IDs match and model_id is None
+                 if let Some(model_id) = &target_model_id {
+-                    false  // Should not match if model_id is specified
++                    false // Should not match if model_id is specified
+                 } else {
+                     instance_id == &target_instance_id
+                 }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:410:
+             }
+-            LabelTarget::ProviderModel { instance_id, model_id } => {
++            LabelTarget::ProviderModel {
++                instance_id,
++                model_id,
++            } => {
+                 // Match if both instance and model match
+                 match target_model_id.as_ref() {
+                     Some(m) => instance_id == &target_instance_id && model_id == m,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:455:
+ 
+     for assignment in assignments {
+         let matches_target = match (&assignment.target, model_id) {
+-            (LabelTarget::ProviderInstance { instance_id: inst_id }, None) => inst_id == instance_id,
+-            (LabelTarget::ProviderModel { instance_id: inst_id, model_id: mod_id }, Some(model)) => {
+-                inst_id == instance_id && mod_id == model
+-            }
++            (
++                LabelTarget::ProviderInstance {
++                    instance_id: inst_id,
++                },
++                None,
++            ) => inst_id == instance_id,
++            (
++                LabelTarget::ProviderModel {
++                    instance_id: inst_id,
++                    model_id: mod_id,
++                },
++                Some(model),
++            ) => inst_id == instance_id && mod_id == model,
+             _ => false,
+         };
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/ndjson.rs:19:
+                     let tag_names: Vec<String> = tags.iter().map(|tag| tag.name.clone()).collect();
+                     let tags_json = serde_json::to_string(&tag_names)
+                         .map_err(|e| anyhow::anyhow!("Failed to serialize tags: {}", e))?;
+-                    provider_instance.metadata.insert("tags".to_string(), tags_json);
++                    provider_instance
++                        .metadata
++                        .insert("tags".to_string(), tags_json);
+                 }
+             }
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/ndjson.rs:26:
+             // Get labels for this provider instance
+             if let Ok(labels) = get_labels_for_target(&instance.instance_id, None, None) {
+                 if !labels.is_empty() {
+-                    let label_names: Vec<String> = labels.iter().map(|label| label.name.clone()).collect();
++                    let label_names: Vec<String> =
++                        labels.iter().map(|label| label.name.clone()).collect();
+                     let labels_json = serde_json::to_string(&label_names)
+                         .map_err(|e| anyhow::anyhow!("Failed to serialize labels: {}", e))?;
+-                    provider_instance.metadata.insert("labels".to_string(), labels_json);
++                    provider_instance
++                        .metadata
++                        .insert("labels".to_string(), labels_json);
+                 }
+             }
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:1:
+-use aicred_core::{ScanResult, models::Label};
++use aicred_core::{models::Label, ScanResult};
+ use colored::*;
+ use tracing::debug;
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:57:
+                     let settings_display = if provider_instance.metadata.is_empty() {
+                         "-".dimmed().to_string()
+                     } else {
+-                        let settings_str = provider_instance.metadata
++                        let settings_str = provider_instance
++                            .metadata
+                             .iter()
+                             .map(|(k, v)| format!("{}={}", k, v))
+                             .collect::<Vec<_>>()
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:248:
+ }
+ 
+ /// Get tags for a specific instance
+-fn get_tags_for_instance(
+-    instance_id: &str,
+-) -> Result<Vec<Label>, anyhow::Error> {
++fn get_tags_for_instance(instance_id: &str) -> Result<Vec<Label>, anyhow::Error> {
+     use crate::commands::tags::get_tags_for_target;
+     get_tags_for_target(instance_id, None, None)
+ }
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:60:
+                                 .to_string()
+                         });
+ 
+-                        let provider_type = get_str("provider_type")
+-                            .unwrap_or_else(|| "unknown".to_string());
++                        let provider_type =
++                            get_str("provider_type").unwrap_or_else(|| "unknown".to_string());
+                         let base_url = get_str("base_url")
+                             .unwrap_or_else(|| "https://api.example.com".to_string());
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:93:
+                                 if !seq.is_empty() {
+                                     if let Some(first_key) = seq[0].as_mapping() {
+                                         let api_key = first_key
+-                                            .get(serde_yaml::Value::String(
+-                                                "api_key".to_string(),
+-                                            ))
++                                            .get(serde_yaml::Value::String("api_key".to_string()))
+                                             .or_else(|| {
+                                                 first_key.get(serde_yaml::Value::String(
+                                                     "value".to_string(),
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:102:
+                                                 ))
+                                             })
+-                                            .and_then(|v| {
+-                                                v.as_str().map(|s| s.to_string())
+-                                            });
++                                            .and_then(|v| v.as_str().map(|s| s.to_string()));
+                                         if let Some(k) = api_key {
+                                             instance.api_key = k;
+                                         }
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:124:
+                                         instance.add_model(s.to_string());
+                                     } else if let Some(m) = item.as_mapping() {
+                                         if let Some(model_id_val) =
+-                                            m.get(serde_yaml::Value::String(
+-                                                "model_id".to_string(),
+-                                            ))
++                                            m.get(serde_yaml::Value::String("model_id".to_string()))
+                                         {
+                                             if let Some(model_id) = model_id_val.as_str() {
+                                                 instance.add_model(model_id.to_string());
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:34:
+                     continue;
+                 }
+             }
+-            LabelTarget::ProviderModel { instance_id, model_id } => {
++            LabelTarget::ProviderModel {
++                instance_id,
++                model_id,
++            } => {
+                 // Find provider instance
+                 if let Some(instance) = provider_instances.get_instance(instance_id) {
+                     ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:258:
+         LabelTarget::ProviderInstance { instance_id } => {
+             format!("instance:{}", instance_id)
+         }
+-        LabelTarget::ProviderModel { instance_id, model_id } => {
++        LabelTarget::ProviderModel {
++            instance_id,
++            model_id,
++        } => {
+             format!("instance:{}|model:{}", instance_id, model_id)
+         }
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:557:
+             // Create label assignment
+             let assignment = LabelAssignment {
+                 label_name: label_name.clone(),
+-                target: if let Some(instance) = provider_instances.all_instances()
++                target: if let Some(instance) = provider_instances
++                    .all_instances()
+                     .iter()
+                     .find(|inst| inst.provider_type == tuple.provider())
+                 {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:583:
+             };
+ 
+             // Check if assignment already exists and update it
+-            let existing_index = existing_assignments.iter().position(|a| a.label_name == assignment.label_name);
++            let existing_index = existing_assignments
++                .iter()
++                .position(|a| a.label_name == assignment.label_name);
+             if let Some(index) = existing_index {
+                 if verbose {
+                     println!(
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:604:
+ 
+             // Ensure label metadata exists
+             if !existing_labels_metadata.contains_key(&label_name) {
+-                existing_labels_metadata.insert(label_name.clone(), Label {
+-                    name: label_name.clone(),
+-                    description: None,
+-                    created_at: chrono::Utc::now(),
+-                    metadata: std::collections::HashMap::new(),
+-                });
++                existing_labels_metadata.insert(
++                    label_name.clone(),
++                    Label {
++                        name: label_name.clone(),
++                        description: None,
++                        created_at: chrono::Utc::now(),
++                        metadata: std::collections::HashMap::new(),
++                    },
++                );
+             }
+         } else if verbose {
+             eprintln!("  ❌ No matches found for label '{}'", label_name);
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:727:
+ pub fn handle_set_label(
+     label_name: String,
+     tuple_str: String,
+-    _color: Option<String>,  // Color not supported in new Label
++    _color: Option<String>, // Color not supported in new Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:752:
+     let provider_instance = provider_instances_list
+         .iter()
+         .find(|inst| inst.provider_type == tuple.provider())
+-        .ok_or_else(|| anyhow::anyhow!("No provider instance found for provider: {}", tuple.provider()))?;
++        .ok_or_else(|| {
++            anyhow::anyhow!(
++                "No provider instance found for provider: {}",
++                tuple.provider()
++            )
++        })?;
+ 
+     // Create label assignment target
+     let target = if let Some(model) = provider_instance.models.iter().find(|m| {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:802:
+ 
+     // Update label metadata
+     if description.is_some() || !labels_metadata.contains_key(&label_name) {
+-        let label = labels_metadata.entry(label_name.clone()).or_insert_with(|| Label {
+-            name: label_name.clone(),
+-            description: None,
+-            created_at: chrono::Utc::now(),
+-            metadata: std::collections::HashMap::new(),
+-        });
++        let label = labels_metadata
++            .entry(label_name.clone())
++            .or_insert_with(|| Label {
++                name: label_name.clone(),
++                description: None,
++                created_at: chrono::Utc::now(),
++                metadata: std::collections::HashMap::new(),
++            });
+ 
+         label.description = description;
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:825:
+     let mut labels_metadata = load_labels_with_home(home)?;
+ 
+     // Find the assignment by name
+-    let assignment_index = assignments.iter().position(|assignment| assignment.label_name == name);
++    let assignment_index = assignments
++        .iter()
++        .position(|assignment| assignment.label_name == name);
+ 
+     if assignment_index.is_none() {
+         return Err(anyhow::anyhow!("Label '{}' not found", name));
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:841:
+                 .bold()
+         );
+         println!("Label: {}", name.cyan());
+-        println!("Assigned to: {}", assignment_target_to_string(&assignment.target));
++        println!(
++            "Assigned to: {}",
++            assignment_target_to_string(&assignment.target)
++        );
+         println!("Use --force to confirm removal.");
+         return Ok(());
+     }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/labels.rs:887:
+     for assignment in assignments {
+         // Check if this assignment's target matches the instance and model
+         let matches_target = match (&assignment.target, model_id) {
+-            (LabelTarget::ProviderInstance { instance_id: target_inst }, None) => {
+-                target_inst == instance_id
+-            }
+-            (LabelTarget::ProviderModel { instance_id: target_inst, model_id: target_model }, Some(model)) => {
+-                target_inst == instance_id && target_model == model
+-            }
++            (
++                LabelTarget::ProviderInstance {
++                    instance_id: target_inst,
++                },
++                None,
++            ) => target_inst == instance_id,
++            (
++                LabelTarget::ProviderModel {
++                    instance_id: target_inst,
++                    model_id: target_model,
++                },
++                Some(model),
++            ) => target_inst == instance_id && target_model == model,
+             _ => false,
+         };
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:108:
+     if verbose {
+         // Verbose mode: show detailed information for each instance
+         for instance in filtered_instances {
+-            println!(
+-                "\n{}",
+-                instance.id.cyan().bold()
+-            );
++            println!("\n{}", instance.id.cyan().bold());
+             println!("  Provider Type: {}", instance.provider_type);
+             println!("  Base URL: {}", instance.base_url);
+             println!(
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:176:
+ /// Handle the add-instance command
+ pub fn handle_add_instance(
+     id: String,
+-    _name: String,  // display_name not supported in new ProviderInstance
++    _name: String, // display_name not supported in new ProviderInstance
+     provider_type: String,
+     base_url: String,
+     api_key: Option<String>,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:193:
+         ));
+     }
+ 
+-    let mut instance = ProviderInstance::new(id.clone(), provider_type, base_url, String::new(), Vec::new());
++    let mut instance = ProviderInstance::new(
++        id.clone(),
++        provider_type,
++        base_url,
++        String::new(),
++        Vec::new(),
++    );
+     instance.active = active;
+ 
+     // Add API key if provided
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:266:
+                 .yellow()
+                 .bold()
+         );
+-        println!(
+-            "Instance: {}",
+-            instance.id.cyan()
+-        );
++        println!("Instance: {}", instance.id.cyan());
+         print!("Are you sure? (y/N): ");
+ 
+         use std::io::{self, Write};
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:303:
+ /// Handle the update-instance command
+ pub fn handle_update_instance(
+     id: String,
+-    _name: Option<String>,  // display_name not supported in new ProviderInstance
++    _name: Option<String>, // display_name not supported in new ProviderInstance
+     base_url: Option<String>,
+     api_key: Option<String>,
+     models: Option<String>,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:390:
+         .get_instance(&id)
+         .ok_or_else(|| anyhow::anyhow!("Provider instance with ID '{}' not found", id))?;
+ 
+-    println!(
+-        "\n{}",
+-        instance.id.cyan().bold()
+-    );
++    println!("\n{}", instance.id.cyan().bold());
+     println!("{}", "─".repeat(50).dimmed());
+ 
+     println!("Provider Type: {}", instance.provider_type.yellow());
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:641:
+         println!("Found {} model(s):\n", total_count);
+ 
+         for (instance, model_id) in filtered_models {
+-            println!(
+-                "{} ({})",
+-                model_id.cyan(),
+-                instance.provider_type
+-            );
++            println!("{} ({})", model_id.cyan(), instance.provider_type);
+             println!("  Instance: {} ({})", instance.id, instance.id);
+ 
+             // Show tags
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/providers.rs:736:
+             println!(
+                 "{:<25} {:<20} {:<35} {:<15} {:<15}",
+                 basename.cyan(),
+-                format!(
+-                    "{} ({})",
+-                    instance.provider_type,
+-                    instance.id
+-                )
+-                .yellow(),
++                format!("{} ({})", instance.provider_type, instance.id).yellow(),
+                 truncate_string(model_id, 35),
+                 if labels.is_empty() {
+                     "-".dimmed()
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:1:
+ use aicred_core::models::{Model, ProviderInstance};
+ use aicred_core::plugins::PluginRegistry;
+ use aicred_core::providers::anthropic::AnthropicPlugin;
+-use aicred_core::{scan, ScanOptions, DiscoveredCredential};
++use aicred_core::{scan, DiscoveredCredential, ScanOptions};
+ use anyhow::Result;
+ use colored::*;
+ use sha2::{Digest, Sha256};
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:338:
+             // Find API keys in this group
+             let api_keys: Vec<&DiscoveredCredential> = keys
+                 .iter()
+-                .filter(|k| {
+-                    matches!(
+-                        k.value_type,
+-                        aicred_core::ValueType::ApiKey
+-                    )
+-                })
++                .filter(|k| matches!(k.value_type, aicred_core::ValueType::ApiKey))
+                 .collect();
+ 
+             // Also check for other key types that can serve as primary keys
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:494:
+                                     }
+                                 }
+                             }
+-                            aicred_core::ValueType::Custom(
+-                                ref custom_type,
+-                            ) => {
++                            aicred_core::ValueType::Custom(ref custom_type) => {
+                                 let custom_type_lower = custom_type.to_lowercase();
+ 
+                                 if custom_type_lower == "baseurl" {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:613:
+                         instance.id,
+                         instance.models.len()
+                     );
+-                    tracing::debug!(
+-                        "Instance models before save: {:?}",
+-                        instance.models
+-                    );
++                    tracing::debug!("Instance models before save: {:?}", instance.models);
+ 
+                     // Save the instance configuration
+                     let yaml_content = serde_yaml::to_string(&instance)?;
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/scan.rs:681:
+                     metadata_map.remove("modelid");
+ 
+                     for key in &keys {
+-                        if let aicred_core::ValueType::Custom(
+-                            ref custom_type,
+-                        ) = key.value_type
+-                        {
++                        if let aicred_core::ValueType::Custom(ref custom_type) = key.value_type {
+                             let custom_type_lower = custom_type.to_lowercase();
+ 
+                             if custom_type_lower == "baseurl" {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:147:
+ /// Handle the tags add command
+ pub fn handle_add_tag(
+     name: String,
+-    _color: Option<String>,  // Color not supported in Label
++    _color: Option<String>, // Color not supported in Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:243:
+ /// Handle the tags update command
+ pub fn handle_update_tag(
+     name: String,
+-    _color: Option<String>,  // Color not supported in Label
++    _color: Option<String>, // Color not supported in Label
+     description: Option<String>,
+     home: Option<&Path>,
+ ) -> Result<()> {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:330:
+ 
+     // Check if assignment already exists
+     let assignment_exists = assignments.iter().any(|existing| {
+-        existing.label_name == assignment.label_name && match (&existing.target, &assignment.target) {
+-            (LabelTarget::ProviderInstance { instance_id: e_i }, LabelTarget::ProviderInstance { instance_id: a_i }) => e_i == a_i,
+-            (LabelTarget::ProviderModel { instance_id: e_i, model_id: e_m }, LabelTarget::ProviderModel { instance_id: a_i, model_id: a_m }) => e_i == a_i && e_m == a_m,
+-            _ => false,
+-        }
++        existing.label_name == assignment.label_name
++            && match (&existing.target, &assignment.target) {
++                (
++                    LabelTarget::ProviderInstance { instance_id: e_i },
++                    LabelTarget::ProviderInstance { instance_id: a_i },
++                ) => e_i == a_i,
++                (
++                    LabelTarget::ProviderModel {
++                        instance_id: e_i,
++                        model_id: e_m,
++                    },
++                    LabelTarget::ProviderModel {
++                        instance_id: a_i,
++                        model_id: a_m,
++                    },
++                ) => e_i == a_i && e_m == a_m,
++                _ => false,
++            }
+     });
+ 
+     if assignment_exists {
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:403:
+             LabelTarget::ProviderInstance { instance_id } => {
+                 // Match if instance IDs match and model_id is None
+                 if let Some(model_id) = &target_model_id {
+-                    false  // Should not match if model_id is specified
++                    false // Should not match if model_id is specified
+                 } else {
+                     instance_id == &target_instance_id
+                 }
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:410:
+             }
+-            LabelTarget::ProviderModel { instance_id, model_id } => {
++            LabelTarget::ProviderModel {
++                instance_id,
++                model_id,
++            } => {
+                 // Match if both instance and model match
+                 match target_model_id.as_ref() {
+                     Some(m) => instance_id == &target_instance_id && model_id == m,
+Diff in /Users/kipp/openclaw/aicred/cli/src/commands/tags.rs:455:
+ 
+     for assignment in assignments {
+         let matches_target = match (&assignment.target, model_id) {
+-            (LabelTarget::ProviderInstance { instance_id: inst_id }, None) => inst_id == instance_id,
+-            (LabelTarget::ProviderModel { instance_id: inst_id, model_id: mod_id }, Some(model)) => {
+-                inst_id == instance_id && mod_id == model
+-            }
++            (
++                LabelTarget::ProviderInstance {
++                    instance_id: inst_id,
++                },
++                None,
++            ) => inst_id == instance_id,
++            (
++                LabelTarget::ProviderModel {
++                    instance_id: inst_id,
++                    model_id: mod_id,
++                },
++                Some(model),
++            ) => inst_id == instance_id && mod_id == model,
+             _ => false,
+         };
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/ndjson.rs:19:
+                     let tag_names: Vec<String> = tags.iter().map(|tag| tag.name.clone()).collect();
+                     let tags_json = serde_json::to_string(&tag_names)
+                         .map_err(|e| anyhow::anyhow!("Failed to serialize tags: {}", e))?;
+-                    provider_instance.metadata.insert("tags".to_string(), tags_json);
++                    provider_instance
++                        .metadata
++                        .insert("tags".to_string(), tags_json);
+                 }
+             }
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/ndjson.rs:26:
+             // Get labels for this provider instance
+             if let Ok(labels) = get_labels_for_target(&instance.instance_id, None, None) {
+                 if !labels.is_empty() {
+-                    let label_names: Vec<String> = labels.iter().map(|label| label.name.clone()).collect();
++                    let label_names: Vec<String> =
++                        labels.iter().map(|label| label.name.clone()).collect();
+                     let labels_json = serde_json::to_string(&label_names)
+                         .map_err(|e| anyhow::anyhow!("Failed to serialize labels: {}", e))?;
+-                    provider_instance.metadata.insert("labels".to_string(), labels_json);
++                    provider_instance
++                        .metadata
++                        .insert("labels".to_string(), labels_json);
+                 }
+             }
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:1:
+-use aicred_core::{ScanResult, models::Label};
++use aicred_core::{models::Label, ScanResult};
+ use colored::*;
+ use tracing::debug;
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:57:
+                     let settings_display = if provider_instance.metadata.is_empty() {
+                         "-".dimmed().to_string()
+                     } else {
+-                        let settings_str = provider_instance.metadata
++                        let settings_str = provider_instance
++                            .metadata
+                             .iter()
+                             .map(|(k, v)| format!("{}={}", k, v))
+                             .collect::<Vec<_>>()
+Diff in /Users/kipp/openclaw/aicred/cli/src/output/table.rs:248:
+ }
+ 
+ /// Get tags for a specific instance
+-fn get_tags_for_instance(
+-    instance_id: &str,
+-) -> Result<Vec<Label>, anyhow::Error> {
++fn get_tags_for_instance(instance_id: &str) -> Result<Vec<Label>, anyhow::Error> {
+     use crate::commands::tags::get_tags_for_target;
+     get_tags_for_target(instance_id, None, None)
+ }
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:60:
+                                 .to_string()
+                         });
+ 
+-                        let provider_type = get_str("provider_type")
+-                            .unwrap_or_else(|| "unknown".to_string());
++                        let provider_type =
++                            get_str("provider_type").unwrap_or_else(|| "unknown".to_string());
+                         let base_url = get_str("base_url")
+                             .unwrap_or_else(|| "https://api.example.com".to_string());
+ 
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:93:
+                                 if !seq.is_empty() {
+                                     if let Some(first_key) = seq[0].as_mapping() {
+                                         let api_key = first_key
+-                                            .get(serde_yaml::Value::String(
+-                                                "api_key".to_string(),
+-                                            ))
++                                            .get(serde_yaml::Value::String("api_key".to_string()))
+                                             .or_else(|| {
+                                                 first_key.get(serde_yaml::Value::String(
+                                                     "value".to_string(),
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:102:
+                                                 ))
+                                             })
+-                                            .and_then(|v| {
+-                                                v.as_str().map(|s| s.to_string())
+-                                            });
++                                            .and_then(|v| v.as_str().map(|s| s.to_string()));
+                                         if let Some(k) = api_key {
+                                             instance.api_key = k;
+                                         }
+Diff in /Users/kipp/openclaw/aicred/cli/src/utils/provider_loader.rs:124:
+                                         instance.add_model(s.to_string());
+                                     } else if let Some(m) = item.as_mapping() {
+                                         if let Some(model_id_val) =
+-                                            m.get(serde_yaml::Value::String(
+-                                                "model_id".to_string(),
+-                                            ))
++                                            m.get(serde_yaml::Value::String("model_id".to_string()))
+                                         {
+                                             if let Some(model_id) = model_id_val.as_str() {
+                                                 instance.add_model(model_id.to_string());
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/claude_desktop.rs:562:
+ 
+         // Verify provider instance details
+         assert_eq!(provider_instance.provider_type, "anthropic");
+-        assert!(!provider_instance.id.is_empty());  // ID is now a hash, not the provider name
++        assert!(!provider_instance.id.is_empty()); // ID is now a hash, not the provider name
+         assert!(provider_instance.has_non_empty_api_key());
+ 
+         // Verify model was added to provider instance
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/claude_desktop.rs:569:
+         assert_eq!(provider_instance.model_count(), 1);
+-        assert_eq!(
+-            provider_instance.models[0],
+-            "claude-3-opus-20240229"
+-        );
++        assert_eq!(provider_instance.models[0], "claude-3-opus-20240229");
+ 
+         // Verify temperature and max_tokens are in provider instance metadata
+         assert!(!provider_instance.metadata.is_empty());
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/gsh.rs:2:
+ 
+ use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
+ use crate::error::Result;
++use crate::models::credentials::DiscoveredCredential;
+ use crate::models::credentials::{Confidence, ValueType};
+ use crate::models::ConfigInstance;
+-use crate::models::credentials::DiscoveredCredential;
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/gsh.rs:414:
+     }
+ 
+     /// Extract keys from shell script format (KEY=value pairs).
+-    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
++    fn extract_keys_from_shell_script(
++        &self,
++        content: &str,
++        path: &Path,
++    ) -> Vec<DiscoveredCredential> {
+         let mut keys = Vec::new();
+ 
+         // Common API key patterns in shell scripts - handle both quoted and unquoted values
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/langchain.rs:2:
+ 
+ use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
+ use crate::error::{Error, Result};
++use crate::models::credentials::DiscoveredCredential;
+ use crate::models::credentials::{Confidence, ValueType};
+ use crate::models::ConfigInstance;
+-use crate::models::credentials::DiscoveredCredential;
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/mod.rs:368:
+ }
+ 
+ /// Helper to find config files that exist from a list of potential paths.
+-#[must_use] 
++#[must_use]
+ pub fn find_existing_configs(home_dir: &Path, relative_paths: &[&str]) -> Vec<PathBuf> {
+     relative_paths
+         .iter()
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/mod.rs:473:
+                         "ModelId" => ValueType::ModelId,
+                         "BaseUrl" => ValueType::BaseUrl,
+                         "Temperature" => ValueType::Temperature,
+-                        _ => ValueType::Custom(
+-                            (*custom_type).to_string(),
+-                        ),
++                        _ => ValueType::Custom((*custom_type).to_string()),
+                     };
+ 
+                     let discovered_key = DiscoveredCredential::new(
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/mod.rs:673:
+             // Create the provider instance
+             let mut instance = ProviderInstance::new_without_models(
+                 instance_id.clone(),
+-                provider_name.to_lowercase(),  // Use lowercase for consistency
++                provider_name.to_lowercase(), // Use lowercase for consistency
+                 final_base_url,
+-                String::new(),  // API key will be set below
++                String::new(), // API key will be set below
+             );
+ 
+             // Set the API key from the first discovered key
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/mod.rs:1165:
+         // Should still create instance, just skip invalid temperature
+         assert_eq!(instances.len(), 1);
+         let instance = &instances[0];
+-        assert!(
+-            instance.metadata.is_empty()
+-                || !instance.metadata.contains_key("temperature")
+-        );
++        assert!(instance.metadata.is_empty() || !instance.metadata.contains_key("temperature"));
+     }
+ 
+     #[test]
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/ragit.rs:2:
+ 
+ use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin};
+ use crate::error::Result;
++use crate::models::credentials::DiscoveredCredential;
+ use crate::models::credentials::{Confidence, ValueType};
+ use crate::models::ConfigInstance;
+-use crate::models::credentials::DiscoveredCredential;
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/discovery/roo_code.rs:2:
+ 
+ use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};
+ use crate::error::Result;
++use crate::models::credentials::DiscoveredCredential;
+ use crate::models::credentials::{Confidence, ValueType};
+ use crate::models::ConfigInstance;
+-use crate::models::credentials::DiscoveredCredential;
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:83:
+ #![warn(clippy::pedantic)]
+ #![warn(clippy::nursery)]
+ 
++pub mod discovery;
+ pub mod env_resolver;
+ pub mod error;
+ pub mod models;
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:89:
+ pub mod parser;
+ pub mod plugins;
+ pub mod providers;
+-pub mod discovery;
+ pub mod scanners; // Backward compatibility re-export
+ pub mod utils;
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:98:
+ 
+ // Primary API exports (v0.2.0 - canonical types)
+ pub use models::{
++    AuthMethod,
++    Capabilities,
++    Confidence,
++    // Config
++    ConfigInstance,
++    CredentialValue,
+     // Credentials & Discovery
+     DiscoveredCredential,
+-    CredentialValue,
+-    Confidence,
+-    ValueType,
+     Environment,
+-    ValidationStatus,
+     // Labels
+     Label,
+     LabelAssignment,
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:112:
+     LabelWithAssignments,
+     // Models
+     Model,
+-    ModelMetadata,
+     ModelCapabilities,
++    ModelMetadata,
+     ModelPricing,
+-    TokenCost,
+     // Providers
+     Provider,
+-    ProviderInstance,
+     ProviderCollection,
+-    AuthMethod,
++    ProviderInstance,
+     RateLimit,
+-    Capabilities,
+     // Scan
+     ScanResult,
+     ScanSummary,
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:129:
+-    // Config
+-    ConfigInstance,
++    TokenCost,
++    ValidationStatus,
++    ValueType,
+ };
+ 
+ pub use parser::{ConfigParser, FileFormat};
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:134:
+ 
+ // Plugin API exports
+ pub use plugins::{
+-    // Provider registry (v0.2.0)
+-    ProviderRegistry, register_builtin_providers,
+-    get_provider, list_providers, get_providers_for_file,
++    get_provider,
++    get_providers_for_file,
++    list_providers,
++    register_builtin_plugins,
++    register_builtin_providers,
++    CommonConfigPlugin,
+     // Legacy (still used internally)
+-    PluginRegistry, register_builtin_plugins,
++    PluginRegistry,
+     // Core traits
+-    ProviderPlugin, CommonConfigPlugin,
++    ProviderPlugin,
++    // Provider registry (v0.2.0)
++    ProviderRegistry,
+ };
+ 
+ // Discovery system (application-specific credential scanners)
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:147:
+ pub use crate::discovery::{
+-    register_builtin_scanners,
+-    ScannerConfig,
+-    ScannerPlugin,
+-    ScannerRegistry,
+-    DEFAULT_MAX_FILE_SIZE,
++    register_builtin_scanners, ScannerConfig, ScannerPlugin, ScannerRegistry, DEFAULT_MAX_FILE_SIZE,
+ };
+ pub use utils::provider_model_tuple::ProviderModelTuple;
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:416:
+                         tracing::debug!("Preserving custom Model key: {}", name);
+                         true
+                     }
+-                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => true,
++                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => {
++                        true
++                    }
+                     // Redact sensitive values like API keys
+                     _ => false,
+                 };
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:862:
+                     .get_instance_mut(&provider_instance_id)
+                 {
+                     // Update metadata
+-                    provider_instance.metadata.insert("probe_attempted".to_string(), "true".to_string());
++                    provider_instance
++                        .metadata
++                        .insert("probe_attempted".to_string(), "true".to_string());
+                     provider_instance.metadata.insert(
+                         "probe_timestamp".to_string(),
+                         chrono::Utc::now().to_rfc3339(),
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:879:
+ 
+                             // Extract model IDs from ModelMetadata
+                             provider_instance.models =
+-                                models.into_iter()
+-                                    .filter_map(|m| m.id)
+-                                    .collect();
++                                models.into_iter().filter_map(|m| m.id).collect();
+ 
+                             stats.probed_successfully += 1;
+                             stats.total_models_discovered += provider_instance.models.len();
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:888:
+ 
+-                            provider_instance.metadata.insert("probe_success".to_string(), "true".to_string());
++                            provider_instance
++                                .metadata
++                                .insert("probe_success".to_string(), "true".to_string());
+                             provider_instance.metadata.insert(
+                                 "models_count".to_string(),
+                                 provider_instance.models.len().to_string(),
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:900:
+                                 e
+                             );
+                             stats.probe_failures += 1;
+-                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
+-                            provider_instance.metadata.insert("probe_error".to_string(), e.to_string());
++                            provider_instance
++                                .metadata
++                                .insert("probe_success".to_string(), "false".to_string());
++                            provider_instance
++                                .metadata
++                                .insert("probe_error".to_string(), e.to_string());
+                         }
+                         Err(_) => {
+                             tracing::warn!(
+Diff in /Users/kipp/openclaw/aicred/core/src/lib.rs:910:
+                                 instance_id
+                             );
+                             stats.probe_failures += 1;
+-                            provider_instance.metadata.insert("probe_success".to_string(), "false".to_string());
+-                            provider_instance.metadata.insert("probe_error".to_string(), "timeout".to_string());
++                            provider_instance
++                                .metadata
++                                .insert("probe_success".to_string(), "false".to_string());
++                            provider_instance
++                                .metadata
++                                .insert("probe_error".to_string(), "timeout".to_string());
+                         }
+                     }
+                     break;
+Diff in /Users/kipp/openclaw/aicred/core/src/models/config_instance.rs:6:
+ use std::path::PathBuf;
+ 
+ use crate::models::credentials::DiscoveredCredential;
+-use crate::models::{ProviderInstance, ProviderCollection};
++use crate::models::{ProviderCollection, ProviderInstance};
+ 
+ /// Represents a specific instance of an application configuration
+ /// For example, multiple Roo Code installations in different directories
+Diff in /Users/kipp/openclaw/aicred/core/src/models/config_validator.rs:100:
+ 
+     // Validate each instance
+     for instance in instances.list() {
+-        instance.validate()
++        instance
++            .validate()
+             .map_err(|e| format!("Instance '{}' validation failed: {e}", instance.id))?;
+     }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:226:
+         /// SHA-256 hash of the full value
+         sha256: String,
+         /// First few characters (for identification)
+-        prefix: String
++        prefix: String,
+     },
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:240:
+         } else {
+             key.to_string()
+         };
+-        
++
+         Self::Redacted {
+             sha256: hex::encode(hash),
+             prefix,
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:247:
+         }
+     }
+-    
++
+     /// Creates a full credential value
+     #[must_use]
+     pub const fn full(key: String) -> Self {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:253:
+         Self::Full(key)
+     }
+-    
++
+     /// Checks if this is a redacted value
+     #[must_use]
+     pub const fn is_redacted(&self) -> bool {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:259:
+         matches!(self, Self::Redacted { .. })
+     }
+-    
++
+     /// Gets the full value if available
+     #[must_use]
+     pub const fn as_full(&self) -> Option<&String> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:284:
+ 
+ impl From<f32> for Confidence {
+     fn from(score: f32) -> Self {
+-        if score < 0.5 { Self::Low }
+-        else if score < 0.7 { Self::Medium }
+-        else if score < 0.9 { Self::High }
+-        else { Self::VeryHigh }
++        if score < 0.5 {
++            Self::Low
++        } else if score < 0.7 {
++            Self::Medium
++        } else if score < 0.9 {
++            Self::High
++        } else {
++            Self::VeryHigh
++        }
+     }
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:354:
+     /// Project-specific configuration
+     ProjectConfig {
+         /// Path to the project
+-        project_path: String
++        project_path: String,
+     },
+     /// Environment variable
+     EnvironmentVariable,
+Diff in /Users/kipp/openclaw/aicred/core/src/models/credentials.rs:372:
+     /// Validated but invalid/expired
+     Invalid {
+         /// Reason for invalidity
+-        reason: String
++        reason: String,
+     },
+     /// Rate limited during validation
+     RateLimited,
+Diff in /Users/kipp/openclaw/aicred/core/src/models/labels.rs:38:
+     /// Entire provider instance
+     ProviderInstance {
+         /// Instance ID
+-        instance_id: String
++        instance_id: String,
+     },
+     /// Specific model within an instance
+     ProviderModel {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/labels.rs:45:
+         /// Instance ID
+         instance_id: String,
+         /// Model ID
+-        model_id: String
++        model_id: String,
+     },
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/models/labels.rs:54:
+     #[must_use]
+     pub fn instance_id(&self) -> &str {
+         match self {
+-            Self::ProviderInstance { instance_id } | Self::ProviderModel { instance_id, .. } => instance_id,
++            Self::ProviderInstance { instance_id } | Self::ProviderModel { instance_id, .. } => {
++                instance_id
++            }
+         }
+     }
+-    
++
+     /// Gets the model ID if this targets a specific model
+     #[must_use]
+     pub fn model_id(&self) -> Option<&str> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/labels.rs:83:
+     pub const fn new(label: Label, assignments: Vec<LabelAssignment>) -> Self {
+         Self { label, assignments }
+     }
+-    
++
+     /// Checks if this label has any assignments
+     #[must_use]
+     pub const fn has_assignments(&self) -> bool {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/labels.rs:90:
+         !self.assignments.is_empty()
+     }
+-    
++
+     /// Gets the number of assignments
+     #[must_use]
+     pub const fn assignment_count(&self) -> usize {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/mod.rs:15:
+ 
+ // Credentials & Discovery
+ pub use credentials::{
+-    Confidence,
+-    CredentialValue,
+-    DiscoveredCredential,
+-    Environment,
+-    ValidationStatus,
+-    ValueType,
++    Confidence, CredentialValue, DiscoveredCredential, Environment, ValidationStatus, ValueType,
+ };
+ 
+ // Labels (semantic tagging)
+Diff in /Users/kipp/openclaw/aicred/core/src/models/mod.rs:27:
+-pub use labels::{
+-    Label,
+-    LabelAssignment,
+-    LabelTarget,
+-    LabelWithAssignments,
+-};
++pub use labels::{Label, LabelAssignment, LabelTarget, LabelWithAssignments};
+ 
+ // Models & Metadata
+-pub use models::{
+-    Model,
+-    ModelCapabilities,
+-    ModelMetadata,
+-    ModelPricing,
+-    TokenCost,
+-};
++pub use models::{Model, ModelCapabilities, ModelMetadata, ModelPricing, TokenCost};
+ 
+ // Providers & Instances
+ pub use providers::{
+Diff in /Users/kipp/openclaw/aicred/core/src/models/mod.rs:45:
+-    AuthMethod,
+-    Capabilities,
+-    Provider,
+-    ProviderCollection,
+-    ProviderInstance,
+-    RateLimit,
++    AuthMethod, Capabilities, Provider, ProviderCollection, ProviderInstance, RateLimit,
+ };
+ 
+ // Scan Results
+Diff in /Users/kipp/openclaw/aicred/core/src/models/models.rs:138:
+         self.pricing.as_ref().map(|p| {
+             let input_cost = f64::from(input_tokens) * p.input_cost_per_token;
+             let output_cost = f64::from(output_tokens) * p.output_cost_per_token;
+-            
++
+             TokenCost {
+                 total_cost: input_cost + output_cost,
+                 input_cost,
+Diff in /Users/kipp/openclaw/aicred/core/src/models/models.rs:147:
+             }
+         })
+     }
+-    
++
+     /// Checks if the model supports a specific capability
+     #[must_use]
+     pub fn has_capability(&self, capability: &str) -> bool {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/models.rs:185:
+ 
+         let cost = model.token_cost(1000, 500);
+         assert!(cost.is_some());
+-        
++
+         let cost_value = cost.unwrap();
+         assert!((cost_value.input_cost - 0.03).abs() < 0.0001);
+         assert!((cost_value.output_cost - 0.03).abs() < 0.0001);
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:30:
+     /// HTTP Basic authentication
+     Basic {
+         /// Username for basic auth
+-        username: String
++        username: String,
+     },
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:166:
+         }
+         Ok(())
+     }
+-    
++
+     /// Builder: sets metadata (backward compatibility).
+     #[must_use]
+     pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:173:
+         self.metadata = metadata;
+         self
+     }
+-    
++
+     /// Checks if a model exists in this instance (backward compatibility).
+     ///
+     /// Returns true if the model ID is in the models list.
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:216:
+             instances: HashMap::new(),
+         }
+     }
+-    
++
+     /// Adds an instance to the collection
+     pub fn add(&mut self, id: String, instance: ProviderInstance) {
+         self.instances.insert(id, instance);
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:223:
+     }
+-    
++
+     /// Gets an instance by ID
+     #[must_use]
+     pub fn get(&self, id: &str) -> Option<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:228:
+         self.instances.get(id)
+     }
+-    
++
+     /// Removes an instance by ID
+     pub fn remove(&mut self, id: &str) -> Option<ProviderInstance> {
+         self.instances.remove(id)
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:234:
+     }
+-    
++
+     /// Lists all instances
+     #[must_use]
+     pub fn list(&self) -> Vec<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:239:
+         self.instances.values().collect()
+     }
+-    
++
+     /// Gets the number of instances
+     #[must_use]
+     pub fn len(&self) -> usize {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:245:
+         self.instances.len()
+     }
+-    
++
+     /// Checks if the collection is empty
+     #[must_use]
+     pub fn is_empty(&self) -> bool {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:251:
+         self.instances.is_empty()
+     }
+-    
++
+     // ==== Backward Compatibility Methods ====
+-    
++
+     /// Gets an instance by ID (backward compat alias for `get`)
+     #[must_use]
+     pub fn get_instance(&self, id: &str) -> Option<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:259:
+         self.get(id)
+     }
+-    
++
+     /// Gets a mutable instance by ID (backward compat)
+     #[must_use]
+     pub fn get_instance_mut(&mut self, id: &str) -> Option<&mut ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:265:
+         self.instances.get_mut(id)
+     }
+-    
++
+     /// Adds an instance (backward compat - returns Result for consistency with old API)
+     ///
+     /// # Errors
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:274:
+         self.add(id, instance);
+         Ok(())
+     }
+-    
++
+     /// Gets all instances (backward compat alias for `list`)
+     #[must_use]
+     pub fn all_instances(&self) -> Vec<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:281:
+         self.list()
+     }
+-    
++
+     /// Adds or replaces an instance (backward compat)
+     pub fn add_or_replace_instance(&mut self, instance: ProviderInstance) {
+         let id = instance.id.clone();
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:287:
+         self.add(id, instance);
+     }
+-    
++
+     /// Removes an instance by ID (backward compat)
+     pub fn remove_instance(&mut self, id: &str) -> Option<ProviderInstance> {
+         self.remove(id)
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:293:
+     }
+-    
++
+     /// Gets all active instances (backward compat)
+     #[must_use]
+     pub fn active_instances(&self) -> Vec<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/models/providers.rs:298:
+         self.instances.values().filter(|i| i.active).collect()
+     }
+-    
++
+     /// Gets instances by provider type (backward compat)
+     #[must_use]
+     pub fn instances_by_type(&self, provider_type: &str) -> Vec<&ProviderInstance> {
+Diff in /Users/kipp/openclaw/aicred/core/src/plugins/mod.rs:182:
+ ///
+ /// This wrapper adds Arc<`RwLock`<>> around a `HashMap` for thread-safety,
+ /// but most use cases don't need the complexity. Prefer using `ProviderRegistry` directly.
+-#[deprecated(since = "0.2.0", note = "Use ProviderRegistry (HashMap) with helper functions instead")]
++#[deprecated(
++    since = "0.2.0",
++    note = "Use ProviderRegistry (HashMap) with helper functions instead"
++)]
+ #[derive(Clone)]
+ pub struct PluginRegistry {
+     plugins: Arc<RwLock<HashMap<String, Arc<dyn ProviderPlugin>>>>,
+Diff in /Users/kipp/openclaw/aicred/core/src/plugins/mod.rs:402:
+ ///     println!("Found OpenAI plugin");
+ /// }
+ /// ```
+-#[must_use] 
++#[must_use]
+ pub fn register_builtin_providers() -> ProviderRegistry {
+     let mut registry = HashMap::new();
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/plugins/mod.rs:433:
+ 
+ /// Get a plugin from the registry by name (v0.2.0+ API).
+ #[inline]
+-#[must_use] 
+-pub fn get_provider<'a>(registry: &'a ProviderRegistry, name: &str) -> Option<&'a dyn ProviderPlugin> {
++#[must_use]
++pub fn get_provider<'a>(
++    registry: &'a ProviderRegistry,
++    name: &str,
++) -> Option<&'a dyn ProviderPlugin> {
+     registry.get(name).map(|arc| &**arc)
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/src/plugins/mod.rs:445:
+ }
+ 
+ /// Get all plugins that can handle a specific file (v0.2.0+ API).
+-#[must_use] 
+-pub fn get_providers_for_file(registry: &ProviderRegistry, path: &Path) -> Vec<Arc<dyn ProviderPlugin>> {
++#[must_use]
++pub fn get_providers_for_file(
++    registry: &ProviderRegistry,
++    path: &Path,
++) -> Vec<Arc<dyn ProviderPlugin>> {
+     registry
+         .values()
+         .filter(|plugin| plugin.can_handle_file(path))
+Diff in /Users/kipp/openclaw/aicred/core/src/providers/groq.rs:162:
+         let instance = ProviderInstance::new_without_models(
+             "test-groq".to_string(),
+             "groq".to_string(),
+-        
+             "https://invalid-url.com".to_string(),
+-        
+             String::new(),
+-    );
++        );
+ 
+         let result = plugin.validate_instance(&instance);
+         assert!(result.is_err());
+Diff in /Users/kipp/openclaw/aicred/core/src/providers/groq.rs:180:
+         let mut instance = ProviderInstance::new_without_models(
+             "test-groq".to_string(),
+             "groq".to_string(),
+-        
+             "https://api.groq.com".to_string(),
+-        
+             String::new(),
+-    );
++        );
+ 
+         // Add a model but no keys
+-        
++
+         instance.add_model("llama3-8b-8192".to_string());
+ 
+         let result = plugin.validate_instance(&instance);
+Diff in /Users/kipp/openclaw/aicred/core/src/providers/groq.rs:202:
+         let mut instance = ProviderInstance::new_without_models(
+             "test-groq".to_string(),
+             "groq".to_string(),
+-        
+             "https://api.groq.com".to_string(),
+-        
+             String::new(),
+-    );
++        );
+ 
+         // Add models
+         instance.add_model("llama3-8b-8192".to_string());
+Diff in /Users/kipp/openclaw/aicred/core/src/providers/groq.rs:224:
+         let instance = ProviderInstance::new_without_models(
+             "test-groq".to_string(),
+             "groq".to_string(),
+-        
+             "https://api.groq.com".to_string(),
+-        
+             String::new(),
+-    );
++        );
+ 
+         let models = plugin.get_instance_models(&instance).unwrap();
+         assert_eq!(models.len(), 2); // Should return only two models when no valid keys
+Diff in /Users/kipp/openclaw/aicred/core/src/providers/groq.rs:242:
+         let mut instance = ProviderInstance::new_without_models(
+             "test-groq".to_string(),
+             "groq".to_string(),
+-        
+             "https://api.groq.com".to_string(),
+-        
+             String::new(),
+-    );
++        );
+ 
+         // Without keys, should return false
+         assert!(!plugin.is_instance_configured(&instance).unwrap());
+Diff in /Users/kipp/openclaw/aicred/core/src/utils/provider_model_tuple.rs:219:
+             "openai-prod".to_string(),
+             "openai".to_string(),
+             "https://api.openai.com".to_string(),
+-            String::new(),  // api_key
++            String::new(), // api_key
+         );
+ 
+         // Add a model to the instance
+Diff in /Users/kipp/openclaw/aicred/core/tests/architecture_validation_tests.rs:69:
+             !instance.provider_type.is_empty(),
+             "Provider type should not be empty"
+         );
++        assert!(!instance.id.is_empty(), "Display name should not be empty");
+         assert!(
+-            !instance.id.is_empty(),
+-            "Display name should not be empty"
+-        );
+-        assert!(
+             !instance.base_url.is_empty(),
+             "Base URL should not be empty"
+         );
+Diff in /Users/kipp/openclaw/aicred/core/tests/architecture_validation_tests.rs:260:
+     );
+ 
+     // Verify temperature was added to provider instance metadata
+-    let metadata = &provider_instance.metadata; if !metadata.is_empty() {
++    let metadata = &provider_instance.metadata;
++    if !metadata.is_empty() {
+         assert_eq!(
+             metadata.get("temperature"),
+             Some(&"0.7".to_string()),
+Diff in /Users/kipp/openclaw/aicred/core/tests/architecture_validation_tests.rs:357:
+             !instance.provider_type.is_empty(),
+             "Provider type should not be empty"
+         );
++        assert!(!instance.id.is_empty(), "Display name should not be empty");
+         assert!(
+-            !instance.id.is_empty(),
+-            "Display name should not be empty"
+-        );
+-        assert!(
+             !instance.base_url.is_empty(),
+             "Base URL should not be empty"
+         );
+Diff in /Users/kipp/openclaw/aicred/core/tests/architecture_validation_tests.rs:657:
+         .expect("Should have groq provider instance");
+ 
+     println!("\nGroq Provider Instance Metadata:");
+-    let metadata = &groq_instance.metadata; if !metadata.is_empty() {
++    let metadata = &groq_instance.metadata;
++    if !metadata.is_empty() {
+         for (key, value) in metadata {
+             println!("  {}: {}", key, value);
+         }
+Diff in /Users/kipp/openclaw/aicred/core/tests/proptests.rs:6:
+ //! Property-based tests for core library invariants.
+ 
+ use aicred_core::{
+-    models::{discovered_key::{Confidence, ValueType}, DiscoveredKey},
++    models::{
++        discovered_key::{Confidence, ValueType},
++        DiscoveredKey,
++    },
+     providers::openai::OpenAIPlugin,
+     ProviderPlugin,
+ };
+Diff in /Users/kipp/openclaw/aicred/core/tests/real_config_validation_tests.rs:70:
+             println!("        - {} ({})", model, model);
+         }
+ 
+-        let metadata = &instance.metadata; if !metadata.is_empty() {
++        let metadata = &instance.metadata;
++        if !metadata.is_empty() {
+             println!("      Settings:");
+             for (key, value) in metadata {
+                 println!("        {}: {}", key, value);
+Diff in /Users/kipp/openclaw/aicred/core/tests/real_config_validation_tests.rs:168:
+             println!("        - {} ({})", model, model);
+         }
+ 
+-        let metadata = &instance.metadata; if !metadata.is_empty() {
++        let metadata = &instance.metadata;
++        if !metadata.is_empty() {
+             println!("      Settings:");
+             for (key, value) in metadata {
+                 println!("        {}: {}", key, value);
+Diff in /Users/kipp/openclaw/aicred/core/tests/real_config_validation_tests.rs:259:
+             println!("        - {} ({})", model, model);
+         }
+ 
+-        let metadata = &instance.metadata; if !metadata.is_empty() {
++        let metadata = &instance.metadata;
++        if !metadata.is_empty() {
+             println!("      Settings:");
+             for (key, value) in metadata {
+                 println!("        {}: {}", key, value);
+Diff in /Users/kipp/openclaw/aicred/core/tests/real_config_validation_tests.rs:391:
+             !instance.provider_type.is_empty(),
+             "Provider type should not be empty"
+         );
++        assert!(!instance.id.is_empty(), "Display name should not be empty");
+         assert!(
+-            !instance.id.is_empty(),
+-            "Display name should not be empty"
+-        );
+-        assert!(
+             !instance.base_url.is_empty(),
+             "Base URL should not be empty"
+         );
+Diff in /Users/kipp/openclaw/aicred/core/tests/real_config_validation_tests.rs:411:
+             println!("      - {}", model);
+         }
+ 
+-        let metadata = &instance.metadata; if !metadata.is_empty() {
++        let metadata = &instance.metadata;
++        if !metadata.is_empty() {
+             println!("    Settings: {} entries", metadata.len());
+             for (key, value) in metadata {
+                 assert!(!key.is_empty(), "Setting key should not be empty");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:19:
+         probe_models: false,
+         probe_timeout_secs: 30,
+     };
+-    
++
+     let result = scan(&options);
+     assert!(result.is_ok(), "Basic scan should succeed");
+-    
++
+     let scan_result = result.unwrap();
+-    assert_eq!(scan_result.home_directory, temp.path().display().to_string());
++    assert_eq!(
++        scan_result.home_directory,
++        temp.path().display().to_string()
++    );
+ }
+ 
+ #[test]
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:31:
+ fn test_plugin_registry_basics() {
+     let registry = PluginRegistry::new();
+     register_builtin_plugins(&registry);
+-    
++
+     // Verify built-in providers are registered
+-    assert!(registry.get("openai").is_some(), "OpenAI plugin should be registered");
+-    assert!(registry.get("anthropic").is_some(), "Anthropic plugin should be registered");
+-    assert!(registry.get("groq").is_some(), "Groq plugin should be registered");
+-    assert!(registry.get("openrouter").is_some(), "OpenRouter plugin should be registered");
+-    
++    assert!(
++        registry.get("openai").is_some(),
++        "OpenAI plugin should be registered"
++    );
++    assert!(
++        registry.get("anthropic").is_some(),
++        "Anthropic plugin should be registered"
++    );
++    assert!(
++        registry.get("groq").is_some(),
++        "Groq plugin should be registered"
++    );
++    assert!(
++        registry.get("openrouter").is_some(),
++        "OpenRouter plugin should be registered"
++    );
++
+     // Verify provider list
+     let providers = registry.list();
+     assert!(!providers.is_empty(), "Should have registered providers");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:47:
+ fn test_scanner_registry_basics() {
+     let registry = ScannerRegistry::new();
+     register_builtin_scanners(&registry);
+-    
++
+     // Verify built-in scanners are registered
+     let scanners = registry.list();
+     assert!(!scanners.is_empty(), "Should have registered scanners");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:74:
+     let home_dir = "/tmp/test".to_string();
+     let providers = vec!["openai".to_string(), "anthropic".to_string()];
+     let started_at = chrono::Utc::now();
+-    
++
+     let result = ScanResult::new(home_dir.clone(), providers.clone(), started_at);
+-    
++
+     assert_eq!(result.home_directory, home_dir);
+     assert_eq!(result.providers_scanned, providers);
+     assert!(result.keys.is_empty(), "New result should have no keys");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:87:
+     let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+     assert_eq!(tuple.provider(), "openai");
+     assert_eq!(tuple.model(), "gpt-4");
+-    
++
+     let invalid = ProviderModelTuple::parse("invalid");
+     assert!(invalid.is_err(), "Invalid format should fail");
+ }
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:103:
+         probe_models: false,
+         probe_timeout_secs: 30,
+     };
+-    
++
+     assert!(!options.include_full_values, "Should default to redacted");
+     assert_eq!(options.max_file_size, 1024 * 1024);
+     assert!(!options.probe_models, "Should default to no probing");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:112:
+ #[test]
+ fn test_error_types() {
+     use std::path::PathBuf;
+-    
++
+     let not_found = Error::NotFound("test".to_string());
+     assert!(matches!(not_found, Error::NotFound(_)));
+-    
++
+     let validation = Error::ValidationError("test".to_string());
+     assert!(matches!(validation, Error::ValidationError(_)));
+-    
++
+     let parse = Error::ParseError {
+         path: PathBuf::from("/test/path"),
+         message: "test error".to_string(),
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:130:
+ fn test_provider_confidence_scoring() {
+     let registry = PluginRegistry::new();
+     register_builtin_plugins(&registry);
+-    
++
+     if let Some(openai) = registry.get("openai") {
+         // OpenAI keys start with sk-
+         let score = openai.confidence_score("sk-proj-test123");
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:137:
+         assert!(score > 0.8, "sk-proj- prefix should have high confidence");
+-        
++
+         let low_score = openai.confidence_score("random-text");
+         assert!(low_score < 0.8, "Random text should have lower confidence");
+     }
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:144:
+ #[test]
+ fn test_scan_with_filters() {
+     let temp = TempDir::new().unwrap();
+-    
++
+     // Test with only_providers filter
+     let options = ScanOptions {
+         home_dir: Some(temp.path().to_path_buf()),
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:155:
+         probe_models: false,
+         probe_timeout_secs: 30,
+     };
+-    
++
+     let result = scan(&options);
+     assert!(result.is_ok(), "Scan with filters should succeed");
+-    
++
+     // Test with exclude_providers filter
+     let options_exclude = ScanOptions {
+         home_dir: Some(temp.path().to_path_buf()),
+Diff in /Users/kipp/openclaw/aicred/core/tests/refactor_regression_tests.rs:169:
+         probe_models: false,
+         probe_timeout_secs: 30,
+     };
+-    
++
+     let result_exclude = scan(&options_exclude);
+-    assert!(result_exclude.is_ok(), "Scan with exclusions should succeed");
++    assert!(
++        result_exclude.is_ok(),
++        "Scan with exclusions should succeed"
++    );
+ }
+ 
+Diff in /Users/kipp/openclaw/aicred/core/tests/scanner_tests.rs:731:
+     // Should still create instance, just skip invalid temperature
+     assert_eq!(instances.len(), 1);
+     let instance = &instances[0];
+-    assert!(
+-        instance.metadata.is_empty()
+-            || !instance.metadata.contains_key("temperature")
+-    );
++    assert!(instance.metadata.is_empty() || !instance.metadata.contains_key("temperature"));
+ }
+ 
+ #[test]
+Diff in /Users/kipp/openclaw/aicred/core/tests/scanner_tests.rs:1091:
+ 
+     // Verify all models are present
+     assert_eq!(instance.models.len(), 3);
+-    let model_ids: Vec<&str> = instance
+-        .models
+-        .iter()
+-        .map(|m| m.as_str())
+-        .collect();
++    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
+     assert!(model_ids.contains(&"gpt-4"));
+     assert!(model_ids.contains(&"gpt-3.5-turbo"));
+     assert!(model_ids.contains(&"gpt-4-turbo"));
+Diff in /Users/kipp/openclaw/aicred/core/tests/scanner_tests.rs:1259:
+     );
+ 
+     // Verify models
+-    let model_ids: Vec<&str> = instance
+-        .models
+-        .iter()
+-        .map(|m| m.as_str())
+-        .collect();
++    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
+     assert!(model_ids.contains(&"gpt-4"));
+     assert!(model_ids.contains(&"gpt-3.5-turbo"));
+ }
+Diff in /Users/kipp/openclaw/aicred/core/tests/scanner_tests.rs:1538:
+     let instance = &instances[0];
+ 
+     // Temperature should not be in metadata
+-    let metadata = &instance.metadata; if !metadata.is_empty() {
++    let metadata = &instance.metadata;
++    if !metadata.is_empty() {
+         assert!(
+             !metadata.contains_key("temperature"),
+             "Invalid temperature should be skipped"
+Diff in /Users/kipp/openclaw/aicred/core/tests/scanner_tests.rs:1950:
+     let instance = &instances[0];
+     assert_eq!(instance.model_count(), 3);
+ 
+-    let model_ids: Vec<&str> = instance
+-        .models
+-        .iter()
+-        .map(|m| m.as_str())
+-        .collect();
++    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
+     assert!(model_ids.contains(&"gpt-4"));
+     assert!(model_ids.contains(&"gpt-3.5-turbo"));
+     assert!(model_ids.contains(&"gpt-4-turbo"));
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:48:
+         let label = create_test_label("primary");
+         assert_eq!(label.name, "primary");
+         assert_eq!(label.description, Some("Test label: primary".to_string()));
+-        
++
+         // New Label structure doesn't have validation or color field
+         // Basic validation is just checking name is not empty
+         assert!(!label.name.is_empty());
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:128:
+ 
+         // Different tags should have different tag IDs
+         assert_ne!(assignment1.tag_id, assignment2.tag_id);
+-        
++
+         // Different assignments should have different IDs
+         assert_ne!(assignment1.id, assignment2.id);
+ 
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:148:
+     #[test]
+     fn test_label_serialization() {
+         let label = create_test_label("fast");
+-        
++
+         // Test JSON serialization
+         let json = serde_json::to_string(&label).unwrap();
+         let deserialized: Label = serde_json::from_str(&json).unwrap();
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:155:
+-        
++
+         assert_eq!(label.name, deserialized.name);
+         assert_eq!(label.description, deserialized.description);
+     }
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:192:
+     #[test]
+     fn test_label_metadata() {
+         let mut label = create_test_label("smart");
+-        
+-        label.metadata.insert("priority".to_string(), "high".to_string());
+-        label.metadata.insert("category".to_string(), "quality".to_string());
+ 
++        label
++            .metadata
++            .insert("priority".to_string(), "high".to_string());
++        label
++            .metadata
++            .insert("category".to_string(), "quality".to_string());
++
+         assert_eq!(label.metadata.get("priority"), Some(&"high".to_string()));
+         assert_eq!(label.metadata.get("category"), Some(&"quality".to_string()));
+     }
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:206:
+         let instance_target = LabelTarget::ProviderInstance {
+             instance_id: "openai-1".to_string(),
+         };
+-        
++
+         assert_eq!(instance_target.instance_id(), "openai-1");
+         assert_eq!(instance_target.model_id(), None);
+ 
+Diff in /Users/kipp/openclaw/aicred/core/tests/tagging_integration_tests.rs:215:
+             instance_id: "openai-1".to_string(),
+             model_id: "gpt-4".to_string(),
+         };
+-        
++
+         assert_eq!(model_target.instance_id(), "openai-1");
+         assert_eq!(model_target.model_id(), Some("gpt-4"));
+     }

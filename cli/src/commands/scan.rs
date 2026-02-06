@@ -1,7 +1,5 @@
 use aicred_core::models::{Model, ProviderInstance};
-use aicred_core::plugins::PluginRegistry;
-use aicred_core::providers::anthropic::AnthropicPlugin;
-use aicred_core::{scan, ScanOptions, DiscoveredCredential};
+use aicred_core::{scan, DiscoveredCredential, ScanOptions};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -102,17 +100,6 @@ pub fn handle_scan(
         println!("Would scan directory: {}", home_dir.display());
         return Ok(());
     }
-
-    // Create plugin registry for demonstration purposes
-    // Note: The core scan() function creates its own registry internally via
-    // register_builtin_plugins(), which already includes AnthropicPlugin.
-    // This code demonstrates the pattern for CLI-level plugin management.
-    let _plugin_registry = PluginRegistry::new();
-    _plugin_registry.register(Arc::new(AnthropicPlugin)).ok();
-
-    // The scan() function will use its own internal registry that includes
-    // all built-in plugins (OpenAI, Anthropic, Groq, HuggingFace, etc.)
-    // for model auto-detection and key validation.
 
     // Perform scan
     println!("{}", "Scanning for GenAI credentials...".cyan().bold());
@@ -238,7 +225,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     let models_dir = config_dir.parent().unwrap().join("models");
     std::fs::create_dir_all(&models_dir)?;
 
-    let now = chrono::Utc::now();
+    let _now = chrono::Utc::now();
 
     // NEW APPROACH: Process each API key individually instead of grouping by provider
     // Create a map to track configuration context by source file
@@ -338,12 +325,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
             // Find API keys in this group
             let api_keys: Vec<&DiscoveredCredential> = keys
                 .iter()
-                .filter(|k| {
-                    matches!(
-                        k.value_type,
-                        aicred_core::ValueType::ApiKey
-                    )
-                })
+                .filter(|k| matches!(k.value_type, aicred_core::ValueType::ApiKey))
                 .collect();
 
             // Also check for other key types that can serve as primary keys
@@ -494,9 +476,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     }
                                 }
                             }
-                            aicred_core::ValueType::Custom(
-                                ref custom_type,
-                            ) => {
+                            aicred_core::ValueType::Custom(ref custom_type) => {
                                 let custom_type_lower = custom_type.to_lowercase();
 
                                 if custom_type_lower == "baseurl" {
@@ -557,7 +537,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     // Always include existing models from the ProviderInstance
                     // This handles the case where API-probed models exist but weren't converted to DiscoveredCredential objects
                     for existing_model in &instance.models {
-                        if !models_found.contains(&existing_model) {
+                        if !models_found.contains(existing_model) {
                             tracing::debug!(
                                 "Adding existing model {} that wasn't found via keys",
                                 existing_model
@@ -613,10 +593,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         instance.id,
                         instance.models.len()
                     );
-                    tracing::debug!(
-                        "Instance models before save: {:?}",
-                        instance.models
-                    );
+                    tracing::debug!("Instance models before save: {:?}", instance.models);
 
                     // Save the instance configuration
                     let yaml_content = serde_yaml::to_string(&instance)?;
@@ -681,10 +658,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     metadata_map.remove("modelid");
 
                     for key in &keys {
-                        if let aicred_core::ValueType::Custom(
-                            ref custom_type,
-                        ) = key.value_type
-                        {
+                        if let aicred_core::ValueType::Custom(ref custom_type) = key.value_type {
                             let custom_type_lower = custom_type.to_lowercase();
 
                             if custom_type_lower == "baseurl" {

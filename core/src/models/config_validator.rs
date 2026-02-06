@@ -100,7 +100,8 @@ pub fn validate_provider_instances_yaml(content: &str) -> Result<(), String> {
 
     // Validate each instance
     for instance in instances.list() {
-        instance.validate()
+        instance
+            .validate()
             .map_err(|e| format!("Instance '{}' validation failed: {e}", instance.id))?;
     }
 

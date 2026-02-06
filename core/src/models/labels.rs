@@ -38,14 +38,14 @@ pub enum LabelTarget {
     /// Entire provider instance
     ProviderInstance {
         /// Instance ID
-        instance_id: String
+        instance_id: String,
     },
     /// Specific model within an instance
     ProviderModel {
         /// Instance ID
         instance_id: String,
         /// Model ID
-        model_id: String
+        model_id: String,
     },
 }
 
@@ -54,10 +54,12 @@ impl LabelTarget {
     #[must_use]
     pub fn instance_id(&self) -> &str {
         match self {
-            Self::ProviderInstance { instance_id } | Self::ProviderModel { instance_id, .. } => instance_id,
+            Self::ProviderInstance { instance_id } | Self::ProviderModel { instance_id, .. } => {
+                instance_id
+            }
         }
     }
-    
+
     /// Gets the model ID if this targets a specific model
     #[must_use]
     pub fn model_id(&self) -> Option<&str> {
@@ -83,13 +85,13 @@ impl LabelWithAssignments {
     pub const fn new(label: Label, assignments: Vec<LabelAssignment>) -> Self {
         Self { label, assignments }
     }
-    
+
     /// Checks if this label has any assignments
     #[must_use]
     pub const fn has_assignments(&self) -> bool {
         !self.assignments.is_empty()
     }
-    
+
     /// Gets the number of assignments
     #[must_use]
     pub const fn assignment_count(&self) -> usize {

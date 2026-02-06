@@ -331,12 +331,7 @@ fn test_anthropic_model_detection_without_api_key() {
     let model_keys: Vec<_> = result
         .keys
         .iter()
-        .filter(|k| {
-            matches!(
-                k.value_type,
-                aicred_core::models::discovered_key::ValueType::ModelId
-            )
-        })
+        .filter(|k| matches!(k.value_type, aicred_core::models::ValueType::ModelId))
         .collect();
 
     assert!(

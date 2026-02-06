@@ -34,7 +34,10 @@ pub fn load_labels_with_targets(home: Option<&Path>) -> Result<Vec<LabelWithTarg
                     continue;
                 }
             }
-            LabelTarget::ProviderModel { instance_id, model_id } => {
+            LabelTarget::ProviderModel {
+                instance_id,
+                model_id,
+            } => {
                 // Find provider instance
                 if let Some(instance) = provider_instances.get_instance(instance_id) {
                     ProviderModelTuple::new(instance.provider_type.clone(), model_id.clone())
@@ -258,7 +261,10 @@ fn assignment_target_to_string(target: &LabelTarget) -> String {
         LabelTarget::ProviderInstance { instance_id } => {
             format!("instance:{}", instance_id)
         }
-        LabelTarget::ProviderModel { instance_id, model_id } => {
+        LabelTarget::ProviderModel {
+            instance_id,
+            model_id,
+        } => {
             format!("instance:{}|model:{}", instance_id, model_id)
         }
     }
@@ -557,7 +563,8 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
             // Create label assignment
             let assignment = LabelAssignment {
                 label_name: label_name.clone(),
-                target: if let Some(instance) = provider_instances.all_instances()
+                target: if let Some(instance) = provider_instances
+                    .all_instances()
                     .iter()
                     .find(|inst| inst.provider_type == tuple.provider())
                 {
@@ -583,7 +590,9 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
             };
 
             // Check if assignment already exists and update it
-            let existing_index = existing_assignments.iter().position(|a| a.label_name == assignment.label_name);
+            let existing_index = existing_assignments
+                .iter()
+                .position(|a| a.label_name == assignment.label_name);
             if let Some(index) = existing_index {
                 if verbose {
                     println!(
@@ -604,12 +613,15 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
 
             // Ensure label metadata exists
             if !existing_labels_metadata.contains_key(&label_name) {
-                existing_labels_metadata.insert(label_name.clone(), Label {
-                    name: label_name.clone(),
-                    description: None,
-                    created_at: chrono::Utc::now(),
-                    metadata: std::collections::HashMap::new(),
-                });
+                existing_labels_metadata.insert(
+                    label_name.clone(),
+                    Label {
+                        name: label_name.clone(),
+                        description: None,
+                        created_at: chrono::Utc::now(),
+                        metadata: std::collections::HashMap::new(),
+                    },
+                );
             }
         } else if verbose {
             eprintln!("  ❌ No matches found for label '{}'", label_name);
@@ -727,7 +739,7 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
 pub fn handle_set_label(
     label_name: String,
     tuple_str: String,
-    _color: Option<String>,  // Color not supported in new Label
+    _color: Option<String>, // Color not supported in new Label
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
@@ -752,7 +764,12 @@ pub fn handle_set_label(
     let provider_instance = provider_instances_list
         .iter()
         .find(|inst| inst.provider_type == tuple.provider())
-        .ok_or_else(|| anyhow::anyhow!("No provider instance found for provider: {}", tuple.provider()))?;
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No provider instance found for provider: {}",
+                tuple.provider()
+            )
+        })?;
 
     // Create label assignment target
     let target = if let Some(model) = provider_instance.models.iter().find(|m| {
@@ -802,12 +819,14 @@ pub fn handle_set_label(
 
     // Update label metadata
     if description.is_some() || !labels_metadata.contains_key(&label_name) {
-        let label = labels_metadata.entry(label_name.clone()).or_insert_with(|| Label {
-            name: label_name.clone(),
-            description: None,
-            created_at: chrono::Utc::now(),
-            metadata: std::collections::HashMap::new(),
-        });
+        let label = labels_metadata
+            .entry(label_name.clone())
+            .or_insert_with(|| Label {
+                name: label_name.clone(),
+                description: None,
+                created_at: chrono::Utc::now(),
+                metadata: std::collections::HashMap::new(),
+            });
 
         label.description = description;
     }
@@ -825,7 +844,9 @@ pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Res
     let mut labels_metadata = load_labels_with_home(home)?;
 
     // Find the assignment by name
-    let assignment_index = assignments.iter().position(|assignment| assignment.label_name == name);
+    let assignment_index = assignments
+        .iter()
+        .position(|assignment| assignment.label_name == name);
 
     if assignment_index.is_none() {
         return Err(anyhow::anyhow!("Label '{}' not found", name));
@@ -841,7 +862,10 @@ pub fn handle_unset_label(name: String, force: bool, home: Option<&Path>) -> Res
                 .bold()
         );
         println!("Label: {}", name.cyan());
-        println!("Assigned to: {}", assignment_target_to_string(&assignment.target));
+        println!(
+            "Assigned to: {}",
+            assignment_target_to_string(&assignment.target)
+        );
         println!("Use --force to confirm removal.");
         return Ok(());
     }
@@ -880,19 +904,26 @@ pub fn get_labels_for_target(
         }
     };
 
-    let provider_type = &instance.provider_type;
+    let _provider_type = &instance.provider_type;
 
     let mut result = Vec::new();
 
     for assignment in assignments {
         // Check if this assignment's target matches the instance and model
         let matches_target = match (&assignment.target, model_id) {
-            (LabelTarget::ProviderInstance { instance_id: target_inst }, None) => {
-                target_inst == instance_id
-            }
-            (LabelTarget::ProviderModel { instance_id: target_inst, model_id: target_model }, Some(model)) => {
-                target_inst == instance_id && target_model == model
-            }
+            (
+                LabelTarget::ProviderInstance {
+                    instance_id: target_inst,
+                },
+                None,
+            ) => target_inst == instance_id,
+            (
+                LabelTarget::ProviderModel {
+                    instance_id: target_inst,
+                    model_id: target_model,
+                },
+                Some(model),
+            ) => target_inst == instance_id && target_model == model,
             _ => false,
         };
 

@@ -2,9 +2,9 @@
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin};
 use crate::error::Result;
+use crate::models::credentials::DiscoveredCredential;
 use crate::models::credentials::{Confidence, ValueType};
 use crate::models::ConfigInstance;
-use crate::models::credentials::DiscoveredCredential;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
