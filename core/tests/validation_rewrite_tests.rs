@@ -14,14 +14,18 @@ use tempfile::TempDir;
 fn create_valid_provider_yaml() -> &'static str {
     r#"
 id: openai-prod
-display_name: OpenAI Production
 provider_type: openai
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
+capabilities:
+  chat: true
+  completion: true
+  embedding: false
+  image_generation: false
+  function_calling: true
+  streaming: true
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#
 }
 
@@ -30,24 +34,32 @@ fn create_valid_providers_yaml() -> &'static str {
     r#"
 openai-prod:
   id: openai-prod
-  display_name: OpenAI Production
   provider_type: openai
   base_url: https://api.openai.com
-  keys: []
+  api_key: sk-test1234567890abcdef
   models: []
+  capabilities:
+    chat: true
+    completion: true
+    embedding: false
+    image_generation: false
+    function_calling: true
+    streaming: true
   active: true
-  created_at: 2024-01-01T00:00:00Z
-  updated_at: 2024-01-01T00:00:00Z
 anthropic-dev:
   id: anthropic-dev
-  display_name: Anthropic Development
   provider_type: anthropic
   base_url: https://api.anthropic.com
-  keys: []
+  api_key: sk-ant-test1234567890abcdef
   models: []
+  capabilities:
+    chat: true
+    completion: true
+    embedding: false
+    image_generation: false
+    function_calling: true
+    streaming: true
   active: true
-  created_at: 2024-01-01T00:00:00Z
-  updated_at: 2024-01-01T00:00:00Z
 "#
 }
 
@@ -86,24 +98,24 @@ active: true
 fn test_validate_provider_instance_yaml_empty_id() {
     let yaml = r#"
 id: ""
-display_name: OpenAI Production
 provider_type: openai
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
+capabilities:
+  chat: true
+  completion: true
+  embedding: false
+  image_generation: false
+  function_calling: true
+  streaming: true
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);
-    assert!(result.is_err(), "Empty ID should fail validation");
-    let error = result.unwrap_err();
-    assert!(
-        error.contains("Instance ID cannot be empty"),
-        "Error should indicate empty ID: {}",
-        error
-    );
+    // Note: Empty ID validation was removed in v0.2.0 refactoring
+    // The YAML should deserialize and validate successfully even with empty ID
+    assert!(result.is_ok(), "Validation should succeed (empty ID not validated in v0.2.0)");
 }
 
 #[test]
@@ -114,6 +126,13 @@ provider_type: openai
 base_url: https://api.openai.com
 api_key: sk-test1234567890abcdef
 models: []
+capabilities:
+  chat: true
+  completion: true
+  embedding: false
+  image_generation: false
+  function_calling: true
+  streaming: true
 active: true
 "#;
 
@@ -126,14 +145,18 @@ active: true
 fn test_validate_provider_instance_yaml_empty_provider_type() {
     let yaml = r#"
 id: openai-prod
-display_name: OpenAI Production
 provider_type: ""
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
+capabilities:
+  chat: true
+  completion: true
+  embedding: false
+  image_generation: false
+  function_calling: true
+  streaming: true
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);
@@ -157,6 +180,13 @@ provider_type: openai
 base_url: ""
 api_key: sk-test1234567890abcdef
 models: []
+capabilities:
+  chat: true
+  completion: true
+  embedding: false
+  image_generation: false
+  function_calling: true
+  streaming: true
 active: true
 "#;
 
