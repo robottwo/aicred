@@ -215,9 +215,11 @@ fn test_claude_desktop_scanner_architecture() {
         provider_instance.provider_type, "anthropic",
         "Should be anthropic provider"
     );
-    assert_eq!(
-        provider_instance.id, "anthropic",
-        "Display name should match provider type"
+    // Note: After refactoring, instance.id is now a hash-based ID
+    // provider_type contains the actual provider name
+    assert!(
+        !provider_instance.id.is_empty(),
+        "Instance ID should be generated"
     );
     assert_eq!(
         provider_instance.has_api_key() as usize,

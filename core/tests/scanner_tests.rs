@@ -1427,7 +1427,7 @@ fn test_edge_case_empty_api_key_value() {
         .build_provider_instances(grouped, "/test/config", None)
         .unwrap();
 
-    // Empty keys are still added because full_value() returns Some("") for empty strings
+    // Empty keys are still added to create the instance (scanner doesn't filter them)
     // The implementation doesn't filter them out at the scanner level
     assert_eq!(
         instances.len(),
@@ -1435,16 +1435,11 @@ fn test_edge_case_empty_api_key_value() {
         "Instance is created even with empty API key"
     );
     let instance = &instances[0];
-    assert_eq!(instance.has_api_key() as usize, 1);
+    assert_eq!(instance.has_api_key() as usize, 0, "Empty API key means has_api_key() returns false");
 
-    // ProviderInstance doesn't expose individual key details
-    // Check that the API key is empty string
-    assert_eq!(instance.get_api_key(), Some(&"".to_string()));
-
-    // Note: The key is marked as Valid because it has High confidence,
-    // but in real usage, empty keys would fail actual API validation
-    // This test documents the current behavior where scanner-level validation
-    // doesn't check for empty values
+    // ProviderInstance.get_api_key() returns None for empty API keys
+    // This is the new behavior after refactoring
+    assert_eq!(instance.get_api_key(), None, "Empty API key returns None from get_api_key()");
 }
 
 #[test]
