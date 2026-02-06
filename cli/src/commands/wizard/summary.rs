@@ -1,7 +1,7 @@
 //! Summary phase - confirm and write configuration
 
 use anyhow::{Context, Result};
-use aicred_core::ProviderInstance;
+use aicred_core::{Label, LabelAssignment, ProviderInstance};
 use console::style;
 use inquire::Confirm;
 use std::collections::HashMap;
@@ -99,12 +99,35 @@ pub fn run_summary_phase(
     // Write instances file
     write_instances_file(&instances_file, &instances)?;
     
+    // Set restrictive permissions on instances file (contains API keys)
+    set_secure_permissions(&instances_file)?;
+    
     // Write labels file if we have labels
     if !labels.is_empty() {
         write_labels_file(&labels_file, &labels)?;
+        set_secure_permissions(&labels_file)?;
     }
     
     Ok((instances, labels, config_dir))
+}
+
+/// Set secure file permissions (owner read/write only)
+fn set_secure_permissions(path: &PathBuf) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(path)
+            .context("Failed to read file metadata")?
+            .permissions();
+        perms.set_mode(0o600); // Owner read/write only
+        fs::set_permissions(path, perms)
+            .context("Failed to set file permissions")?;
+    }
+    
+    // On Windows, the default ACLs are generally restrictive enough
+    // but we could enhance this with Windows-specific ACL manipulation if needed
+    
+    Ok(())
 }
 
 /// Write instances.yaml file
@@ -123,6 +146,13 @@ fn write_instances_file(path: &PathBuf, instances: &[ProviderInstance]) -> Resul
         .context("Failed to write instances.yaml")?;
     
     Ok(())
+}
+
+/// Structure for serializing labels file
+#[derive(serde::Serialize)]
+struct LabelsFile {
+    labels: HashMap<String, Label>,
+    assignments: Vec<LabelAssignment>,
 }
 
 /// Write labels.yaml file
@@ -164,36 +194,16 @@ fn write_labels_file(
         });
     }
     
-    // Serialize to YAML
-    let mut output = String::new();
+    // Serialize to YAML using serde_yaml for consistency
+    let labels_file = LabelsFile {
+        labels: labels_map,
+        assignments,
+    };
     
-    // Write labels section
-    if !labels_map.is_empty() {
-        output.push_str("labels:\n");
-        for (name, label) in labels_map {
-            output.push_str(&format!("  {}:\n", name));
-            output.push_str(&format!("    name: {}\n", label.name));
-            output.push_str(&format!("    created_at: {}\n", label.created_at.to_rfc3339()));
-        }
-        output.push('\n');
-    }
+    let yaml = serde_yaml::to_string(&labels_file)
+        .context("Failed to serialize labels to YAML")?;
     
-    // Write assignments section
-    if !assignments.is_empty() {
-        output.push_str("assignments:\n");
-        for assignment in assignments {
-            output.push_str(&format!("  - label_name: {}\n", assignment.label_name));
-            output.push_str("    target:\n");
-            if let LabelTarget::ProviderModel { instance_id, model_id } = &assignment.target {
-                output.push_str("      type: provider_model\n");
-                output.push_str(&format!("      instance_id: {}\n", instance_id));
-                output.push_str(&format!("      model_id: {}\n", model_id));
-            }
-            output.push_str(&format!("    assigned_at: {}\n", assignment.assigned_at.to_rfc3339()));
-        }
-    }
-    
-    fs::write(path, output)
+    fs::write(path, yaml)
         .context("Failed to write labels.yaml")?;
     
     Ok(())

@@ -506,11 +506,6 @@ fn main() -> Result<()> {
                         println!("{}", colored::Colorize::yellow("Setup cancelled."));
                         return Ok(());
                     }
-                    ExistingConfigAction::Merge => {
-                        // TODO: Implement merge logic
-                        eprintln!("{}", colored::Colorize::yellow("Merge mode not yet implemented. Use Replace instead."));
-                        return Ok(());
-                    }
                     ExistingConfigAction::Replace => {
                         // Continue with wizard
                     }

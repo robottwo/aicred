@@ -1,4 +1,19 @@
-//! Interactive setup wizard for first-time AICred configuration
+//! Interactive setup wizard for first-time AICred configuration.
+//!
+//! The wizard guides users through:
+//! 1. Scanning for existing credentials
+//! 2. Reviewing and selecting credentials to import
+//! 3. Configuring provider instances
+//! 4. Setting up semantic labels (optional)
+//! 5. Writing configuration files
+//!
+//! # Usage
+//!
+//! ```bash
+//! aicred wizard                # Standard interactive wizard
+//! aicred wizard --yes          # Auto-accept high-confidence credentials
+//! aicred wizard --skip-labels  # Skip label setup
+//! ```
 
 use anyhow::{Context, Result};
 use console::style;
@@ -68,7 +83,38 @@ pub struct WizardResult {
     pub warnings: Vec<String>,
 }
 
-/// Main wizard entry point
+/// Runs the interactive setup wizard.
+///
+/// # Arguments
+///
+/// * `options` - Configuration options for the wizard flow
+///
+/// # Returns
+///
+/// `WizardResult` containing:
+/// - Number of instances created
+/// - Number of labels created
+/// - Path to config directory
+/// - Any warnings
+///
+/// # Errors
+///
+/// Returns error if:
+/// - Scan fails
+/// - User input fails
+/// - Config file write fails
+/// - Config directory cannot be created
+///
+/// # Example
+///
+/// ```no_run
+/// use aicred_cli::commands::wizard::{run_wizard, WizardOptions};
+///
+/// let options = WizardOptions::default();
+/// let result = run_wizard(options)?;
+/// println!("Created {} instances", result.instances_created);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub fn run_wizard(options: WizardOptions) -> Result<WizardResult> {
     // Show welcome screen
     ui::show_welcome()?;
@@ -103,7 +149,19 @@ pub fn run_wizard(options: WizardOptions) -> Result<WizardResult> {
     })
 }
 
-/// Check if configuration already exists
+/// Checks if AICred configuration already exists.
+///
+/// # Arguments
+///
+/// * `home` - Optional home directory override
+///
+/// # Returns
+///
+/// `true` if `instances.yaml` exists, `false` otherwise
+///
+/// # Errors
+///
+/// Returns error if config directory cannot be determined
 pub fn config_exists(home: Option<&PathBuf>) -> Result<bool> {
     let config_dir = if let Some(h) = home {
         h.join(".config").join("aicred")
@@ -118,7 +176,7 @@ pub fn config_exists(home: Option<&PathBuf>) -> Result<bool> {
 }
 
 /// Handle existing configuration
-pub fn handle_existing_config(home: Option<&PathBuf>) -> Result<ExistingConfigAction> {
+pub fn handle_existing_config(_home: Option<&PathBuf>) -> Result<ExistingConfigAction> {
     use inquire::Select;
     
     let message = format!(
@@ -128,7 +186,6 @@ pub fn handle_existing_config(home: Option<&PathBuf>) -> Result<ExistingConfigAc
     );
     
     let options = vec![
-        "Merge (add new providers, keep existing)",
         "Replace (overwrite existing config)",
         "Cancel",
     ];
@@ -138,7 +195,6 @@ pub fn handle_existing_config(home: Option<&PathBuf>) -> Result<ExistingConfigAc
         .context("Failed to get user input")?;
     
     match answer {
-        "Merge (add new providers, keep existing)" => Ok(ExistingConfigAction::Merge),
         "Replace (overwrite existing config)" => Ok(ExistingConfigAction::Replace),
         _ => Ok(ExistingConfigAction::Cancel),
     }
@@ -147,7 +203,6 @@ pub fn handle_existing_config(home: Option<&PathBuf>) -> Result<ExistingConfigAc
 /// Action to take when config exists
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExistingConfigAction {
-    Merge,
     Replace,
     Cancel,
 }

@@ -2,7 +2,7 @@
 
 use anyhow::{Context, Result};
 use aicred_core::{
-    DiscoveredCredential, ProviderInstance, ScanResult,
+    CredentialValue, DiscoveredCredential, ProviderInstance, ScanResult,
 };
 use console::style;
 use inquire::{Confirm, Text};
@@ -11,6 +11,15 @@ use std::collections::HashMap;
 
 use super::WizardOptions;
 use super::ui;
+
+// Provider base URLs
+const OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
+const ANTHROPIC_BASE_URL: &str = "https://api.anthropic.com/v1";
+const GROQ_BASE_URL: &str = "https://api.groq.com/openai/v1";
+const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
+const HUGGINGFACE_BASE_URL: &str = "https://api-inference.huggingface.co";
+const OLLAMA_BASE_URL: &str = "http://localhost:11434";
+const LITELLM_BASE_URL: &str = "http://localhost:4000";
 
 /// Run the configure phase
 pub fn run_configure_phase(
@@ -117,41 +126,17 @@ fn configure_instance(
         println!("  {} Base URL: {}", style("→").dim(), style(&base_url).cyan());
     }
     
-    // Get models - probe or manual entry
-    let models = if options.skip_probe {
-        // Use common defaults for the provider
-        get_default_models(provider_type)
-    } else {
-        // Try to probe for models
-        if options.auto_accept {
-            get_default_models(provider_type)
-        } else {
-            let should_probe = Confirm::new("Auto-detect available models?")
-                .with_default(true)
-                .with_help_message("This requires an API call to the provider")
-                .prompt()
-                .unwrap_or(false);
-            
-            if should_probe {
-                ui::show_progress("Probing for models");
-                // Extract the API key value for probing
-                match &cred.value {
-                    CredentialValue::Full(v) => {
-                        let api_key = v.as_str();
-                        let probed = probe_models(provider_type, &base_url, api_key);
-                        ui::complete_progress(&format!("Found {} models", probed.len()));
-                        probed
-                    }
-                    CredentialValue::Redacted { .. } => {
-                        ui::show_warning("Cannot probe with redacted key, using defaults");
-                        get_default_models(provider_type)
-                    }
-                }
-            } else {
-                get_default_models(provider_type)
-            }
-        }
-    };
+    // Get models - use provider defaults
+    // TODO: Implement actual model probing when API clients are available
+    let models = get_default_models(provider_type);
+    
+    if !options.auto_accept && !models.is_empty() {
+        println!(
+            "  {} Using default models: {}",
+            style("→").dim(),
+            models.join(", ")
+        );
+    }
     
     // Mark as active
     let is_active = if options.auto_accept {
@@ -164,8 +149,6 @@ fn configure_instance(
     };
     
     // Get the actual credential value
-    use aicred_core::CredentialValue;
-    
     let api_key_value = match &cred.value {
         CredentialValue::Full(v) => v.clone(),
         CredentialValue::Redacted { .. } => {
@@ -306,14 +289,14 @@ fn validate_instance_id(input: &str) -> Result<Validation, Box<dyn std::error::E
 /// Get default base URL for a provider
 fn get_default_base_url(provider_type: &str) -> String {
     match provider_type.to_lowercase().as_str() {
-        "openai" => "https://api.openai.com/v1".to_string(),
-        "anthropic" => "https://api.anthropic.com/v1".to_string(),
-        "groq" => "https://api.groq.com/openai/v1".to_string(),
-        "openrouter" => "https://openrouter.ai/api/v1".to_string(),
-        "huggingface" => "https://api-inference.huggingface.co".to_string(),
-        "ollama" => "http://localhost:11434".to_string(),
-        "litellm" => "http://localhost:4000".to_string(),
-        _ => "".to_string(),
+        "openai" => OPENAI_BASE_URL.to_string(),
+        "anthropic" => ANTHROPIC_BASE_URL.to_string(),
+        "groq" => GROQ_BASE_URL.to_string(),
+        "openrouter" => OPENROUTER_BASE_URL.to_string(),
+        "huggingface" => HUGGINGFACE_BASE_URL.to_string(),
+        "ollama" => OLLAMA_BASE_URL.to_string(),
+        "litellm" => LITELLM_BASE_URL.to_string(),
+        _ => String::new(),
     }
 }
 
@@ -345,9 +328,92 @@ fn get_default_models(provider_type: &str) -> Vec<String> {
     }
 }
 
-/// Probe for available models (stub for now)
-fn probe_models(_provider_type: &str, _base_url: &str, _api_key: &str) -> Vec<String> {
-    // TODO: Implement actual model probing
-    // For now, just return defaults
-    vec![]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_instance_id_valid() {
+        let result = validate_instance_id("my-openai");
+        assert!(matches!(result, Ok(Validation::Valid)));
+    }
+
+    #[test]
+    fn test_validate_instance_id_with_spaces() {
+        let result = validate_instance_id("my openai");
+        assert!(matches!(result, Ok(Validation::Invalid(_))));
+    }
+
+    #[test]
+    fn test_validate_instance_id_empty() {
+        let result = validate_instance_id("");
+        assert!(matches!(result, Ok(Validation::Invalid(_))));
+    }
+
+    #[test]
+    fn test_validate_instance_id_starts_with_number() {
+        let result = validate_instance_id("123-openai");
+        assert!(matches!(result, Ok(Validation::Invalid(_))));
+    }
+
+    #[test]
+    fn test_validate_instance_id_valid_with_underscore() {
+        let result = validate_instance_id("my_openai");
+        assert!(matches!(result, Ok(Validation::Valid)));
+    }
+
+    #[test]
+    fn test_get_default_base_url_openai() {
+        assert_eq!(get_default_base_url("openai"), OPENAI_BASE_URL);
+    }
+
+    #[test]
+    fn test_get_default_base_url_anthropic() {
+        assert_eq!(get_default_base_url("anthropic"), ANTHROPIC_BASE_URL);
+    }
+
+    #[test]
+    fn test_get_default_base_url_case_insensitive() {
+        assert_eq!(get_default_base_url("OpenAI"), OPENAI_BASE_URL);
+        assert_eq!(get_default_base_url("GROQ"), GROQ_BASE_URL);
+    }
+
+    #[test]
+    fn test_get_default_base_url_unknown() {
+        assert_eq!(get_default_base_url("unknown-provider"), "");
+    }
+
+    #[test]
+    fn test_get_default_models_openai() {
+        let models = get_default_models("openai");
+        assert!(models.contains(&"gpt-4o".to_string()));
+        assert!(models.contains(&"gpt-4".to_string()));
+        assert!(models.contains(&"gpt-3.5-turbo".to_string()));
+    }
+
+    #[test]
+    fn test_get_default_models_anthropic() {
+        let models = get_default_models("anthropic");
+        assert!(models.contains(&"claude-3-5-sonnet-20241022".to_string()));
+        assert!(models.len() == 3);
+    }
+
+    #[test]
+    fn test_get_default_models_groq() {
+        let models = get_default_models("groq");
+        assert!(models.contains(&"llama3-70b-8192".to_string()));
+    }
+
+    #[test]
+    fn test_get_default_models_unknown() {
+        let models = get_default_models("unknown-provider");
+        assert!(models.is_empty());
+    }
+
+    #[test]
+    fn test_get_default_models_case_insensitive() {
+        let models = get_default_models("OpenAI");
+        assert!(!models.is_empty());
+    }
 }
+

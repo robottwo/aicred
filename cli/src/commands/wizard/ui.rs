@@ -101,17 +101,20 @@ pub fn show_success(config_path: &Path, instances: usize, labels: usize) -> Resu
 }
 
 /// Show a progress spinner with message
+#[allow(dead_code)]
 pub fn show_progress(message: &str) {
     print!("{} {}... ", style("⠋").cyan(), message);
     std::io::stdout().flush().unwrap_or(());
 }
 
 /// Complete a progress message
+#[allow(dead_code)]
 pub fn complete_progress(message: &str) {
     println!("{} {}", style("✓").green(), message);
 }
 
 /// Show an error message
+#[allow(dead_code)]
 pub fn show_error(message: &str) {
     eprintln!("{} {}", style("✗").red(), style(message).red());
 }
@@ -122,6 +125,7 @@ pub fn show_warning(message: &str) {
 }
 
 /// Show an info message
+#[allow(dead_code)]
 pub fn show_info(message: &str) {
     println!("{} {}", style("ℹ").blue(), message);
 }
