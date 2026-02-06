@@ -11,7 +11,19 @@ Stop managing the same API keys and model configurations across dozens of differ
 [![Go](https://github.com/robottwo/aicred/workflows/Go%20Bindings/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/go.yml)
 [![GUI](https://github.com/robottwo/aicred/workflows/GUI%20Application/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/gui.yml)
 [![Security](https://github.com/robottwo/aicred/workflows/Security%20Audit/badge.svg)](https://github.com/robottwo/aicred/actions/workflows/security.yml)
-[![codecov](https://codecov.io/gh/robottwo/aicred/branch/main/graph/badge.svg)](https://codecov.io/gh/robottwo/aicred)
+
+## Status
+
+🚧 **Beta** - AICred v0.2.0 is feature-complete and undergoing final testing before the first stable release. The API is stabilizing, but breaking changes are possible before v1.0.
+
+**Current capabilities:**
+- ✅ Full CLI functionality
+- ✅ Python and Go bindings
+- ✅ Rust library
+- ✅ Cross-platform support (Linux, macOS, Windows)
+- ✅ 7 provider plugins + extensible architecture
+- 🚧 GUI application (functional, UI refinements in progress)
+- 📦 Package distribution coming soon (crates.io, PyPI, Homebrew)
 
 ## The Problem
 
@@ -72,65 +84,111 @@ aicred labels assign --name "fast" --instance-id my-groq --model-id llama3-70b-8
 
 ### 3. **Automatic Application Configuration**
 
-Use the `wrap` command to run any application with the correct environment variables:
+The `wrap` command runs applications with automatically-generated environment variables, so tools can access your unified configuration without modification:
 
 ```bash
 # Run your app with the "fast" model configuration
 aicred wrap --labels fast -- python my_script.py
 
-# Your script automatically gets:
-# GSH_FAST_MODEL=groq:llama3-70b-8192
-# GSH_FAST_API_KEY=gsk-...
-# GSH_FAST_BASE_URL=https://api.groq.com/openai/v1
+# Your script automatically gets environment variables like:
+# AICRED_FAST_MODEL=groq:llama3-70b-8192
+# AICRED_FAST_API_KEY=gsk-...
+# AICRED_FAST_BASE_URL=https://api.groq.com/openai/v1
 
 # Or generate shell exports for manual use
 eval "$(aicred wrap --setenv --labels fast --format bash)"
+
+# Use custom environment variable prefixes
+aicred wrap --labels fast --env-prefix "MY_APP" -- python my_script.py
+# Sets: MY_APP_FAST_MODEL, MY_APP_FAST_API_KEY, etc.
 ```
+
+**Why this matters:** Most AI tools expect environment variables like `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. The `wrap` command bridges your unified configuration to these tool-specific formats automatically.
 
 ## Key Features
 
-- 🔐 **Security-First**: Keys are redacted by default with SHA-256 hashing
-- 🔌 **Plugin Architecture**: Extensible system for adding new providers and applications
-- 🌍 **Cross-Platform**: Works on Linux, macOS, and Windows
+### Security & Privacy
+- 🔐 **Secrets Redacted by Default**: All keys displayed as SHA-256 hashes unless explicitly requested
+- 🔍 **Audit Logging**: Track which applications access which credentials
+- 🔒 **Local-First**: All data stays on your machine; no external API calls
+
+### Developer Experience
 - 🚀 **Multiple Interfaces**: CLI, Python, Go, Rust library, and GUI
-- 📊 **Rich Output**: JSON, NDJSON, table, and summary formats
+- 📊 **Rich Output Formats**: JSON, NDJSON, table, and summary views
 - 🎯 **Smart Detection**: High-confidence key identification across multiple config formats
-- 🏷️ **Label System**: Assign semantic labels like "fast", "smart", "cheap" to provider:model combinations
-- 🔄 **Auto-Configuration**: Automatically configure applications that don't support the standard format
+- 🏷️ **Semantic Labels**: Tag provider:model combinations as "fast", "smart", "cheap", etc.
+- 🔄 **Auto-Configuration**: Generate environment variables for any application
+
+### Architecture
+- 🔌 **Plugin System**: Extensible architecture for adding new providers and scanners
+- 🌍 **Cross-Platform**: Native support for Linux, macOS, and Windows
+- ⚡ **Performance**: Rust-powered core with zero-cost abstractions
 
 ## Quick Start
 
 ### Installation
 
+#### Build from Source (Recommended for v0.2.0 Beta)
+
 ```bash
-# Install CLI
-cargo install aicred
+# Clone the repository
+git clone https://github.com/robottwo/aicred
+cd aicred
 
-# Or use Homebrew (macOS)
-brew install aicred
+# Build the CLI
+cargo build --release
 
-# Or use pip for Python bindings
-pip install aicred
+# The binary will be at target/release/aicred
+# Optional: add to PATH
+sudo cp target/release/aicred /usr/local/bin/
 ```
 
-### Basic Workflow
+#### Package Managers (Coming Soon)
+
+Official packages for crates.io, PyPI, Homebrew, and Scoop will be available with the v0.2.0 stable release.
 
 ```bash
-# 1. Scan your system for existing AI configurations
+# Coming soon:
+cargo install aicred      # Rust crates.io
+pip install aicred        # Python PyPI
+brew install aicred       # macOS Homebrew
+scoop install aicred      # Windows Scoop
+```
+
+### First Run
+
+After installation, AICred can discover and consolidate your existing AI configurations:
+
+```bash
+# Discover all AI credentials on your system
 aicred scan --format table
 
-# 2. Import discovered configurations into unified format
+# Review discovered provider instances
+aicred instances list
+
+# Import discovered configurations to the unified format
 aicred scan --update
 
-# 3. Create semantic labels for different use cases
-aicred labels add --name "fast" --description "Fast, cheap models"
-aicred labels add --name "smart" --description "High-quality models"
+# Verify your consolidated configuration
+aicred instances list --verbose
+```
 
-# 4. Assign labels to specific provider:model combinations
+The unified configuration is stored in `~/.config/aicred/instances.yaml` (Linux/macOS) or `%APPDATA%\aicred\instances.yaml` (Windows).
+
+### Advanced: Semantic Labels
+
+AICred's label system lets you tag provider:model combinations with semantic names like "fast", "smart", or "cheap":
+
+```bash
+# Create labels for different use cases
+aicred labels add --name "fast" --description "Fast, cheap models for quick tasks"
+aicred labels add --name "smart" --description "High-quality models for complex work"
+
+# Assign labels to specific provider:model combinations
 aicred labels assign --name "fast" --instance-id my-groq --model-id llama3-70b-8192
 aicred labels assign --name "smart" --instance-id my-openai --model-id gpt-4
 
-# 5. Run applications with automatic configuration
+# Run applications with automatic configuration
 aicred wrap --labels fast -- python quick_task.py
 aicred wrap --labels smart -- python complex_analysis.py
 ```
@@ -230,12 +288,24 @@ println!("Found {} keys", result.total_keys());
 
 ## Documentation
 
-- [Installation Guide](docs/installation.md) - Detailed installation instructions
-- [User Guide](docs/user-guide.md) - Complete usage documentation
+📚 **[Full Documentation](docs/)** - Comprehensive guides for all aspects of AICred
+
+### Getting Started
+- [Installation Guide](docs/installation.md) - Build from source and package managers
+- [User Guide](docs/user-guide.md) - Complete CLI usage walkthrough
+- [GUI Usage Guide](docs/gui-usage-guide.md) - Desktop application guide
+
+### Advanced Topics
 - [Architecture](docs/architecture.md) - System design and internals
 - [API Reference](docs/api-reference.md) - Library API documentation
-- [Plugin Development](docs/plugin-development.md) - Creating custom providers
-- [Security](docs/security.md) - Security best practices
+- [Plugin Development](docs/plugin-development.md) - Creating custom providers and scanners
+- [Migration Guide](docs/migration-guide.md) - Upgrading from v0.1 to v0.2
+
+### Operations
+- [Security](docs/security.md) - Security best practices and audit logging
+- [Tagging System Guide](docs/tagging-system-guide.md) - Advanced label management
+
+> 💡 **Note:** Documentation is actively being refined during the beta period. Feel free to [open an issue](https://github.com/robottwo/aicred/issues) if something is unclear!
 
 ## Project Structure
 
@@ -271,6 +341,35 @@ For security concerns, please see [docs/security.md](docs/security.md) or contac
 
 Licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
 
-## Why "AICred"?
+## Roadmap
 
-**AI** + **Cred**entials = A unified way to manage authentication and configuration for AI tools. Think of it as a credential manager specifically designed for the unique challenges of working with multiple AI providers and tools.
+### v0.2.0 (Current - Beta)
+- [x] Core scanning and detection engine
+- [x] Provider plugin system (OpenAI, Anthropic, Groq, OpenRouter, HuggingFace, Ollama, LiteLLM)
+- [x] Label system for semantic model tagging
+- [x] CLI with rich output formats
+- [x] Python and Go bindings
+- [x] Cross-platform support (Linux, macOS, Windows)
+- [x] GUI application (Tauri-based)
+
+### v0.2.0 Stable (Next)
+- [ ] Publish to crates.io, PyPI, npm
+- [ ] Homebrew tap and Scoop bucket
+- [ ] Comprehensive end-user documentation
+- [ ] Video tutorials and demos
+
+### v0.3.0 and Beyond
+- [ ] Secrets vault integration (1Password, Bitwarden, HashiCorp Vault)
+- [ ] Web dashboard for team configuration management
+- [ ] Cost tracking across providers
+- [ ] Usage analytics and optimization recommendations
+- [ ] Configuration drift detection
+- [ ] Support for additional providers (Cohere, AI21, etc.)
+- [ ] Browser extension for web-based AI tools
+
+### Community Ideas
+Have a feature request? [Open an issue](https://github.com/robottwo/aicred/issues) or join the discussion!
+
+---
+
+**Why "AICred"?** **AI** + **Cred**entials = A unified way to manage authentication and configuration for AI tools.
