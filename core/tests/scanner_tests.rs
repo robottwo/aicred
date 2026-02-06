@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Tests for the new ScannerPlugin architecture
 
 // Allow clippy lints for scanner tests

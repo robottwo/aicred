@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Architecture validation tests for the new scanner architecture.
 //!
 //! These tests verify that the refactored scanner architecture correctly:

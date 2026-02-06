@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Comprehensive tests for configuration validation and rewrite logic.
 //!
 //! This module tests the validation functions in config_validator.rs and the

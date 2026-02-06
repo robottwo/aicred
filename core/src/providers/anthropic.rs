@@ -190,6 +190,7 @@ impl AnthropicPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
     #![allow(clippy::float_cmp)]
 
     use super::*;

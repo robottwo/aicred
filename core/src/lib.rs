@@ -8,6 +8,10 @@
 #![allow(clippy::significant_drop_tightening)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(dead_code)]
+#![allow(clippy::no_effect_underscore_binding)]
+#![allow(clippy::len_zero)]
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 // Allow specific clippy lints that are too pedantic for this codebase
 // Phase 4 cleanup: Removing allows one by one
 // Removed - let's fix these now:

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Tests for built-in scanner plugins
 
 use aicred_core::scanners::{

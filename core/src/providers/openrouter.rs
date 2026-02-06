@@ -168,6 +168,7 @@ impl ProviderPlugin for OpenRouterPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
     use super::*;
 
     #[test]

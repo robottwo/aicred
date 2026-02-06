@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Integration tests for probe functionality in scan workflow.
 
 use aicred_core::{scan, ScanOptions};

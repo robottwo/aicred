@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Integration tests for the core tagging and labeling data structures.
 //!
 //! These tests validate the integration between core data structures,

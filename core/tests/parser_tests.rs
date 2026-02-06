@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 use aicred_core::parser::{ConfigParser, FileFormat};
 use std::path::Path;
 

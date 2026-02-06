@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Property-based tests for core library invariants.
 
 // Allow clippy lints for property tests

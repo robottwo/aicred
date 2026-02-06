@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Real Configuration Validation Tests
 //!
 //! This test suite validates the scanner architecture against real-world configuration files

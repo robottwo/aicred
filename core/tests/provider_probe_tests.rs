@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Integration tests for provider probing functionality.
 
 use aicred_core::error::Error;

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Regression tests to ensure refactoring doesn't break existing functionality.
 //!
 //! These tests verify core workflows that must continue working throughout

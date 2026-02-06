@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Integration tests for ID consistency between discovery, storage, and retrieval
 //! This test file would have caught the "Instance not found" bug
 

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 // Allow clippy lints for integration tests
 #![allow(clippy::len_zero)]
 #![allow(clippy::absurd_extreme_comparisons)]

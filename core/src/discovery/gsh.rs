@@ -414,7 +414,11 @@ impl GshScanner {
 
     /// Extract keys from shell script format (KEY=value pairs).
     #[allow(clippy::unused_self)]
-    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
+    fn extract_keys_from_shell_script(
+        &self,
+        content: &str,
+        path: &Path,
+    ) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Common API key patterns in shell scripts - handle both quoted and unquoted values
