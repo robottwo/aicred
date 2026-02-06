@@ -49,7 +49,7 @@ struct Cli {
     home: Option<String>,
 
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -461,7 +461,28 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    match cli.command {
+    // Auto-launch wizard if no subcommand provided and no config exists
+    let command = if let Some(cmd) = cli.command {
+        cmd
+    } else {
+        // No subcommand provided
+        let home_path = cli.home.as_ref().map(|s| PathBuf::from(s));
+        if !config_exists(home_path.as_ref())? {
+            // No config exists, auto-launch wizard
+            Commands::Wizard {
+                yes: false,
+                skip_probe: false,
+                probe_timeout: None,
+                skip_labels: false,
+                verbose: false,
+            }
+        } else {
+            // Config exists, show help
+            return Err(anyhow!("No subcommand provided. Run 'aicred --help' for usage."));
+        }
+    };
+
+    match command {
         Commands::Wizard {
             yes,
             skip_probe,
