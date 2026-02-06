@@ -157,9 +157,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance
@@ -177,9 +177,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "not-a-url".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -193,13 +193,13 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        
+
         instance.add_model("gpt-3.5-turbo".to_string());
 
         let result = plugin.validate_instance(&instance);
@@ -213,9 +213,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Add models
@@ -233,9 +233,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -250,9 +250,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
@@ -270,9 +270,9 @@ mod tests {
         let plugin = LiteLLMPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Set a valid API key directly on the instance

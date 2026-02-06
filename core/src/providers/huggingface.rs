@@ -159,9 +159,9 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -175,13 +175,13 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        
+
         instance.add_model("microsoft/DialoGPT-medium".to_string());
 
         let result = plugin.validate_instance(&instance);
@@ -195,14 +195,13 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Add models
-        
-        
+
         instance.add_model("microsoft/DialoGPT-medium".to_string());
         instance.add_model("facebook/blenderbot-400M-distill".to_string());
 
@@ -217,9 +216,9 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -233,9 +232,9 @@ mod tests {
         let plugin = HuggingFacePlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false

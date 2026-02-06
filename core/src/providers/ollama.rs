@@ -145,13 +145,13 @@ mod tests {
         let plugin = OllamaPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
 
         // Add a model (Ollama doesn't require keys)
-        
+
         instance.add_model("llama2".to_string());
 
         let result = plugin.validate_instance(&instance);
@@ -163,9 +163,9 @@ mod tests {
         let plugin = OllamaPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -179,14 +179,13 @@ mod tests {
         let plugin = OllamaPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
 
         // Add a model with empty ID
-        let model = crate::models::Model::new(String::new(), "Empty Model".to_string());
-        instance.add_model("llama2".to_string());
+        instance.add_model(String::new());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -199,9 +198,9 @@ mod tests {
         let plugin = OllamaPlugin;
         let mut instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
 
         // Add models
@@ -219,9 +218,9 @@ mod tests {
         let plugin = OllamaPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -238,18 +237,18 @@ mod tests {
         // With valid URL, should return true (no keys required)
         let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
         assert!(plugin.is_instance_configured(&instance).unwrap());
 
         // With invalid URL, should return false
         let invalid_instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
         assert!(!plugin.is_instance_configured(&invalid_instance).unwrap());
     }
@@ -259,9 +258,9 @@ mod tests {
         let plugin = OllamaPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-ollama".to_string(),
-            "Test Ollama".to_string(),
             "ollama".to_string(),
             "http://localhost:11434".to_string(),
+            String::new(),
         );
 
         let result = plugin.initialize_instance(&instance);

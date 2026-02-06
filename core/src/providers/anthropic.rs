@@ -239,9 +239,9 @@ mod tests {
         let plugin = AnthropicPlugin;
         let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
