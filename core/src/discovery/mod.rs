@@ -1,3 +1,8 @@
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::match_wildcard_for_single_variants)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::module_name_repetitions)]
 //! Discovery system for finding AI credentials across applications.
 //!
 //! This module contains application-specific scanners that know how to find

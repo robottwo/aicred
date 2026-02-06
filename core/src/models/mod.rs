@@ -1,3 +1,10 @@
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::match_wildcard_for_single_variants)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::module_inception)]
 //! Core data models for the aicred library.
 
 // ==== CONSOLIDATED MODELS (v0.2.0) ====

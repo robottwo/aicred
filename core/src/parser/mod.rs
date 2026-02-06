@@ -3,6 +3,7 @@
 // Allow clippy lints for the parser module
 #![allow(clippy::unnecessary_wraps)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::match_wildcard_for_single_variants)]
 
 use crate::error::{Error, Result};
 use serde_json::Value as JsonValue;

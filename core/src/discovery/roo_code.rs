@@ -1,3 +1,8 @@
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::match_wildcard_for_single_variants)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::module_name_repetitions)]
 //! Roo Code scanner for discovering API keys in `VSCode` extension configurations.
 
 use super::{EnvVarDeclaration, LabelMapping, ScanResult, ScannerPlugin, ScannerPluginExt};

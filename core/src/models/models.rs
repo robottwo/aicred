@@ -1,3 +1,5 @@
+#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::module_name_repetitions)]
 //! LLM model definitions and metadata.
 
 use serde::{Deserialize, Serialize};
