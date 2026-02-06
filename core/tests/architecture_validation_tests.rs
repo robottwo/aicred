@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Architecture validation tests for the new scanner architecture.
 //!
 //! These tests verify that the refactored scanner architecture correctly:
@@ -58,7 +60,7 @@ fn test_gsh_scanner_architecture() {
     for (i, instance) in provider_instances.iter().enumerate() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
-        println!("  Display Name: {}", instance.display_name);
+        println!("  Display Name: {}", instance.id);
         println!("  Key Count: {}", instance.has_api_key() as usize);
         println!("  Has Valid Keys: {}", instance.has_api_key());
         println!("  Model Count: {}", instance.model_count());
@@ -69,10 +71,7 @@ fn test_gsh_scanner_architecture() {
             !instance.provider_type.is_empty(),
             "Provider type should not be empty"
         );
-        assert!(
-            !instance.display_name.is_empty(),
-            "Display name should not be empty"
-        );
+        assert!(!instance.id.is_empty(), "Display name should not be empty");
         assert!(
             !instance.base_url.is_empty(),
             "Base URL should not be empty"
@@ -150,12 +149,7 @@ fn test_claude_desktop_scanner_architecture() {
     let api_keys: Vec<_> = result
         .keys
         .iter()
-        .filter(|k| {
-            matches!(
-                k.value_type,
-                aicred_core::models::discovered_key::ValueType::ApiKey
-            )
-        })
+        .filter(|k| matches!(k.value_type, aicred_core::models::ValueType::ApiKey))
         .collect();
     assert_eq!(api_keys.len(), 1, "Should have exactly one API key");
     assert_eq!(
@@ -167,12 +161,7 @@ fn test_claude_desktop_scanner_architecture() {
     let models: Vec<_> = result
         .keys
         .iter()
-        .filter(|k| {
-            matches!(
-                k.value_type,
-                aicred_core::models::discovered_key::ValueType::ModelId
-            )
-        })
+        .filter(|k| matches!(k.value_type, aicred_core::models::ValueType::ModelId))
         .collect();
     assert_eq!(models.len(), 1, "Should have exactly one model");
 
@@ -180,12 +169,7 @@ fn test_claude_desktop_scanner_architecture() {
     let temps: Vec<_> = result
         .keys
         .iter()
-        .filter(|k| {
-            matches!(
-                k.value_type,
-                aicred_core::models::discovered_key::ValueType::Temperature
-            )
-        })
+        .filter(|k| matches!(k.value_type, aicred_core::models::ValueType::Temperature))
         .collect();
     assert_eq!(
         temps.len(),
@@ -224,7 +208,7 @@ fn test_claude_desktop_scanner_architecture() {
     let provider_instance = provider_instances[0];
     println!("\nProvider Instance:");
     println!("  Type: {}", provider_instance.provider_type);
-    println!("  Display Name: {}", provider_instance.display_name);
+    println!("  Display Name: {}", provider_instance.id);
     println!("  Key Count: {}", provider_instance.has_api_key() as usize);
     println!("  Has Valid Keys: {}", provider_instance.has_api_key());
 
@@ -233,9 +217,11 @@ fn test_claude_desktop_scanner_architecture() {
         provider_instance.provider_type, "anthropic",
         "Should be anthropic provider"
     );
-    assert_eq!(
-        provider_instance.display_name, "anthropic",
-        "Display name should match provider type"
+    // Note: After refactoring, instance.id is now a hash-based ID
+    // provider_type contains the actual provider name
+    assert!(
+        !provider_instance.id.is_empty(),
+        "Instance ID should be generated"
     );
     assert_eq!(
         provider_instance.has_api_key() as usize,
@@ -255,12 +241,13 @@ fn test_claude_desktop_scanner_architecture() {
         "Should have exactly one model"
     );
     assert_eq!(
-        provider_instance.models[0].model_id, "claude-3-opus-20240229",
+        provider_instance.models[0], "claude-3-opus-20240229",
         "Model ID should match the config"
     );
 
     // Verify temperature was added to provider instance metadata
-    if let Some(metadata) = &provider_instance.metadata {
+    let metadata = &provider_instance.metadata;
+    if !metadata.is_empty() {
         assert_eq!(
             metadata.get("temperature"),
             Some(&"0.7".to_string()),
@@ -346,7 +333,7 @@ fn test_roo_code_scanner_architecture() {
     for (i, instance) in provider_instances.iter().enumerate() {
         println!("\nProvider Instance {}:", i + 1);
         println!("  Type: {}", instance.provider_type);
-        println!("  Display Name: {}", instance.display_name);
+        println!("  Display Name: {}", instance.id);
         println!("  Key Count: {}", instance.has_api_key() as usize);
         println!("  Model Count: {}", instance.model_count());
         println!("  Has Valid Keys: {}", instance.has_api_key());
@@ -357,10 +344,7 @@ fn test_roo_code_scanner_architecture() {
             !instance.provider_type.is_empty(),
             "Provider type should not be empty"
         );
-        assert!(
-            !instance.display_name.is_empty(),
-            "Display name should not be empty"
-        );
+        assert!(!instance.id.is_empty(), "Display name should not be empty");
         assert!(
             !instance.base_url.is_empty(),
             "Base URL should not be empty"
@@ -554,10 +538,7 @@ fn test_provider_instance_counts() {
     // Count API keys per provider (not all discovered keys, just API keys)
     let mut provider_api_key_counts = std::collections::HashMap::new();
     for key in &gsh_result.keys {
-        if matches!(
-            key.value_type,
-            aicred_core::models::discovered_key::ValueType::ApiKey
-        ) {
+        if matches!(key.value_type, aicred_core::models::ValueType::ApiKey) {
             *provider_api_key_counts.entry(&key.provider).or_insert(0) += 1;
         }
     }
@@ -657,7 +638,8 @@ fn test_settings_mapping() {
         .expect("Should have groq provider instance");
 
     println!("\nGroq Provider Instance Metadata:");
-    if let Some(metadata) = &groq_instance.metadata {
+    let metadata = &groq_instance.metadata;
+    if !metadata.is_empty() {
         for (key, value) in metadata {
             println!("  {}: {}", key, value);
         }
@@ -686,7 +668,7 @@ fn test_settings_mapping() {
         "Groq instance should have 1 model"
     );
     assert_eq!(
-        groq_instance.models[0].model_id, "llama3-70b-8192",
+        groq_instance.models[0], "llama3-70b-8192",
         "Model ID should be correctly mapped"
     );
 

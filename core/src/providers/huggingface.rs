@@ -25,7 +25,7 @@ impl ProviderPlugin for HuggingFacePlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Hugging Face-specific validation
         if instance.base_url.is_empty() {
@@ -61,7 +61,7 @@ impl ProviderPlugin for HuggingFacePlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Otherwise, return default Hugging Face models based on instance configuration
@@ -95,7 +95,7 @@ impl ProviderPlugin for HuggingFacePlugin {
 
 impl HuggingFacePlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -110,10 +110,11 @@ impl HuggingFacePlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
+    #![allow(clippy::float_cmp)]
+
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_huggingface_plugin_name() {
@@ -139,30 +140,18 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("hf_test1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("hf_test1234567890abcdef".to_string());
 
         // Add a model
-        let model = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        instance.add_model(model);
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -171,11 +160,11 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = HuggingFacePlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -187,19 +176,16 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        instance.add_model(model);
+
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -210,24 +196,17 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Add models
-        let model1 = crate::models::Model::new(
-            "microsoft/DialoGPT-medium".to_string(),
-            "DialoGPT Medium".to_string(),
-        );
-        let model2 = crate::models::Model::new(
-            "facebook/blenderbot-400M-distill".to_string(),
-            "BlenderBot 400M".to_string(),
-        );
-        instance.add_model(model1);
-        instance.add_model(model2);
+
+        instance.add_model("microsoft/DialoGPT-medium".to_string());
+        instance.add_model("facebook/blenderbot-400M-distill".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -238,11 +217,11 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = HuggingFacePlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -254,26 +233,18 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = HuggingFacePlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-hf".to_string(),
-            "Test Hugging Face".to_string(),
             "huggingface".to_string(),
             "https://huggingface.co".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("hf_test1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("hf_test1234567890abcdef".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

@@ -3,6 +3,8 @@
 // Allow clippy lints for the plugins module
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::significant_drop_tightening)]
+// Suppress deprecated warnings - these are intentional during transition from plugins to providers
+#![allow(deprecated)]
 
 use crate::error::{Error, Result};
 use crate::models::{ModelMetadata, ProviderInstance};
@@ -62,7 +64,7 @@ pub trait ProviderPlugin: Send + Sync {
     /// Returns a vector of model IDs that this instance supports.
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // Default implementation - returns the models configured in the instance
-        Ok(instance.models.iter().map(|m| m.model_id.clone()).collect())
+        Ok(instance.models.clone())
     }
 
     /// Gets the full model configuration with provider-specific overrides applied.
@@ -70,7 +72,7 @@ pub trait ProviderPlugin: Send + Sync {
     /// provider-specific overrides from the instance metadata.
     fn get_model_with_overrides(
         &self,
-        instance: &ProviderInstance,
+        _instance: &ProviderInstance,
         model_id: &str,
         home_dir: &std::path::Path,
     ) -> Result<Option<crate::models::Model>> {
@@ -91,40 +93,13 @@ pub trait ProviderPlugin: Send + Sync {
             crate::error::Error::PluginError(format!("Failed to read model file: {e}"))
         })?;
 
-        let mut model: Model = serde_yaml::from_str(&model_content).map_err(|e| {
+        let model: Model = serde_yaml::from_str(&model_content).map_err(|e| {
             crate::error::Error::PluginError(format!("Failed to parse model file: {e}"))
         })?;
 
-        // Apply provider-specific overrides from metadata
-        if let Some(metadata) = &instance.metadata {
-            if let Some(model_overrides_json) = metadata.get("model_overrides") {
-                // Parse the JSON string to get the model overrides
-                if let Ok(model_overrides) =
-                    serde_json::from_str::<serde_json::Value>(model_overrides_json)
-                {
-                    if let Some(model_override) = model_overrides.get(model_id) {
-                        if let Some(temp_value) = model_override.get("temperature") {
-                            if let Some(temp_str) = temp_value.as_str() {
-                                if let Ok(temperature) = temp_str.parse::<f32>() {
-                                    // Create a new temperature field or update existing one
-                                    // This would need to be added to the Model struct
-                                    // For now, we'll store it in the model's metadata
-                                    if model.metadata.is_none() {
-                                        model.metadata = Some(std::collections::HashMap::new());
-                                    }
-                                    if let Some(ref mut metadata) = model.metadata {
-                                        metadata.insert(
-                                            "temperature".to_string(),
-                                            serde_json::Value::String(temperature.to_string()),
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // TODO: Re-implement provider-specific overrides for v0.2.0 metadata structure
+        // The old model.metadata field was Option<HashMap>, but the new Model.metadata
+        // is a ModelMetadata struct. Override logic needs to be updated.
 
         Ok(Some(model))
     }
@@ -201,7 +176,20 @@ pub trait ProviderPlugin: Send + Sync {
     }
 }
 
-/// Registry for managing provider plugins.
+/// Type alias for provider plugin registry (v0.2.0+ simplified API).
+///
+/// This is a simple `HashMap` that maps provider name to plugin.
+/// For backward compatibility, the old `PluginRegistry` wrapper is still available.
+pub type ProviderRegistry = HashMap<String, Arc<dyn ProviderPlugin>>;
+
+/// Legacy registry wrapper (deprecated in v0.2.0, use `ProviderRegistry` `HashMap` directly).
+///
+/// This wrapper adds Arc<`RwLock`<>> around a `HashMap` for thread-safety,
+/// but most use cases don't need the complexity. Prefer using `ProviderRegistry` directly.
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ProviderRegistry (HashMap) with helper functions instead"
+)]
 #[derive(Clone)]
 pub struct PluginRegistry {
     plugins: Arc<RwLock<HashMap<String, Arc<dyn ProviderPlugin>>>>,
@@ -383,7 +371,8 @@ impl ProviderPlugin for CommonConfigPlugin {
     }
 }
 
-/// Registers all built-in provider plugins.
+/// Registers all built-in provider plugins (legacy wrapper-based API).
+#[deprecated(since = "0.2.0", note = "Use register_builtin_providers() instead")]
 pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
     // Core AI provider plugins
     registry.register(Arc::new(OpenAIPlugin))?;
@@ -400,6 +389,82 @@ pub fn register_builtin_plugins(registry: &PluginRegistry) -> Result<()> {
     registry.register(Arc::new(CommonConfigPlugin))?;
 
     Ok(())
+}
+
+// ============================================================================
+// Simplified Plugin API (v0.2.0+) - Preferred
+// ============================================================================
+
+/// Register all built-in provider plugins (v0.2.0+ simplified API).
+///
+/// Returns a ready-to-use `HashMap` of provider plugins.
+/// This is the preferred way to get a provider registry.
+///
+/// # Example
+/// ```
+/// use aicred_core::plugins::{register_builtin_providers, get_provider};
+///
+/// let registry = register_builtin_providers();
+/// if let Some(plugin) = get_provider(&registry, "openai") {
+///     println!("Found OpenAI plugin");
+/// }
+/// ```
+#[must_use]
+pub fn register_builtin_providers() -> ProviderRegistry {
+    let mut registry = HashMap::new();
+
+    // Helper macro to register plugins
+    macro_rules! register {
+        ($plugin:expr) => {{
+            let plugin = Arc::new($plugin) as Arc<dyn ProviderPlugin>;
+            let name = plugin.name().to_string();
+            registry.insert(name, plugin);
+        }};
+    }
+
+    // Core AI provider plugins
+    register!(OpenAIPlugin);
+    register!(AnthropicPlugin);
+    register!(GroqPlugin);
+    register!(HuggingFacePlugin);
+    register!(OllamaPlugin);
+    register!(OpenRouterPlugin);
+
+    // Framework and tool plugins
+    register!(LiteLLMPlugin);
+
+    // Note: CommonConfigPlugin removed in v0.2.0 - not needed
+
+    registry
+}
+
+/// Get a plugin from the registry by name (v0.2.0+ API).
+#[inline]
+#[must_use]
+pub fn get_provider<'a>(
+    registry: &'a ProviderRegistry,
+    name: &str,
+) -> Option<&'a dyn ProviderPlugin> {
+    registry.get(name).map(|arc| &**arc)
+}
+
+/// List all provider names in the registry (v0.2.0+ API).
+#[inline]
+pub fn list_providers(registry: &ProviderRegistry) -> Vec<&str> {
+    registry.keys().map(String::as_str).collect()
+}
+
+/// Get all plugins that can handle a specific file (v0.2.0+ API).
+#[must_use]
+pub fn get_providers_for_file(
+    registry: &ProviderRegistry,
+    path: &Path,
+) -> Vec<Arc<dyn ProviderPlugin>> {
+    registry
+        .values()
+        .filter(|plugin| plugin.can_handle_file(path))
+        .cloned()
+        .collect()
 }
 
 #[cfg(test)]

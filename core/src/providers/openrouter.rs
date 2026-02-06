@@ -4,7 +4,7 @@ use crate::error::{Error, Result};
 use crate::models::ModelMetadata;
 use crate::plugins::ProviderPlugin;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -63,30 +63,17 @@ impl OpenRouterPlugin {
 
     /// Transforms `OpenRouter` model to `ModelMetadata`
     fn transform_model(model: OpenRouterModel) -> ModelMetadata {
-        ModelMetadata {
-            id: model.id,
-            name: model.name.unwrap_or_else(|| "Unknown".to_string()),
-            description: model.description,
-            context_length: model.context_length,
-            pricing: model.pricing.map(|p| crate::models::ModelPricing {
-                prompt: Self::parse_price(p.prompt),
-                completion: Self::parse_price(p.completion),
-                image: Self::parse_price(p.image),
-                request: Self::parse_price(p.request),
-            }),
-            architecture: model
-                .architecture
-                .map(|a| crate::models::ModelArchitecture {
-                    modality: a.modality,
-                    tokenizer: a.tokenizer,
-                    instruct_type: a.instruct_type,
-                }),
-            metadata: if model.extra.is_empty() {
-                None
-            } else {
-                Some(model.extra)
-            },
-        }
+        let metadata = ModelMetadata {
+            id: Some(model.id.clone()),
+            name: model.name.clone().or_else(|| Some("Unknown".to_string())),
+            architecture: model.architecture.as_ref().and_then(|a| a.modality.clone()),
+            parameter_count: None,
+            training_cutoff: None,
+            release_date: None,
+            notes: model.description,
+        };
+
+        metadata
     }
 }
 
@@ -181,6 +168,7 @@ impl ProviderPlugin for OpenRouterPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
     use super::*;
 
     #[test]
@@ -256,10 +244,9 @@ mod tests {
 
         let metadata = OpenRouterPlugin::transform_model(openrouter_model);
 
-        assert_eq!(metadata.id, "test-model");
-        assert_eq!(metadata.name, "Test Model");
-        assert_eq!(metadata.context_length, Some(4096));
-        assert!(metadata.pricing.is_some());
+        assert_eq!(metadata.id, Some("test-model".to_string()));
+        assert_eq!(metadata.name, Some("Test Model".to_string()));
+        // New ModelMetadata structure doesn't have context_length or pricing fields
         assert!(metadata.architecture.is_some());
     }
 }

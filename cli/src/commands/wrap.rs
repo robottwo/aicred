@@ -1,6 +1,6 @@
 //! Wrap command implementation - executes commands with LLM environment variables
 
-use crate::commands::labels::load_label_assignments_with_home;
+use crate::commands::labels::load_labels_with_targets;
 use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::scanners::ScannerRegistry;
 use anyhow::{anyhow, Result};
@@ -64,14 +64,14 @@ pub fn handle_wrap(
     let label_mappings = scanner.get_label_mappings();
 
     // 4. Load labels and provider instances from user configuration
-    let labels = load_label_assignments_with_home(home_dir.as_deref())?;
+    let labels = load_labels_with_targets(home_dir.as_deref())?;
 
-    // 5. Load provider instances from disk/config
+    // 5. Load provider instances from disk/config and convert to new API
     let provider_instances_collection = load_provider_instances(home_dir.as_deref())?;
-    let provider_instances: Vec<_> = provider_instances_collection
-        .all_instances()
-        .iter()
-        .map(|inst| (*inst).clone())
+    let provider_instances: Vec<aicred_core::ProviderInstance> = provider_instances_collection
+        .list()
+        .into_iter()
+        .cloned()
         .collect();
 
     // 6. Use EnvResolver to properly resolve environment variables

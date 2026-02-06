@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::models::{DiscoveredKey, ProviderInstance, ProviderInstances};
+use crate::models::credentials::DiscoveredCredential;
+use crate::models::{ProviderCollection, ProviderInstance};
 
 /// Represents a specific instance of an application configuration
 /// For example, multiple Roo Code installations in different directories
@@ -20,10 +21,10 @@ pub struct ConfigInstance {
     /// When this instance was discovered
     pub discovered_at: DateTime<Utc>,
     /// Associated discovered keys for this instance
-    pub keys: Vec<DiscoveredKey>,
+    pub keys: Vec<DiscoveredCredential>,
     /// Provider instances for this configuration
     #[serde(default)]
-    pub provider_instances: ProviderInstances,
+    pub provider_instances: ProviderCollection,
     /// Optional metadata (version, settings, etc.)
     pub metadata: HashMap<String, String>,
 }
@@ -38,14 +39,14 @@ impl ConfigInstance {
             config_path,
             discovered_at: Utc::now(),
             keys: Vec::new(),
-            provider_instances: ProviderInstances::new(),
+            provider_instances: ProviderCollection::new(),
             metadata: HashMap::new(),
         }
     }
 
     /// Creates a new config instance with provider instances.
     #[must_use]
-    pub fn with_provider_instances(mut self, provider_instances: ProviderInstances) -> Self {
+    pub fn with_provider_instances(mut self, provider_instances: ProviderCollection) -> Self {
         self.provider_instances = provider_instances;
         self
     }
@@ -97,12 +98,12 @@ impl ConfigInstance {
     }
 
     /// Adds a discovered key to this instance.
-    pub fn add_key(&mut self, key: DiscoveredKey) {
+    pub fn add_key(&mut self, key: DiscoveredCredential) {
         self.keys.push(key);
     }
 
     /// Adds multiple discovered keys to this instance.
-    pub fn add_keys(&mut self, keys: Vec<DiscoveredKey>) {
+    pub fn add_keys(&mut self, keys: Vec<DiscoveredCredential>) {
         self.keys.extend(keys);
     }
 
@@ -247,10 +248,10 @@ impl Default for ConfigInstance {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::discovered_key::{Confidence, ValueType};
+    use crate::models::credentials::{Confidence, ValueType};
 
-    fn create_test_key() -> DiscoveredKey {
-        DiscoveredKey::new_redacted(
+    fn create_test_key() -> DiscoveredCredential {
+        DiscoveredCredential::new_redacted(
             "test-provider".to_string(),
             "/test/path".to_string(),
             ValueType::ApiKey,

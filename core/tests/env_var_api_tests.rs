@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Tests for the new environment variable API extension for ScannerPlugin
 
 use aicred_core::scanners::{

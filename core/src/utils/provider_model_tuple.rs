@@ -1,6 +1,6 @@
 //! Provider-Model Tuple utilities for parsing and identifying provider:model combinations.
 
-use crate::models::{Model, ProviderInstance};
+use crate::models::ProviderInstance;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -215,17 +215,15 @@ mod tests {
 
     #[test]
     fn test_matches_provider_instance() {
-        let instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "openai-prod".to_string(),
-            "OpenAI Production".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(), // api_key
         );
 
         // Add a model to the instance
-        let model = Model::new("gpt-4".to_string(), "GPT-4".to_string());
-        let mut instance = instance;
-        instance.add_model(model);
+        instance.add_model("gpt-4".to_string());
 
         // Test provider type match
         let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();

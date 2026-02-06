@@ -4,7 +4,7 @@ use aicred_core::{scan, ScanOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = ScanOptions::default();
-    let result = scan(options)?;
+    let result = scan(&options)?;
 
     println!("Found {} keys", result.keys.len());
     for key in &result.keys {

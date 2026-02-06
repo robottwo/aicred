@@ -1,12 +1,12 @@
-//! Tag management commands for the aicred CLI.
+//! Label management commands for the aicred CLI.
 
-use aicred_core::models::{Tag, TagAssignment};
+use aicred_core::models::{Label, LabelAssignment, LabelTarget};
 use anyhow::Result;
 use colored::*;
 use std::path::Path;
 
-/// Load all tags from the configuration directory
-pub fn load_tags(home: Option<&Path>) -> Result<Vec<Tag>> {
+/// Load all labels from the configuration directory
+pub fn load_tags(home: Option<&Path>) -> Result<Vec<Label>> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -29,12 +29,12 @@ pub fn load_tags(home: Option<&Path>) -> Result<Vec<Tag>> {
     }
 
     let content = std::fs::read_to_string(&tags_file)?;
-    let tags: Vec<Tag> = serde_yaml::from_str(&content)?;
+    let tags: Vec<Label> = serde_yaml::from_str(&content)?;
     Ok(tags)
 }
 
 /// Save tags to the configuration directory
-pub fn save_tags(tags: &[Tag], home: Option<&Path>) -> Result<()> {
+pub fn save_tags(tags: &[Label], home: Option<&Path>) -> Result<()> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -59,8 +59,8 @@ pub fn save_tags(tags: &[Tag], home: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-/// Load all tag assignments from the configuration directory
-pub fn load_tag_assignments(home: Option<&Path>) -> Result<Vec<TagAssignment>> {
+/// Load all label assignments from the configuration directory
+pub fn load_tag_assignments(home: Option<&Path>) -> Result<Vec<LabelAssignment>> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -83,12 +83,12 @@ pub fn load_tag_assignments(home: Option<&Path>) -> Result<Vec<TagAssignment>> {
     }
 
     let content = std::fs::read_to_string(&assignments_file)?;
-    let assignments: Vec<TagAssignment> = serde_yaml::from_str(&content)?;
+    let assignments: Vec<LabelAssignment> = serde_yaml::from_str(&content)?;
     Ok(assignments)
 }
 
 /// Save tag assignments to the configuration directory
-pub fn save_tag_assignments(assignments: &[TagAssignment], home: Option<&Path>) -> Result<()> {
+pub fn save_tag_assignments(assignments: &[LabelAssignment], home: Option<&Path>) -> Result<()> {
     let config_dir = match home {
         Some(h) => h.to_path_buf(),
         None => {
@@ -113,15 +113,6 @@ pub fn save_tag_assignments(assignments: &[TagAssignment], home: Option<&Path>) 
     Ok(())
 }
 
-/// Generate a unique tag ID
-fn generate_tag_id(name: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(name.as_bytes());
-    let hash_result = hasher.finalize();
-    format!("tag-{:x}", hash_result)
-}
-
 /// Handle the tags list command
 pub fn handle_list_tags(home: Option<&Path>) -> Result<()> {
     let tags = load_tags(home)?;
@@ -135,14 +126,10 @@ pub fn handle_list_tags(home: Option<&Path>) -> Result<()> {
     println!("\n{}", "Configured Tags:".green().bold());
 
     for tag in &tags {
-        println!("  {} - {}", tag.name.cyan().bold(), tag.id.dimmed());
+        println!("  {} - {}", tag.name.cyan().bold(), tag.name.dimmed());
 
         if let Some(ref description) = tag.description {
             println!("    Description: {}", description);
-        }
-
-        if let Some(ref color) = tag.color {
-            println!("    Color: {}", color);
         }
 
         println!(
@@ -160,39 +147,40 @@ pub fn handle_list_tags(home: Option<&Path>) -> Result<()> {
 /// Handle the tags add command
 pub fn handle_add_tag(
     name: String,
-    color: Option<String>,
+    _color: Option<String>, // Color not supported in Label
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
+    // Validate tag name
+    let trimmed_name = name.trim();
+    if trimmed_name.is_empty() {
+        return Err(anyhow::anyhow!("Tag name cannot be empty"));
+    }
+
     let mut tags = load_tags(home)?;
 
     // Check if tag with this name already exists
-    if tags.iter().any(|tag| tag.name == name) {
-        return Err(anyhow::anyhow!("Tag with name '{}' already exists", name));
+    if tags.iter().any(|tag| tag.name == trimmed_name) {
+        return Err(anyhow::anyhow!(
+            "Tag with name '{}' already exists",
+            trimmed_name
+        ));
     }
 
-    let tag_id = generate_tag_id(&name);
-    let mut tag = Tag::new(tag_id, name.clone());
-
-    if let Some(desc) = description {
-        tag = tag.with_description(desc);
-    }
-
-    if let Some(col) = color {
-        tag = tag.with_color(col);
-    }
-
-    // Validate the tag
-    if let Err(e) = tag.validate() {
-        return Err(anyhow::anyhow!("Invalid tag configuration: {}", e));
-    }
+    let now = chrono::Utc::now();
+    let tag = Label {
+        name: trimmed_name.to_string(),
+        description,
+        created_at: now,
+        metadata: std::collections::HashMap::new(),
+    };
 
     tags.push(tag);
 
     // Save to disk
     save_tags(&tags, home)?;
 
-    println!("{} Tag '{}' added successfully.", "✓".green(), name);
+    println!("{} Tag '{}' added successfully.", "✓".green(), trimmed_name);
 
     Ok(())
 }
@@ -213,7 +201,7 @@ pub fn handle_remove_tag(name: String, force: bool, home: Option<&Path>) -> Resu
     // Check if tag is assigned to any instances/models
     let assigned_count = assignments
         .iter()
-        .filter(|assignment| assignment.tag_id == tag.id)
+        .filter(|assignment| assignment.label_name == tag.name)
         .count();
 
     if assigned_count > 0 && !force {
@@ -240,7 +228,7 @@ pub fn handle_remove_tag(name: String, force: bool, home: Option<&Path>) -> Resu
 
     // Remove tag assignments if force is used or user confirmed
     if assigned_count > 0 {
-        assignments.retain(|assignment| assignment.tag_id != tag.id);
+        assignments.retain(|assignment| assignment.label_name != tag.name);
         save_tag_assignments(&assignments, home)?;
     }
 
@@ -264,7 +252,7 @@ pub fn handle_remove_tag(name: String, force: bool, home: Option<&Path>) -> Resu
 /// Handle the tags update command
 pub fn handle_update_tag(
     name: String,
-    color: Option<String>,
+    _color: Option<String>, // Color not supported in Label
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
@@ -279,17 +267,8 @@ pub fn handle_update_tag(
     let tag = &mut tags[tag_index.unwrap()];
 
     // Update fields if provided
-    if let Some(desc) = description {
-        tag.set_description(Some(desc));
-    }
-
-    if let Some(col) = color {
-        tag.set_color(Some(col));
-    }
-
-    // Validate the updated tag
-    if let Err(e) = tag.validate() {
-        return Err(anyhow::anyhow!("Invalid tag configuration: {}", e));
+    if description.is_some() {
+        tag.description = description;
     }
 
     // Save to disk
@@ -336,23 +315,48 @@ pub fn handle_assign_tag(
         }
     };
 
-    // Create assignment ID
-    let assignment_id = format!(
-        "assignment-{}-{}",
-        tag.id,
-        if let Some(model) = &target_model_id {
-            format!("{}-{}", target_instance_id, model)
-        } else {
-            target_instance_id.clone()
+    // Create assignment
+    let assignment = if let Some(model) = target_model_id {
+        LabelAssignment {
+            label_name: tag.name.clone(),
+            target: LabelTarget::ProviderModel {
+                instance_id: target_instance_id,
+                model_id: model,
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
         }
-    );
+    } else {
+        LabelAssignment {
+            label_name: tag.name.clone(),
+            target: LabelTarget::ProviderInstance {
+                instance_id: target_instance_id,
+            },
+            assigned_at: chrono::Utc::now(),
+            assigned_by: None,
+        }
+    };
 
     // Check if assignment already exists
-    let assignment_exists = assignments.iter().any(|assignment| {
-        assignment.tag_id == tag.id
-            && assignment
-                .target
-                .matches(&target_instance_id, target_model_id.as_deref())
+    let assignment_exists = assignments.iter().any(|existing| {
+        existing.label_name == assignment.label_name
+            && match (&existing.target, &assignment.target) {
+                (
+                    LabelTarget::ProviderInstance { instance_id: e_i },
+                    LabelTarget::ProviderInstance { instance_id: a_i },
+                ) => e_i == a_i,
+                (
+                    LabelTarget::ProviderModel {
+                        instance_id: e_i,
+                        model_id: e_m,
+                    },
+                    LabelTarget::ProviderModel {
+                        instance_id: a_i,
+                        model_id: a_m,
+                    },
+                ) => e_i == a_i && e_m == a_m,
+                _ => false,
+            }
     });
 
     if assignment_exists {
@@ -360,18 +364,6 @@ pub fn handle_assign_tag(
             "Tag '{}' is already assigned to the specified target",
             tag_name
         ));
-    }
-
-    // Create the assignment
-    let assignment = if let Some(model) = target_model_id {
-        TagAssignment::new_to_model(assignment_id, tag.id.clone(), target_instance_id, model)
-    } else {
-        TagAssignment::new_to_instance(assignment_id, tag.id.clone(), target_instance_id)
-    };
-
-    // Validate the assignment
-    if let Err(e) = assignment.validate() {
-        return Err(anyhow::anyhow!("Invalid assignment: {}", e));
     }
 
     assignments.push(assignment);
@@ -420,12 +412,42 @@ pub fn handle_unassign_tag(
 
     // Find and remove the assignment
     let original_count = assignments.len();
-    assignments.retain(|assignment| {
-        !(assignment.tag_id == tag.id
-            && assignment
-                .target
-                .matches(&target_instance_id, target_model_id.as_deref()))
-    });
+
+    // Filter assignments - keep those that don't match the target to remove
+    let mut filtered_assignments = Vec::new();
+    for assignment in &assignments {
+        if assignment.label_name != tag.name {
+            filtered_assignments.push(assignment.clone());
+            continue;
+        }
+
+        let matches_target = match &assignment.target {
+            LabelTarget::ProviderInstance { instance_id } => {
+                // Match if instance IDs match and model_id is None
+                if let Some(_model_id) = &target_model_id {
+                    false // Should not match if model_id is specified
+                } else {
+                    instance_id == &target_instance_id
+                }
+            }
+            LabelTarget::ProviderModel {
+                instance_id,
+                model_id,
+            } => {
+                // Match if both instance and model match
+                match target_model_id.as_ref() {
+                    Some(m) => instance_id == &target_instance_id && model_id == m,
+                    None => false,
+                }
+            }
+        };
+
+        if !matches_target {
+            filtered_assignments.push(assignment.clone());
+        }
+    }
+
+    assignments = filtered_assignments;
 
     if assignments.len() == original_count {
         return Err(anyhow::anyhow!(
@@ -450,17 +472,32 @@ pub fn get_tags_for_target(
     instance_id: &str,
     model_id: Option<&str>,
     home: Option<&Path>,
-) -> Result<Vec<Tag>> {
+) -> Result<Vec<Label>> {
     let tags = load_tags(home)?;
     let assignments = load_tag_assignments(home)?;
 
     let mut result = Vec::new();
 
     for assignment in assignments {
-        if assignment.targets_instance(instance_id)
-            && assignment.targets_model(instance_id, model_id.unwrap_or(""))
-        {
-            if let Some(tag) = tags.iter().find(|tag| tag.id == assignment.tag_id) {
+        let matches_target = match (&assignment.target, model_id) {
+            (
+                LabelTarget::ProviderInstance {
+                    instance_id: inst_id,
+                },
+                None,
+            ) => inst_id == instance_id,
+            (
+                LabelTarget::ProviderModel {
+                    instance_id: inst_id,
+                    model_id: mod_id,
+                },
+                Some(model),
+            ) => inst_id == instance_id && mod_id == model,
+            _ => false,
+        };
+
+        if matches_target {
+            if let Some(tag) = tags.iter().find(|tag| tag.name == assignment.label_name) {
                 result.push(tag.clone());
             }
         }

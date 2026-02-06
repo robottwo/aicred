@@ -1,10 +1,27 @@
 //! Environment variable resolution logic for mapping labels to provider configurations.
 
-use crate::error::{Error, Result};
-use crate::models::{DiscoveredKey, ProviderInstance, UnifiedLabel};
+use crate::error::Result;
+use crate::models::ProviderInstance;
 use crate::scanners::{EnvVarDeclaration, LabelMapping};
 use crate::utils::ProviderModelTuple;
 use std::collections::HashMap;
+
+/// A label with its target provider:model assignment.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabelWithTarget {
+    /// Label name (e.g., "fast", "smart")
+    pub label_name: String,
+    /// Target provider:model tuple
+    pub target: ProviderModelTuple,
+}
+
+impl LabelWithTarget {
+    /// Creates a new label with target assignment
+    #[must_use]
+    pub const fn new(label_name: String, target: ProviderModelTuple) -> Self {
+        Self { label_name, target }
+    }
+}
 
 /// Environment variable mapping for representing label-to-env-var mappings
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -95,7 +112,7 @@ pub struct EnvResolver {
     /// Available provider instances from scanned configurations
     provider_instances: Vec<ProviderInstance>,
     /// Label assignments
-    labels: Vec<UnifiedLabel>,
+    labels: Vec<LabelWithTarget>,
     /// Environment variable schema from scanner
     env_schema: Vec<EnvVarDeclaration>,
     /// Label mappings from scanner
@@ -107,7 +124,7 @@ impl EnvResolver {
     #[must_use]
     pub const fn new(
         provider_instances: Vec<ProviderInstance>,
-        labels: Vec<UnifiedLabel>,
+        labels: Vec<LabelWithTarget>,
         env_schema: Vec<EnvVarDeclaration>,
         label_mappings: Vec<LabelMapping>,
     ) -> Self {
@@ -192,7 +209,7 @@ impl EnvResolver {
                 || instance
                     .models
                     .iter()
-                    .any(|model| model.model_id == target.model || model.name == target.model)
+                    .any(|model_id| model_id == &target.model)
         })
     }
 
@@ -203,7 +220,7 @@ impl EnvResolver {
         instance: &ProviderInstance,
         result: &mut EnvResolutionResult,
         dry_run: bool,
-        label: &UnifiedLabel,
+        label: &LabelWithTarget,
     ) {
         // Find all environment variables that belong to this group
         let group_vars: Vec<&EnvVarDeclaration> = self
@@ -264,11 +281,9 @@ impl EnvResolver {
                     }
 
                     // Handle metadata variables
-                    if let Some(metadata) = &instance.metadata {
-                        for (key, value) in metadata {
-                            let meta_var_name = format!("{}_{}", prefix, key.to_uppercase());
-                            result.add_variable(meta_var_name, value.clone());
-                        }
+                    for (key, value) in &instance.metadata {
+                        let meta_var_name = format!("{}_{}", prefix, key.to_uppercase());
+                        result.add_variable(meta_var_name, value.clone());
                     }
                 }
 
@@ -356,8 +371,8 @@ fn resolve_model_id(
     }
 
     // Fall back to first model from instance if no specific target
-    if let Some(model) = instance.models.first() {
-        return Some(format!("{}:{}", instance.provider_type, model.model_id));
+    if let Some(model_id) = instance.models.first() {
+        return Some(format!("{}:{}", instance.provider_type, model_id));
     }
 
     // Fall back to default value if specified
@@ -367,14 +382,12 @@ fn resolve_model_id(
 /// Resolves temperature value
 fn resolve_temperature(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if temperature is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(temp) = metadata.get("temperature") {
-            return Some(temp.clone());
-        }
-        // Also check for uppercase key
-        if let Some(temp) = metadata.get("TEMPERATURE") {
-            return Some(temp.clone());
-        }
+    if let Some(temp) = instance.metadata.get("temperature") {
+        return Some(temp.clone());
+    }
+    // Also check for uppercase key
+    if let Some(temp) = instance.metadata.get("TEMPERATURE") {
+        return Some(temp.clone());
     }
 
     // Fall back to default value if specified
@@ -384,14 +397,12 @@ fn resolve_temperature(var: &EnvVarDeclaration, instance: &ProviderInstance) -> 
 /// Resolves max tokens value
 fn resolve_max_tokens(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if max_tokens is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(tokens) = metadata.get("MAX_TOKENS") {
-            return Some(tokens.clone());
-        }
-        // Also check for lowercase key
-        if let Some(tokens) = metadata.get("max_tokens") {
-            return Some(tokens.clone());
-        }
+    if let Some(tokens) = instance.metadata.get("MAX_TOKENS") {
+        return Some(tokens.clone());
+    }
+    // Also check for lowercase key
+    if let Some(tokens) = instance.metadata.get("max_tokens") {
+        return Some(tokens.clone());
     }
 
     // Fall back to default value if specified
@@ -404,10 +415,8 @@ fn resolve_parallel_tool_calls(
     instance: &ProviderInstance,
 ) -> Option<String> {
     // Check if parallel tool calls is in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(ptc) = metadata.get("parallel_tool_calls") {
-            return Some(ptc.clone());
-        }
+    if let Some(ptc) = instance.metadata.get("parallel_tool_calls") {
+        return Some(ptc.clone());
     }
 
     // Fall back to default value if specified
@@ -417,10 +426,8 @@ fn resolve_parallel_tool_calls(
 /// Resolves headers value
 fn resolve_headers(var: &EnvVarDeclaration, instance: &ProviderInstance) -> Option<String> {
     // Check if headers are in metadata
-    if let Some(metadata) = &instance.metadata {
-        if let Some(headers) = metadata.get("headers") {
-            return Some(headers.clone());
-        }
+    if let Some(headers) = instance.metadata.get("headers") {
+        return Some(headers.clone());
     }
 
     // Fall back to default value if specified
@@ -456,7 +463,7 @@ impl EnvResolver {
     /// Returns an error if resolution fails due to missing required variables or invalid configuration
     pub fn resolve_from_mappings(
         provider_instances: Vec<ProviderInstance>,
-        labels: Vec<UnifiedLabel>,
+        labels: Vec<LabelWithTarget>,
         env_var_mappings: Vec<EnvVarMapping>,
         dry_run: bool,
     ) -> Result<EnvResolutionResult> {
@@ -505,7 +512,7 @@ impl EnvResolver {
 /// Builder for creating environment variable resolvers
 pub struct EnvResolverBuilder {
     provider_instances: Vec<ProviderInstance>,
-    labels: Vec<UnifiedLabel>,
+    labels: Vec<LabelWithTarget>,
     env_schema: Vec<EnvVarDeclaration>,
     label_mappings: Vec<LabelMapping>,
 }
@@ -531,7 +538,7 @@ impl EnvResolverBuilder {
 
     /// Sets the label assignments
     #[must_use]
-    pub fn with_labels(mut self, labels: Vec<UnifiedLabel>) -> Self {
+    pub fn with_labels(mut self, labels: Vec<LabelWithTarget>) -> Self {
         self.labels = labels;
         self
     }
@@ -571,8 +578,8 @@ impl EnvResolverBuilder {
 
     /// Generates default environment variable schema and label mappings
     fn generate_default_schema(
-        provider_instances: &[ProviderInstance],
-        labels: &[UnifiedLabel],
+        _provider_instances: &[ProviderInstance],
+        labels: &[LabelWithTarget],
     ) -> (Vec<EnvVarDeclaration>, Vec<LabelMapping>) {
         let mut env_schema = Vec::new();
         let mut label_mappings = Vec::new();
@@ -646,24 +653,23 @@ impl Default for EnvResolverBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Model, ProviderInstance};
+    use crate::models::ProviderInstance;
 
     fn create_test_provider_instance(
         provider_type: &str,
         api_key: &str,
         models: Vec<&str>,
     ) -> ProviderInstance {
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-instance".to_string(),
             provider_type.to_string(),
-            provider_type.to_string(),
             format!("https://api.{provider_type}.com"),
+            String::new(),
         );
         instance.set_api_key(api_key.to_string());
 
         for model_id in models {
-            let model = Model::new(model_id.to_string(), model_id.to_string());
-            instance.add_model(model);
+            instance.add_model(model_id.to_string());
         }
 
         instance
@@ -677,7 +683,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -713,7 +719,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -734,7 +740,7 @@ mod tests {
     fn test_missing_required_variable() {
         let provider_instances = vec![]; // No instances available
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];
@@ -773,7 +779,7 @@ mod tests {
             vec!["gpt-4"],
         )];
 
-        let labels = vec![UnifiedLabel::new(
+        let labels = vec![LabelWithTarget::new(
             "smart".to_string(),
             ProviderModelTuple::parse("openai:gpt-4").unwrap(),
         )];

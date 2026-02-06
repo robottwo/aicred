@@ -1,14 +1,18 @@
 // Example: implement and register a custom provider plugin
+//
+// This example shows the NEW v0.2.0+ API (simplified plugin registry).
+// For the legacy API, see rust_custom_plugin_legacy.rs
 
 use aicred_core::{
     error::Result,
     models::{DiscoveredKey, ValueType, Confidence},
-    plugins::{PluginRegistry, ProviderPlugin},
-    scanner::{Scanner, ScannerConfig},
+    plugins::{ProviderPlugin, ProviderRegistry, register_builtin_providers},
+    ScanOptions, scan,
 };
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
+/// Custom provider plugin example
 struct MyProviderPlugin;
 
 impl ProviderPlugin for MyProviderPlugin {
@@ -16,54 +20,42 @@ impl ProviderPlugin for MyProviderPlugin {
         "my-provider"
     }
 
-    fn scan_paths(&self, home_dir: &Path) -> Vec<PathBuf> {
-        vec![
-            home_dir.join(".my-provider").join("config.json"),
-            home_dir.join(".config").join("my-provider").join("api_key"),
-        ]
-    }
-
-    fn parse_config(&self, path: &Path, content: &str) -> Result<Vec<DiscoveredKey>> {
-        // Minimal example parser:
-        // If content looks like it contains a key starting with "mp-", emit a discovered key.
-        let mut keys = Vec::new();
-        if content.contains("mp-") {
-            // In a real implementation, properly extract the key string.
-            let full_value = "mp-EXAMPLE-KEY-123456".to_string();
-            keys.push(DiscoveredKey::new(
-                self.name().to_string(),
-                path.display().to_string(),
-                ValueType::ApiKey,
-                Confidence::High,
-                full_value,
-            ));
-        }
-        Ok(keys)
-    }
-
     fn confidence_score(&self, key: &str) -> f32 {
         if key.starts_with("mp-") { 0.95 } else { 0.70 }
+    }
+
+    fn can_handle_file(&self, path: &Path) -> bool {
+        // This plugin can handle files in .my-provider directory
+        path.to_string_lossy().contains(".my-provider")
     }
 }
 
 fn main() -> Result<()> {
-    // Create a registry and register built-ins plus our custom plugin
-    let registry = PluginRegistry::new();
-    aicred_core::register_builtin_plugins(&registry)?;
-    registry.register(Arc::new(MyProviderPlugin))?;
+    // Create a registry with built-in providers (v0.2.0+ API - returns HashMap directly)
+    let mut registry: ProviderRegistry = register_builtin_providers();
+    
+    // Add our custom plugin
+    let plugin = Arc::new(MyProviderPlugin) as Arc<dyn ProviderPlugin>;
+    registry.insert(plugin.name().to_string(), plugin);
 
-    // Create a scanner with default config
-    let scanner = Scanner::with_config(registry, ScannerConfig::default());
+    println!("Registered {} provider plugins", registry.len());
+    
+    // Note: The scan() function uses register_builtin_providers() internally,
+    // so this example demonstrates the registry API but doesn't actually use
+    // the custom plugin during scanning.
+    //
+    // To use a custom plugin during scanning, you would need to:
+    // 1. Create a custom scanner that uses your plugin
+    // 2. Or extend the built-in discovery system
+    
+    let options = ScanOptions::default();
+    let result = scan(&options)?;
 
-    // Scan the user's home directory
-    let home = dirs_next::home_dir().expect("Failed to resolve home directory");
-    let result = scanner.scan(&home)?;
-
-    println!("Found {} keys", result.total_keys());
+    println!("Found {} keys", result.keys.len());
     for key in &result.keys {
         println!("{}: {} (confidence: {:?}) from {}",
             key.provider,
-            "****", // full values are redacted by default
+            key.redacted_value(),
             key.confidence,
             key.source
         );

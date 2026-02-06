@@ -1,4 +1,4 @@
-use aicred_core::ScanResult;
+use aicred_core::{models::Label, ScanResult};
 use colored::*;
 use tracing::debug;
 
@@ -32,12 +32,7 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     let models_display = if provider_instance.models.is_empty() {
                         "-".dimmed().to_string()
                     } else {
-                        let model_names: Vec<String> = provider_instance
-                            .models
-                            .iter()
-                            .map(|m| m.name.clone())
-                            .collect();
-                        truncate_string(&model_names.join(", "), 25)
+                        truncate_string(&provider_instance.models.join(", "), 25)
                     };
 
                     // Get tags and labels for this instance
@@ -59,19 +54,16 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                         truncate_string(&label_names.join(", "), 15)
                     };
 
-                    let settings_display = if let Some(metadata) = &provider_instance.metadata {
-                        if metadata.is_empty() {
-                            "-".dimmed().to_string()
-                        } else {
-                            let settings_str = metadata
-                                .iter()
-                                .map(|(k, v)| format!("{}={}", k, v))
-                                .collect::<Vec<_>>()
-                                .join(", ");
-                            truncate_string(&settings_str, 20)
-                        }
-                    } else {
+                    let settings_display = if provider_instance.metadata.is_empty() {
                         "-".dimmed().to_string()
+                    } else {
+                        let settings_str = provider_instance
+                            .metadata
+                            .iter()
+                            .map(|(k, v)| format!("{}={}", k, v))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        truncate_string(&settings_str, 20)
                     };
 
                     println!(
@@ -95,33 +87,21 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     if !tags.is_empty() {
                         println!("  Tags:");
                         for tag in &tags {
-                            let tag_display = if let Some(ref color) = tag.color {
-                                format!("{} ({})", tag.name, color)
-                            } else {
-                                tag.name.clone()
-                            };
-                            println!("    {}", tag_display);
+                            println!("    {}", tag.name);
                         }
                     }
 
                     if !labels.is_empty() {
                         println!("  Labels:");
                         for label in &labels {
-                            let label_display = if let Some(ref color) = label.color {
-                                format!("{} ({})", label.name, color)
-                            } else {
-                                label.name.clone()
-                            };
-                            println!("    {}", label_display);
+                            println!("    {}", label.name);
                         }
                     }
 
-                    if let Some(metadata) = &provider_instance.metadata {
-                        if !metadata.is_empty() {
-                            println!("  Settings:");
-                            for (key, value) in metadata {
-                                println!("    {}: {}", key.dimmed(), value);
-                            }
+                    if !provider_instance.metadata.is_empty() {
+                        println!("  Settings:");
+                        for (key, value) in &provider_instance.metadata {
+                            println!("    {}: {}", key.dimmed(), value);
                         }
                     }
                 }
@@ -143,12 +123,7 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                     let models_display = if provider_instance.models.is_empty() {
                         "-".dimmed().to_string()
                     } else {
-                        let model_names: Vec<String> = provider_instance
-                            .models
-                            .iter()
-                            .map(|m| m.name.clone())
-                            .collect();
-                        truncate_string(&model_names.join(", "), 25)
+                        truncate_string(&provider_instance.models.join(", "), 25)
                     };
 
                     // Get tags and labels for this instance
@@ -206,7 +181,7 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
 
                 // Count all models configured in this provider instance
                 for model in &provider_instance.models {
-                    models.insert(model.name.clone());
+                    models.insert(model.clone());
                 }
             }
 
@@ -227,15 +202,10 @@ pub fn output_table(result: &ScanResult, verbose: bool) -> Result<(), anyhow::Er
                 for provider_instance in instance.provider_instances() {
                     println!(
                         "    - {} ({})",
-                        provider_instance.display_name, provider_instance.provider_type
+                        provider_instance.id, provider_instance.provider_type
                     );
                     if !provider_instance.models.is_empty() {
-                        let model_names: Vec<String> = provider_instance
-                            .models
-                            .iter()
-                            .map(|m| m.name.clone())
-                            .collect();
-                        println!("      Models: {}", model_names.join(", "));
+                        println!("      Models: {}", provider_instance.models.join(", "));
                     }
                 }
             }
@@ -279,9 +249,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 }
 
 /// Get tags for a specific instance
-fn get_tags_for_instance(
-    instance_id: &str,
-) -> Result<Vec<aicred_core::models::Tag>, anyhow::Error> {
+fn get_tags_for_instance(instance_id: &str) -> Result<Vec<Label>, anyhow::Error> {
     use crate::commands::tags::get_tags_for_target;
     get_tags_for_target(instance_id, None, None)
 }

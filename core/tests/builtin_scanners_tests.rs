@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Tests for built-in scanner plugins
 
 use aicred_core::scanners::{
@@ -59,13 +61,11 @@ fn test_langchain_scanner_parse_config() {
     assert_eq!(result.keys.len(), 3);
     assert_eq!(result.instances.len(), 1);
 
-    // Verify provider_instances are NOT populated by built-in scanners
-    // Built-in scanners only discover keys; provider_instances are populated elsewhere
+    // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
-    assert_eq!(
-        instance.provider_instances.len(),
-        0,
-        "Built-in scanners don't populate provider_instances"
+    assert!(
+        !instance.provider_instances.is_empty(),
+        "Built-in scanners now populate provider_instances"
     );
 
     // Test YAML parsing
@@ -85,12 +85,11 @@ llm:
     assert_eq!(result.keys.len(), 2);
     assert_eq!(result.instances.len(), 1);
 
-    // Built-in scanners don't populate provider_instances
+    // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
-    assert_eq!(
-        instance.provider_instances.len(),
-        0,
-        "Built-in scanners don't populate provider_instances"
+    assert!(
+        !instance.provider_instances.is_empty(),
+        "Built-in scanners now populate provider_instances"
     );
 }
 
@@ -353,11 +352,11 @@ GOOGLE_API_KEY=AIzaSyTest1234567890abcdef
     assert_eq!(result.keys[0].provider, "openai");
     assert_eq!(
         result.keys[0].value_type,
-        aicred_core::models::discovered_key::ValueType::ApiKey
+        aicred_core::models::ValueType::ApiKey
     );
     assert_eq!(
         result.keys[0].confidence,
-        aicred_core::models::discovered_key::Confidence::High
+        aicred_core::models::Confidence::High
     );
 
     // Check instance
@@ -483,9 +482,9 @@ export COHERE_API_KEY="sk-cohere1234567890abcdef"
     for key in &result.keys {
         assert!(matches!(
             key.confidence,
-            aicred_core::models::discovered_key::Confidence::High
-                | aicred_core::models::discovered_key::Confidence::Medium
-                | aicred_core::models::discovered_key::Confidence::Low
+            aicred_core::models::Confidence::High
+                | aicred_core::models::Confidence::Medium
+                | aicred_core::models::Confidence::Low
         ));
     }
 }

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Integration tests for provider probing functionality.
 
 use aicred_core::error::Error;
@@ -70,15 +72,13 @@ async fn test_openrouter_probe_success() {
     assert_eq!(models.len(), 2);
 
     // Verify first model
-    assert_eq!(models[0].id, "openai/gpt-4");
-    assert_eq!(models[0].name, "GPT-4");
-    assert_eq!(models[0].context_length, Some(8192));
-    assert!(models[0].pricing.is_some());
+    assert_eq!(models[0].id, Some("openai/gpt-4".to_string()));
+    assert_eq!(models[0].name, Some("GPT-4".to_string()));
+    // Note: context_length and pricing fields don't exist in new ModelMetadata structure
 
     // Verify second model
-    assert_eq!(models[1].id, "anthropic/claude-3-opus");
-    assert_eq!(models[1].name, "Claude 3 Opus");
-    assert_eq!(models[1].context_length, Some(200000));
+    assert_eq!(models[1].id, Some("anthropic/claude-3-opus".to_string()));
+    assert_eq!(models[1].name, Some("Claude 3 Opus".to_string()));
 }
 
 #[tokio::test]
@@ -251,8 +251,8 @@ async fn test_openrouter_probe_with_minimal_model_data() {
 
     let models = result.unwrap();
     assert_eq!(models.len(), 1);
-    assert_eq!(models[0].id, "minimal/model");
-    assert_eq!(models[0].name, "Unknown");
-    assert!(models[0].pricing.is_none());
+    assert_eq!(models[0].id, Some("minimal/model".to_string()));
+    assert_eq!(models[0].name, Some("Unknown".to_string()));
+    // Note: pricing field doesn't exist in new ModelMetadata
     assert!(models[0].architecture.is_none());
 }

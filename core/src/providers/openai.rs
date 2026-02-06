@@ -78,10 +78,8 @@ impl ProviderPlugin for OpenAIPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // OpenAI keys have very specific patterns
-        if key.starts_with("sk-proj-") {
-            0.95 // Project keys are very distinctive
-        } else if key.starts_with("sk-") {
-            0.95 // Standard OpenAI keys
+        if key.starts_with("sk-proj-") || key.starts_with("sk-") {
+            0.95 // Project and standard OpenAI keys are very distinctive
         } else if key.len() >= 40 && key.contains('-') {
             0.75 // Might be an OpenAI key without the prefix
         } else {
@@ -91,7 +89,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // OpenAI-specific validation
         if instance.base_url.is_empty() {
@@ -101,14 +99,11 @@ impl ProviderPlugin for OpenAIPlugin {
         }
 
         // Check for valid OpenAI base URL patterns by parsing and validating hostname
-        let is_valid_openai_url = match Url::parse(&instance.base_url) {
-            Ok(parsed_url) => {
-                let host = parsed_url.host_str().unwrap_or("");
-                let allowed_hosts = ["api.openai.com", "openai-api-proxy.com"];
-                allowed_hosts.contains(&host)
-            }
-            Err(_) => false,
-        };
+        let is_valid_openai_url = Url::parse(&instance.base_url).is_ok_and(|parsed_url| {
+            let host = parsed_url.host_str().unwrap_or("");
+            let allowed_hosts = ["api.openai.com", "openai-api-proxy.com"];
+            allowed_hosts.contains(&host)
+        });
 
         if !is_valid_openai_url {
             return Err(Error::PluginError(
@@ -129,7 +124,7 @@ impl ProviderPlugin for OpenAIPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Load configuration from environment or use defaults
@@ -175,7 +170,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
 impl OpenAIPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -190,11 +185,11 @@ impl OpenAIPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
+    #![allow(clippy::float_cmp)]
+
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
-    };
-    use std::path::Path;
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_openai_plugin_name() {
@@ -217,30 +212,18 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-test1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-test1234567890abcdef".to_string());
 
         // Add a model
-        let model = crate::models::Model::new(
-            "text-embedding-3-small".to_string(),
-            "Text Embedding 3 Small".to_string(),
-        );
-        instance.add_model(model);
+        instance.add_model("text-embedding-3-large".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -249,11 +232,11 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = OpenAIPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -265,19 +248,16 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        let model = crate::models::Model::new(
-            "text-embedding-3-large".to_string(),
-            "Text Embedding 3 Large".to_string(),
-        );
-        instance.add_model(model);
+
+        instance.add_model("text-embedding-3-large".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -288,22 +268,17 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
-        let model2 = crate::models::Model::new(
-            "text-embedding-3-small".to_string(),
-            "Text Embedding 3 Small".to_string(),
-        );
-        instance.add_model(model1);
-        instance.add_model(model2);
+
+        instance.add_model("gpt-3.5-turbo".to_string());
+        instance.add_model("text-embedding-3-small".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -314,11 +289,11 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = OpenAIPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -330,26 +305,18 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-test1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-test1234567890abcdef".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());
@@ -358,23 +325,15 @@ mod tests {
     #[test]
     fn test_initialize_instance() {
         let plugin = OpenAIPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-openai".to_string(),
-            "Test OpenAI".to_string(),
             "openai".to_string(),
             "https://api.openai.com".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-test1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-test1234567890abcdef".to_string());
 
         let result = plugin.initialize_instance(&instance);
         assert!(result.is_ok());
@@ -441,11 +400,11 @@ mod tests {
         ];
 
         for url in valid_urls {
-            let instance = ProviderInstance::new(
+            let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
-                "Test OpenAI".to_string(),
                 "openai".to_string(),
                 url.to_string(),
+                String::new(),
             );
 
             let result = plugin.validate_instance(&instance);
@@ -474,11 +433,11 @@ mod tests {
         ];
 
         for url in invalid_urls {
-            let instance = ProviderInstance::new(
+            let instance = ProviderInstance::new_without_models(
                 "test-openai".to_string(),
-                "Test OpenAI".to_string(),
                 "openai".to_string(),
                 url.to_string(),
+                String::new(),
             );
 
             let result = plugin.validate_instance(&instance);

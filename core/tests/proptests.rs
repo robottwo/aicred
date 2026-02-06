@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Property-based tests for core library invariants.
 
 // Allow clippy lints for property tests
@@ -6,7 +8,7 @@
 //! Property-based tests for core library invariants.
 
 use aicred_core::{
-    models::{discovered_key::Confidence, DiscoveredKey, ValueType},
+    models::{Confidence, DiscoveredCredential, ValueType},
     providers::openai::OpenAIPlugin,
     ProviderPlugin,
 };
@@ -25,14 +27,14 @@ proptest! {
     // Hash is deterministic with respect to the full_value content
     #[test]
     fn discovered_key_hash_consistency(val in ".*") {
-        let k1 = DiscoveredKey::new(
+        let k1 = DiscoveredCredential::new(
             "test-provider".to_string(),
             "/tmp/source".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             val.clone(),
         );
-        let k2 = DiscoveredKey::new(
+        let k2 = DiscoveredCredential::new(
             "test-provider".to_string(),
             "/tmp/source".to_string(),
             ValueType::ApiKey,
@@ -45,7 +47,7 @@ proptest! {
     // Redaction should never expose full secrets; when value is long enough, it never returns the full string
     #[test]
     fn redaction_never_exposes_full_value(secret in ".{9,128}") {
-        let key = DiscoveredKey::new(
+        let key = DiscoveredCredential::new(
             "test".to_string(),
             "/path".to_string(),
             ValueType::ApiKey,

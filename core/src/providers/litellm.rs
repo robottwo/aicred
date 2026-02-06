@@ -14,10 +14,10 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // LiteLLM keys are typically longer and more complex
-        if key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase) {
-            0.85 // High confidence for complex keys
-        } else if key.len() >= 30 {
-            0.85 // Medium-high confidence for longer keys (30+ chars)
+        if (key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase))
+            || key.len() >= 30
+        {
+            0.85 // High confidence for complex and long keys
         } else {
             0.50 // Lower confidence for shorter keys
         }
@@ -25,7 +25,7 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // LiteLLM-specific validation
         if instance.base_url.is_empty() {
@@ -55,7 +55,7 @@ impl ProviderPlugin for LiteLLMPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Otherwise, return default LiteLLM-supported models based on instance configuration
@@ -104,7 +104,7 @@ impl ProviderPlugin for LiteLLMPlugin {
 
 impl LiteLLMPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -119,10 +119,11 @@ impl LiteLLMPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
+    #![allow(clippy::float_cmp)]
+
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_litellm_plugin_name() {
@@ -157,28 +158,18 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
 
         // Add a model
-        let model =
-            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
-        instance.add_model(model);
+        instance.add_model("gpt-3.5-turbo".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -187,11 +178,11 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = LiteLLMPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "not-a-url".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -203,17 +194,16 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        let model =
-            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
-        instance.add_model(model);
+
+        instance.add_model("gpt-3.5-turbo".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -224,20 +214,16 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("gpt-3.5-turbo".to_string(), "GPT-3.5 Turbo".to_string());
-        let model2 =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("gpt-3.5-turbo".to_string());
+        instance.add_model("claude-3-sonnet".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -248,11 +234,11 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = LiteLLMPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -265,26 +251,18 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());
@@ -293,23 +271,15 @@ mod tests {
     #[test]
     fn test_initialize_instance() {
         let plugin = LiteLLMPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-litellm".to_string(),
-            "Test LiteLLM".to_string(),
             "litellm".to_string(),
             "https://api.litellm.ai".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("litellm-api-key-with-dashes-and-UPPERCASE".to_string());
 
         let result = plugin.initialize_instance(&instance);
         assert!(result.is_ok());

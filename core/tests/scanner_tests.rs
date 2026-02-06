@@ -1,10 +1,11 @@
+#![allow(deprecated)]
+#![allow(unused_must_use)]
 //! Tests for the new ScannerPlugin architecture
 
 // Allow clippy lints for scanner tests
 #![allow(unused_imports)]
 
-use aicred_core::models::discovered_key::{Confidence, ValueType};
-use aicred_core::models::{ConfigInstance, DiscoveredKey};
+use aicred_core::models::{Confidence, ConfigInstance, DiscoveredCredential, ValueType};
 use aicred_core::scanners::{ScanResult, ScannerPlugin, ScannerRegistry};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -41,7 +42,7 @@ impl ScannerPlugin for MockScanner {
 
         // Simple mock parsing - look for "api_key" in content
         if content.contains("api_key") {
-            let key = DiscoveredKey::new(
+            let key = DiscoveredCredential::new(
                 "mock".to_string(),
                 path.display().to_string(),
                 ValueType::ApiKey,
@@ -187,7 +188,7 @@ fn test_scan_result_functionality() {
     let mut result = ScanResult::new();
 
     // Test adding keys
-    let key1 = DiscoveredKey::new(
+    let key1 = DiscoveredCredential::new(
         "test".to_string(),
         "/test/path".to_string(),
         ValueType::ApiKey,
@@ -195,7 +196,7 @@ fn test_scan_result_functionality() {
         "sk-test123".to_string(),
     );
 
-    let key2 = DiscoveredKey::new(
+    let key2 = DiscoveredCredential::new(
         "test2".to_string(),
         "/test/path2".to_string(),
         ValueType::ApiKey,
@@ -388,21 +389,21 @@ fn test_scanner_plugin_ext_group_keys_by_provider() {
     let scanner = MockScanner;
 
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-test123".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
             Confidence::High,
             "gpt-4".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "anthropic".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -429,14 +430,14 @@ fn test_scanner_plugin_ext_build_provider_instances() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
@@ -465,14 +466,14 @@ fn test_scanner_plugin_ext_build_instances_from_keys() {
     let scanner = MockScanner;
 
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-test123".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "anthropic".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -501,21 +502,21 @@ fn test_scanner_plugin_ext_with_metadata() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
                 Confidence::High,
                 "https://api.openai.com".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Temperature,
@@ -532,9 +533,9 @@ fn test_scanner_plugin_ext_with_metadata() {
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
     assert_eq!(instance.base_url, "https://api.openai.com");
-    assert!(instance.metadata.is_some());
+    assert!(!instance.metadata.is_empty());
     assert_eq!(
-        instance.metadata.as_ref().unwrap().get("temperature"),
+        instance.metadata.get("temperature"),
         Some(&"0.7".to_string())
     );
 }
@@ -550,14 +551,14 @@ fn test_scanner_plugin_ext_no_api_keys() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
                 Confidence::High,
                 "https://api.openai.com".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
@@ -586,14 +587,14 @@ fn test_scanner_plugin_ext_multiple_keys_different_confidence() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-prod-key".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -627,21 +628,21 @@ fn test_scanner_plugin_ext_custom_value_types() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Custom("organization_id".to_string()),
                 Confidence::High,
                 "org-123456".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ParallelToolCalls,
@@ -657,7 +658,7 @@ fn test_scanner_plugin_ext_custom_value_types() {
 
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(
         metadata.get("organization_id"),
         Some(&"org-123456".to_string())
@@ -676,7 +677,7 @@ fn test_scanner_plugin_ext_with_line_numbers() {
     let scanner = MockScanner;
 
     let mut grouped = HashMap::new();
-    let mut key = DiscoveredKey::new(
+    let mut key = DiscoveredCredential::new(
         "openai".to_string(),
         "/test/config".to_string(),
         ValueType::ApiKey,
@@ -707,14 +708,14 @@ fn test_scanner_plugin_ext_invalid_temperature() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Temperature,
@@ -731,14 +732,7 @@ fn test_scanner_plugin_ext_invalid_temperature() {
     // Should still create instance, just skip invalid temperature
     assert_eq!(instances.len(), 1);
     let instance = &instances[0];
-    assert!(
-        instance.metadata.is_none()
-            || !instance
-                .metadata
-                .as_ref()
-                .unwrap()
-                .contains_key("temperature")
-    );
+    assert!(instance.metadata.is_empty() || !instance.metadata.contains_key("temperature"));
 }
 
 #[test]
@@ -748,35 +742,35 @@ fn test_scanner_plugin_ext_multiple_providers() {
     let scanner = MockScanner;
 
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-openai-test123".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
             Confidence::High,
             "gpt-4".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "anthropic".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-ant-test456".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "anthropic".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
             Confidence::High,
             "claude-3-opus".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "google".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -833,49 +827,49 @@ fn test_scanner_plugin_ext_all_value_types() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-4".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
                 Confidence::High,
                 "https://api.openai.com/v1".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Temperature,
                 Confidence::High,
                 "0.8".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ParallelToolCalls,
                 Confidence::High,
                 "true".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Headers,
                 Confidence::High,
                 r#"{"Authorization": "Bearer token"}"#.to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Custom("max_tokens".to_string()),
@@ -900,7 +894,7 @@ fn test_scanner_plugin_ext_all_value_types() {
     assert!(instance.has_api_key());
 
     // Verify metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.8".to_string()));
     assert_eq!(
         metadata.get("parallel_tool_calls"),
@@ -923,7 +917,7 @@ fn test_scanner_plugin_ext_access_token_type() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "github".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "github".to_string(),
             "/test/config".to_string(),
             ValueType::AccessToken,
@@ -953,7 +947,7 @@ fn test_scanner_plugin_ext_secret_key_type() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "aws".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "aws".to_string(),
             "/test/config".to_string(),
             ValueType::SecretKey,
@@ -982,7 +976,7 @@ fn test_scanner_plugin_ext_bearer_token_type() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "custom".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "custom".to_string(),
             "/test/config".to_string(),
             ValueType::BearerToken,
@@ -1013,14 +1007,14 @@ fn test_scanner_plugin_ext_missing_api_key_edge_case() {
         "openai".to_string(),
         vec![
             // Only metadata, no API key
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-4".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
@@ -1053,28 +1047,28 @@ fn test_scanner_plugin_ext_multiple_models() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-4".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-3.5-turbo".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
@@ -1095,11 +1089,7 @@ fn test_scanner_plugin_ext_multiple_models() {
 
     // Verify all models are present
     assert_eq!(instance.models.len(), 3);
-    let model_ids: Vec<&str> = instance
-        .models
-        .iter()
-        .map(|m| m.model_id.as_str())
-        .collect();
+    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));
     assert!(model_ids.contains(&"gpt-4-turbo"));
@@ -1107,7 +1097,6 @@ fn test_scanner_plugin_ext_multiple_models() {
 
 #[test]
 fn test_scanner_plugin_ext_confidence_to_environment_mapping() {
-    use aicred_core::models::provider_key::Environment;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
@@ -1117,21 +1106,21 @@ fn test_scanner_plugin_ext_confidence_to_environment_mapping() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-prod-key".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::Medium,
                 "sk-dev-key".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -1198,42 +1187,42 @@ fn test_provider_instances_with_multiple_value_types() {
 
     // Create keys with various value types
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-test123".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
             Confidence::High,
             "gpt-4".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
             Confidence::High,
             "gpt-3.5-turbo".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::BaseUrl,
             Confidence::High,
             "https://api.openai.com/v1".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::Temperature,
             Confidence::High,
             "0.7".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::Custom("organization".to_string()),
@@ -1256,7 +1245,7 @@ fn test_provider_instances_with_multiple_value_types() {
     assert_eq!(instance.model_count(), 2, "Should have 2 models");
 
     // Verify metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.7".to_string()));
     assert_eq!(
         metadata.get("organization"),
@@ -1264,11 +1253,7 @@ fn test_provider_instances_with_multiple_value_types() {
     );
 
     // Verify models
-    let model_ids: Vec<&str> = instance
-        .models
-        .iter()
-        .map(|m| m.model_id.as_str())
-        .collect();
+    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));
 }
@@ -1281,14 +1266,14 @@ fn test_provider_instances_deduplication() {
 
     // Create duplicate keys for the same provider
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-test123".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1326,7 +1311,7 @@ fn test_provider_instances_validation() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "openai".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1355,7 +1340,7 @@ fn test_empty_keys_no_provider_instances() {
     use aicred_core::scanners::ScannerPluginExt;
 
     let scanner = MockScanner;
-    let empty_keys: Vec<DiscoveredKey> = vec![];
+    let empty_keys: Vec<DiscoveredCredential> = vec![];
 
     let instances = scanner
         .build_instances_from_keys(&empty_keys, "/test/config", None)
@@ -1375,21 +1360,21 @@ fn test_mixed_providers_separate_instances() {
     let scanner = MockScanner;
 
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-openai-test".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "anthropic".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
             Confidence::High,
             "sk-ant-test".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "google".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1431,7 +1416,7 @@ fn test_edge_case_empty_api_key_value() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "openai".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1444,7 +1429,7 @@ fn test_edge_case_empty_api_key_value() {
         .build_provider_instances(grouped, "/test/config", None)
         .unwrap();
 
-    // Empty keys are still added because full_value() returns Some("") for empty strings
+    // Empty keys are still added to create the instance (scanner doesn't filter them)
     // The implementation doesn't filter them out at the scanner level
     assert_eq!(
         instances.len(),
@@ -1452,16 +1437,19 @@ fn test_edge_case_empty_api_key_value() {
         "Instance is created even with empty API key"
     );
     let instance = &instances[0];
-    assert_eq!(instance.has_api_key() as usize, 1);
+    assert_eq!(
+        instance.has_api_key() as usize,
+        0,
+        "Empty API key means has_api_key() returns false"
+    );
 
-    // ProviderInstance doesn't expose individual key details
-    // Check that the API key is empty string
-    assert_eq!(instance.get_api_key(), Some(&"".to_string()));
-
-    // Note: The key is marked as Valid because it has High confidence,
-    // but in real usage, empty keys would fail actual API validation
-    // This test documents the current behavior where scanner-level validation
-    // doesn't check for empty values
+    // ProviderInstance.get_api_key() returns None for empty API keys
+    // This is the new behavior after refactoring
+    assert_eq!(
+        instance.get_api_key(),
+        None,
+        "Empty API key returns None from get_api_key()"
+    );
 }
 
 #[test]
@@ -1471,21 +1459,21 @@ fn test_edge_case_only_metadata_no_keys() {
     let scanner = MockScanner;
 
     let keys = vec![
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::BaseUrl,
             Confidence::High,
             "https://api.openai.com".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::Temperature,
             Confidence::High,
             "0.7".to_string(),
         ),
-        DiscoveredKey::new(
+        DiscoveredCredential::new(
             "openai".to_string(),
             "/test/config".to_string(),
             ValueType::ModelId,
@@ -1517,14 +1505,14 @@ fn test_edge_case_invalid_temperature_value() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Temperature,
@@ -1543,7 +1531,8 @@ fn test_edge_case_invalid_temperature_value() {
     let instance = &instances[0];
 
     // Temperature should not be in metadata
-    if let Some(metadata) = &instance.metadata {
+    let metadata = &instance.metadata;
+    if !metadata.is_empty() {
         assert!(
             !metadata.contains_key("temperature"),
             "Invalid temperature should be skipped"
@@ -1558,7 +1547,7 @@ fn test_multiple_configs_same_provider() {
     let scanner = MockScanner;
 
     // Simulate keys from different config files for the same provider
-    let keys_config1 = vec![DiscoveredKey::new(
+    let keys_config1 = vec![DiscoveredCredential::new(
         "openai".to_string(),
         "/test/config1.json".to_string(),
         ValueType::ApiKey,
@@ -1566,7 +1555,7 @@ fn test_multiple_configs_same_provider() {
         "sk-config1-key".to_string(),
     )];
 
-    let keys_config2 = vec![DiscoveredKey::new(
+    let keys_config2 = vec![DiscoveredCredential::new(
         "openai".to_string(),
         "/test/config2.json".to_string(),
         ValueType::ApiKey,
@@ -1601,28 +1590,28 @@ fn test_all_key_types_comprehensive() {
         "openai".to_string(),
         vec![
             // API Key types
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-api-key".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::AccessToken,
                 Confidence::High,
                 "access-token-123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::SecretKey,
                 Confidence::High,
                 "secret-key-456".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BearerToken,
@@ -1630,42 +1619,42 @@ fn test_all_key_types_comprehensive() {
                 "bearer-token-789".to_string(),
             ),
             // Configuration types
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::BaseUrl,
                 Confidence::High,
                 "https://custom.api.com".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-4".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Temperature,
                 Confidence::High,
                 "0.9".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ParallelToolCalls,
                 Confidence::High,
                 "false".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Headers,
                 Confidence::High,
                 r#"{"X-Custom": "value"}"#.to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::Custom("timeout".to_string()),
@@ -1697,7 +1686,7 @@ fn test_all_key_types_comprehensive() {
     assert_eq!(instance.base_url, "https://custom.api.com");
 
     // Should have metadata
-    let metadata = instance.metadata.as_ref().unwrap();
+    let metadata = &instance.metadata;
     assert_eq!(metadata.get("temperature"), Some(&"0.9".to_string()));
     assert_eq!(
         metadata.get("parallel_tool_calls"),
@@ -1712,7 +1701,6 @@ fn test_all_key_types_comprehensive() {
 
 #[test]
 fn test_confidence_levels_all_environments() {
-    use aicred_core::models::provider_key::Environment;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
@@ -1722,28 +1710,28 @@ fn test_confidence_levels_all_environments() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::VeryHigh,
                 "sk-very-high".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-high".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::Medium,
                 "sk-medium".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -1770,7 +1758,6 @@ fn test_confidence_levels_all_environments() {
 
 #[test]
 fn test_provider_instance_validation_status() {
-    use aicred_core::models::provider_key::ValidationStatus;
     use aicred_core::scanners::ScannerPluginExt;
     use std::collections::HashMap;
 
@@ -1780,14 +1767,14 @@ fn test_provider_instance_validation_status() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-high-confidence".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
@@ -1814,7 +1801,7 @@ fn test_line_numbers_preserved() {
 
     let scanner = MockScanner;
 
-    let mut key_with_line = DiscoveredKey::new(
+    let mut key_with_line = DiscoveredCredential::new(
         "openai".to_string(),
         "/test/config".to_string(),
         ValueType::ApiKey,
@@ -1845,7 +1832,7 @@ fn test_default_base_url_generation() {
     let mut grouped = HashMap::new();
     grouped.insert(
         "custom-provider".to_string(),
-        vec![DiscoveredKey::new(
+        vec![DiscoveredCredential::new(
             "custom-provider".to_string(),
             "/test/config".to_string(),
             ValueType::ApiKey,
@@ -1871,7 +1858,7 @@ fn test_instance_id_generation() {
 
     let scanner = MockScanner;
 
-    let keys = vec![DiscoveredKey::new(
+    let keys = vec![DiscoveredCredential::new(
         "openai".to_string(),
         "/test/my.config.json".to_string(),
         ValueType::ApiKey,
@@ -1918,28 +1905,28 @@ fn test_multiple_models_same_provider() {
     grouped.insert(
         "openai".to_string(),
         vec![
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ApiKey,
                 Confidence::High,
                 "sk-test123".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-4".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
                 Confidence::High,
                 "gpt-3.5-turbo".to_string(),
             ),
-            DiscoveredKey::new(
+            DiscoveredCredential::new(
                 "openai".to_string(),
                 "/test/config".to_string(),
                 ValueType::ModelId,
@@ -1957,11 +1944,7 @@ fn test_multiple_models_same_provider() {
     let instance = &instances[0];
     assert_eq!(instance.model_count(), 3);
 
-    let model_ids: Vec<&str> = instance
-        .models
-        .iter()
-        .map(|m| m.model_id.as_str())
-        .collect();
+    let model_ids: Vec<&str> = instance.models.iter().map(|m| m.as_str()).collect();
     assert!(model_ids.contains(&"gpt-4"));
     assert!(model_ids.contains(&"gpt-3.5-turbo"));
     assert!(model_ids.contains(&"gpt-4-turbo"));

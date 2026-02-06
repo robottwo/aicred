@@ -279,13 +279,11 @@ pub extern "C" fn aicred_list_providers() -> *mut libc::c_char {
     clear_last_error();
 
     let result = safe_execute(|| {
-        // Create a plugin registry and register built-in plugins
-        let registry = aicred_core::plugins::PluginRegistry::new();
-        aicred_core::plugins::register_builtin_plugins(&registry)
-            .map_err(|e| format!("Failed to register plugins: {}", e))?;
+        // Create a provider registry with built-in providers
+        let registry = aicred_core::plugins::register_builtin_providers();
 
         // Get the list of provider names
-        let providers = registry.list();
+        let providers = aicred_core::plugins::list_providers(&registry);
 
         // Serialize to JSON
         let json_result = serde_json::to_string(&providers)

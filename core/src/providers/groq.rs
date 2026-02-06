@@ -14,10 +14,8 @@ impl ProviderPlugin for GroqPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // Groq keys have very specific patterns
-        if key.starts_with("gsk_") {
+        if key.starts_with("gsk_") || key.starts_with("gsk-") {
             0.95 // Very distinctive Groq prefix
-        } else if key.starts_with("gsk-") {
-            0.95 // Alternative Groq prefix format
         } else if key.len() >= 40 && key.contains('_') {
             0.70 // Might be a Groq key without the prefix
         } else {
@@ -27,7 +25,7 @@ impl ProviderPlugin for GroqPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Groq-specific validation
         if instance.base_url.is_empty() {
@@ -59,7 +57,7 @@ impl ProviderPlugin for GroqPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Otherwise, return default Groq models based on instance configuration
@@ -94,7 +92,7 @@ impl ProviderPlugin for GroqPlugin {
 
 impl GroqPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -109,10 +107,11 @@ impl GroqPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
+    #![allow(clippy::float_cmp)]
+
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_groq_plugin_name() {
@@ -141,28 +140,18 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("gsk_test1234567890abcdef1234567890abcdef".to_string());
 
         // Add a model
-        let model =
-            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
-        instance.add_model(model);
+        instance.add_model("llama3-8b-8192".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -171,11 +160,11 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = GroqPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -187,17 +176,16 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        let model =
-            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
-        instance.add_model(model);
+
+        instance.add_model("llama3-8b-8192".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -208,20 +196,16 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("llama3-8b-8192".to_string(), "Llama 3 8B".to_string());
-        let model2 =
-            crate::models::Model::new("mixtral-8x7b-32768".to_string(), "Mixtral 8x7B".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("llama3-8b-8192".to_string());
+        instance.add_model("mixtral-8x7b-32768".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -232,11 +216,11 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = GroqPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -248,26 +232,18 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = GroqPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-groq".to_string(),
-            "Test Groq".to_string(),
             "groq".to_string(),
             "https://api.groq.com".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("gsk_test1234567890abcdef1234567890abcdef".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("gsk_test1234567890abcdef1234567890abcdef".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());

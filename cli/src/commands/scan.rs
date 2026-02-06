@@ -1,7 +1,5 @@
 use aicred_core::models::{Model, ProviderInstance};
-use aicred_core::plugins::PluginRegistry;
-use aicred_core::providers::anthropic::AnthropicPlugin;
-use aicred_core::{scan, ScanOptions};
+use aicred_core::{scan, DiscoveredCredential, ScanOptions};
 use anyhow::Result;
 use colored::*;
 use sha2::{Digest, Sha256};
@@ -10,7 +8,6 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 /// Sanitizes a provider name to prevent path traversal and OS issues
 fn sanitize_provider_name(name: &str) -> String {
@@ -103,17 +100,6 @@ pub fn handle_scan(
         return Ok(());
     }
 
-    // Create plugin registry for demonstration purposes
-    // Note: The core scan() function creates its own registry internally via
-    // register_builtin_plugins(), which already includes AnthropicPlugin.
-    // This code demonstrates the pattern for CLI-level plugin management.
-    let _plugin_registry = PluginRegistry::new();
-    _plugin_registry.register(Arc::new(AnthropicPlugin)).ok();
-
-    // The scan() function will use its own internal registry that includes
-    // all built-in plugins (OpenAI, Anthropic, Groq, HuggingFace, etc.)
-    // for model auto-detection and key validation.
-
     // Perform scan
     println!("{}", "Scanning for GenAI credentials...".cyan().bold());
     let result = scan(&options)?;
@@ -147,47 +133,41 @@ pub fn handle_scan(
 
 /// Helper function to create a full Model struct with capabilities based on model ID
 fn create_full_model(model_id: &str) -> Model {
-    let model = Model::new(model_id.to_string(), model_id.to_string());
-
-    // Set default capabilities based on common model patterns
-    let mut capabilities = aicred_core::models::Capabilities {
-        text_generation: true,
+    let capabilities = aicred_core::models::ModelCapabilities {
+        chat: true,
+        completion: true,
         ..Default::default()
     };
 
     // Set specific capabilities based on model name patterns
     let model_lower = model_id.to_lowercase();
+    let mut capabilities = capabilities;
+
     if model_lower.contains("gpt")
         || model_lower.contains("claude")
         || model_lower.contains("llama")
     {
-        capabilities.code_generation = true;
         capabilities.function_calling = true;
-        capabilities.streaming = true;
     }
 
     if model_lower.contains("vision") || model_lower.contains("multimodal") {
-        capabilities.multimodal = true;
-        capabilities.image_generation = true;
+        capabilities.vision = true;
     }
 
-    if model_lower.contains("dall")
-        || model_lower.contains("stable-diffusion")
-        || model_lower.contains("midjourney")
-    {
-        capabilities.image_generation = true;
+    Model {
+        id: model_id.to_string(),
+        provider: "unknown".to_string(),
+        name: model_id.to_string(),
+        capabilities,
+        context_window: None,
+        pricing: None,
+        metadata: Default::default(),
     }
-
-    if model_lower.contains("whisper") || model_lower.contains("audio") {
-        capabilities.audio_processing = true;
-    }
-
-    model.with_capabilities(capabilities)
 }
 
 /// Helper function to save a model to a config file and return a reference
 fn save_model_config(model: &Model, models_dir: &std::path::Path) -> Result<String> {
-    let model_filename = format!("{}.yaml", sanitize_provider_name(&model.model_id));
+    let model_filename = format!("{}.yaml", sanitize_provider_name(&model.id));
     let model_path = models_dir.join(&model_filename);
 
     let yaml_content = serde_yaml::to_string(model)?;
@@ -244,13 +224,13 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     let models_dir = config_dir.parent().unwrap().join("models");
     std::fs::create_dir_all(&models_dir)?;
 
-    let now = chrono::Utc::now();
+    let _now = chrono::Utc::now();
 
     // NEW APPROACH: Process each API key individually instead of grouping by provider
     // Create a map to track configuration context by source file
     let mut source_context: std::collections::HashMap<
         String,
-        std::collections::HashMap<String, Vec<aicred_core::models::DiscoveredKey>>,
+        std::collections::HashMap<String, Vec<DiscoveredCredential>>,
     > = std::collections::HashMap::new();
 
     // Step 1: We're no longer tracking existing instances to ensure consistent SHA-256 based IDs
@@ -260,7 +240,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // This matches how instance IDs are generated during scan: hash("{provider}:{source_path}")
     let mut probed_models_by_source: std::collections::HashMap<
         (String, String), // (provider_type, source_path)
-        Vec<aicred_core::models::Model>,
+        Vec<String>,      // Model IDs (new API uses Vec<String> not Vec<Model>)
     > = std::collections::HashMap::new();
 
     tracing::debug!(
@@ -300,7 +280,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
     // Step 2: Collect all keys by source file first
     for key in &result.keys {
-        let source = key.source.clone();
+        let source = key.source_file.clone();
         let provider = key.provider.clone();
         source_context
             .entry(source)
@@ -313,7 +293,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
     // Also collect from config instances
     for instance in &result.config_instances {
         for key in &instance.keys {
-            let source = key.source.clone();
+            let source = key.source_file.clone();
             let provider = key.provider.clone();
             source_context
                 .entry(source)
@@ -342,25 +322,20 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
             );
 
             // Find API keys in this group
-            let api_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
+            let api_keys: Vec<&DiscoveredCredential> = keys
                 .iter()
-                .filter(|k| {
-                    matches!(
-                        k.value_type,
-                        aicred_core::models::discovered_key::ValueType::ApiKey
-                    )
-                })
+                .filter(|k| matches!(k.value_type, aicred_core::ValueType::ApiKey))
                 .collect();
 
             // Also check for other key types that can serve as primary keys
-            let other_keys: Vec<&aicred_core::models::DiscoveredKey> = keys
+            let other_keys: Vec<&DiscoveredCredential> = keys
                 .iter()
                 .filter(|k| {
                     matches!(
                         k.value_type,
-                        aicred_core::models::discovered_key::ValueType::AccessToken
-                            | aicred_core::models::discovered_key::ValueType::SecretKey
-                            | aicred_core::models::discovered_key::ValueType::BearerToken
+                        aicred_core::ValueType::AccessToken
+                            | aicred_core::ValueType::SecretKey
+                            | aicred_core::ValueType::BearerToken
                     )
                 })
                 .collect();
@@ -407,18 +382,18 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     );
                     let mut new_instance = ProviderInstance::new(
                         instance_id.to_string(),
-                        format!("{} Instance", provider_name),
                         provider_name.to_lowercase(),
                         get_default_base_url(&provider_name),
+                        String::new(), // Empty API key initially
+                        Vec::new(),    // Empty models initially
                     );
-                    new_instance.updated_at = now;
 
                     // Check if we have probed models for this source
-                    let source_key = (provider_name.clone(), primary_key.source.clone());
+                    let source_key = (provider_name.clone(), primary_key.source_file.clone());
                     tracing::debug!(
                         "  Looking up key: ({}, '{}')",
                         provider_name,
-                        primary_key.source
+                        primary_key.source_file
                     );
                     if let Some(probed_models) = probed_models_by_source.get(&source_key) {
                         tracing::info!(
@@ -447,7 +422,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     // Extract models, base_url, and metadata from the same source file
                     let mut _base_url: Option<String> = None;
                     let mut models_found = Vec::new();
-                    let mut metadata_map = instance.metadata.clone().unwrap_or_default();
+                    let mut metadata_map = instance.metadata.clone();
 
                     // Remove base_url and model_id from metadata if they exist (they should be at instance/models level)
                     metadata_map.remove("base_url");
@@ -473,7 +448,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
                     for key in &keys {
                         match &key.value_type {
-                            aicred_core::models::discovered_key::ValueType::ModelId => {
+                            aicred_core::ValueType::ModelId => {
                                 if let Some(full_value) = key.full_value() {
                                     tracing::debug!("Found ModelId: {}", full_value);
                                     models_found.push(full_value.to_string());
@@ -484,14 +459,14 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     );
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::BaseUrl => {
+                            aicred_core::ValueType::BaseUrl => {
                                 if let Some(full_value) = key.full_value() {
                                     _base_url = Some(full_value.to_string());
                                     instance.base_url = full_value.to_string();
                                     tracing::debug!("Found base_url: {}", full_value);
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::Temperature => {
+                            aicred_core::ValueType::Temperature => {
                                 if let Some(full_value) = key.full_value() {
                                     if let Ok(temp) = full_value.parse::<f32>() {
                                         metadata_map
@@ -500,9 +475,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                                     }
                                 }
                             }
-                            aicred_core::models::discovered_key::ValueType::Custom(
-                                ref custom_type,
-                            ) => {
+                            aicred_core::ValueType::Custom(ref custom_type) => {
                                 let custom_type_lower = custom_type.to_lowercase();
 
                                 if custom_type_lower == "baseurl" {
@@ -561,20 +534,20 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     );
 
                     // Always include existing models from the ProviderInstance
-                    // This handles the case where API-probed models exist but weren't converted to DiscoveredKey objects
+                    // This handles the case where API-probed models exist but weren't converted to DiscoveredCredential objects
                     for existing_model in &instance.models {
-                        if !models_found.contains(&existing_model.model_id) {
+                        if !models_found.contains(existing_model) {
                             tracing::debug!(
                                 "Adding existing model {} that wasn't found via keys",
-                                existing_model.model_id
+                                existing_model
                             );
-                            models_found.push(existing_model.model_id.clone());
+                            models_found.push(existing_model.clone());
                         }
                     }
 
                     // Always preserve metadata (even if empty from new scan, keep existing)
-                    if !metadata_map.is_empty() || instance.metadata.is_some() {
-                        instance.metadata = Some(metadata_map);
+                    if !metadata_map.is_empty() {
+                        instance.metadata = metadata_map;
                     }
 
                     tracing::debug!(
@@ -585,16 +558,15 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     // Add found models to the instance - create full models and save to config files
                     // Only add models that don't already exist
                     for model_id in models_found {
-                        let model_exists = instance.models.iter().any(|m| m.model_id == model_id);
+                        let model_exists = instance.models.iter().any(|m| m == &model_id);
                         tracing::debug!("Processing model {}: exists={}", model_id, model_exists);
 
                         if !model_exists {
                             let full_model = create_full_model(&model_id);
                             let _model_ref = save_model_config(&full_model, &models_dir)?;
 
-                            // Create a lightweight model reference for the instance
-                            let model_ref = Model::new(model_id.clone(), model_id.clone());
-                            instance.add_model(model_ref);
+                            // Add model ID to instance (new API uses Vec<String>)
+                            instance.add_model(model_id.clone());
                             tracing::debug!("Added new model {} to instance", model_id);
                         } else {
                             // Model already exists in instance (e.g., from API probing), but we still need to create the config file
@@ -617,17 +589,10 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
                     tracing::debug!(
                         "About to save instance: {} with {} models",
-                        instance.display_name,
+                        instance.id,
                         instance.models.len()
                     );
-                    tracing::debug!(
-                        "Instance models before save: {:?}",
-                        instance
-                            .models
-                            .iter()
-                            .map(|m| &m.model_id)
-                            .collect::<Vec<_>>()
-                    );
+                    tracing::debug!("Instance models before save: {:?}", instance.models);
 
                     // Save the instance configuration
                     let yaml_content = serde_yaml::to_string(&instance)?;
@@ -653,14 +618,14 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         );
                         let mut new_instance = ProviderInstance::new(
                             instance_id.to_string(),
-                            format!("{} Instance", provider_name),
                             provider_name.to_lowercase(),
                             get_default_base_url(&provider_name),
+                            String::new(), // Empty API key initially
+                            Vec::new(),    // Empty models initially
                         );
-                        new_instance.updated_at = now;
 
                         // Check if we have probed models for this provider and instance
-                        let source_key = (provider_name.clone(), primary_key.source.clone());
+                        let source_key = (provider_name.clone(), primary_key.source_file.clone());
                         if let Some(probed_models) = probed_models_by_source.get(&source_key) {
                             tracing::info!(
                                 "Found {} probed models for {} (instance {}), adding to new instance (redacted key)",
@@ -683,7 +648,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     // Extract models, base_url, and metadata from the same source file
                     let mut _base_url: Option<String> = None;
                     let mut models_found = Vec::new();
-                    let mut metadata_map = instance.metadata.clone().unwrap_or_default();
+                    let mut metadata_map = instance.metadata.clone();
 
                     // Remove base_url and model_id from metadata if they exist (they should be at instance/models level)
                     metadata_map.remove("base_url");
@@ -692,10 +657,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     metadata_map.remove("modelid");
 
                     for key in &keys {
-                        if let aicred_core::models::discovered_key::ValueType::Custom(
-                            ref custom_type,
-                        ) = key.value_type
-                        {
+                        if let aicred_core::ValueType::Custom(ref custom_type) = key.value_type {
                             let custom_type_lower = custom_type.to_lowercase();
 
                             if custom_type_lower == "baseurl" {
@@ -718,20 +680,19 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
 
                     // Set metadata if any was collected (merge with existing)
                     if !metadata_map.is_empty() {
-                        instance.metadata = Some(metadata_map);
+                        instance.metadata = metadata_map;
                     }
 
                     // Add found models to the instance - create full models and save to config files
                     // Only add models that don't already exist
                     for model_id in models_found {
-                        let model_exists = instance.models.iter().any(|m| m.model_id == model_id);
+                        let model_exists = instance.models.iter().any(|m| m == &model_id);
                         if !model_exists {
                             let full_model = create_full_model(&model_id);
                             let _model_ref = save_model_config(&full_model, &models_dir)?;
 
-                            // Create a lightweight model reference for the instance
-                            let model_ref = Model::new(model_id.clone(), model_id.clone());
-                            instance.add_model(model_ref);
+                            // Add model ID to instance (new API uses Vec<String>)
+                            instance.add_model(model_id.clone());
                         }
                     }
 
@@ -800,7 +761,7 @@ fn write_audit_log(log_path: &str, result: &aicred_core::ScanResult) -> Result<(
             writeln!(
                 file,
                 "  - {}: {} ({} - confidence: {})",
-                key.provider, key.value_type, key.source, key.confidence
+                key.provider, key.value_type, key.source_file, key.confidence
             )?;
         }
     }

@@ -1,0 +1,1185 @@
+   Compiling proc-macro2 v1.0.101
+   Compiling quote v1.0.41
+   Compiling unicode-ident v1.0.19
+   Compiling libc v0.2.177
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.228
+   Compiling itoa v1.0.15
+   Compiling memchr v2.7.6
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.4
+   Compiling fnv v1.0.7
+   Compiling ryu v1.0.20
+   Compiling writeable v0.6.1
+   Compiling litemap v0.8.0
+   Compiling bytes v1.10.1
+   Compiling parking_lot_core v0.9.12
+   Compiling autocfg v1.5.0
+   Compiling icu_normalizer_data v2.0.0
+   Compiling icu_properties_data v2.0.1
+   Compiling zerocopy v0.8.27
+   Compiling cc v1.2.41
+   Compiling serde v1.0.228
+   Compiling regex-syntax v0.8.8
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.16.0
+   Compiling smallvec v1.15.1
+   Compiling aho-corasick v1.1.3
+   Compiling utf8_iter v1.0.4
+   Compiling bitflags v1.3.2
+   Compiling stable_deref_trait v1.2.1
+   Compiling once_cell v1.21.3
+   Compiling thiserror v1.0.69
+   Compiling indexmap v2.12.0
+   Compiling pin-project-lite v0.2.16
+   Compiling scopeguard v1.2.0
+   Compiling version_check v0.9.5
+   Compiling base64 v0.21.7
+   Compiling lock_api v0.4.14
+   Compiling log v0.4.28
+   Compiling percent-encoding v2.3.2
+   Compiling core-foundation-sys v0.8.7
+   Compiling serde_json v1.0.145
+   Compiling form_urlencoded v1.2.2
+   Compiling futures-core v0.3.31
+   Compiling tracing-core v0.1.34
+   Compiling typenum v1.19.0
+   Compiling generic-array v0.14.9
+   Compiling regex-automata v0.4.13
+   Compiling ring v0.17.14
+   Compiling signal-hook-registry v1.4.6
+   Compiling parking_lot v0.12.5
+   Compiling mio v1.1.0
+   Compiling socket2 v0.6.1
+   Compiling futures-sink v0.3.31
+   Compiling slab v0.4.11
+   Compiling http v1.3.1
+   Compiling rustix v1.1.2
+   Compiling httparse v1.10.1
+   Compiling pin-utils v0.1.0
+   Compiling bitflags v2.10.0
+   Compiling getrandom v0.2.16
+   Compiling errno v0.3.14
+   Compiling num-traits v0.2.19
+   Compiling untrusted v0.9.0
+   Compiling futures-channel v0.3.31
+   Compiling getrandom v0.3.4
+   Compiling futures-io v0.3.31
+   Compiling syn v2.0.107
+   Compiling httpdate v1.0.3
+   Compiling futures-task v0.3.31
+   Compiling futures-util v0.3.31
+   Compiling cpufeatures v0.2.17
+   Compiling http v0.2.12
+   Compiling fastrand v2.3.0
+   Compiling regex v1.12.2
+   Compiling rustls v0.21.12
+   Compiling try-lock v0.2.5
+   Compiling system-configuration-sys v0.5.0
+   Compiling want v0.3.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling http-body v0.4.6
+   Compiling socket2 v0.5.10
+   Compiling mime v0.3.17
+   Compiling tower-service v0.3.3
+   Compiling lazy_static v1.5.0
+   Compiling rand_core v0.6.4
+   Compiling core-foundation v0.9.4
+   Compiling encoding_rs v0.8.35
+   Compiling winnow v0.5.40
+   Compiling rand_chacha v0.3.1
+   Compiling dirs-sys-next v0.1.2
+   Compiling iana-time-zone v0.1.64
+   Compiling rustls-pemfile v1.0.4
+   Compiling strsim v0.11.1
+   Compiling sync_wrapper v0.1.2
+   Compiling webpki-roots v0.25.4
+   Compiling ipnet v2.11.0
+   Compiling unsafe-libyaml v0.2.11
+   Compiling rand v0.8.5
+   Compiling dirs-next v2.0.0
+   Compiling hex v0.4.3
+   Compiling siphasher v1.0.1
+   Compiling syn v1.0.109
+   Compiling phf_shared v0.11.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.6
+   Compiling colored v2.2.0
+   Compiling anyhow v1.0.100
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling synstructure v0.13.2
+   Compiling phf_generator v0.11.3
+   Compiling objc2-exception-helper v0.1.1
+   Compiling siphasher v0.3.11
+   Compiling getrandom v0.1.16
+   Compiling indexmap v1.9.3
+   Compiling objc2 v0.6.3
+   Compiling tempfile v3.23.0
+   Compiling heck v0.5.0
+   Compiling system-configuration v0.5.1
+   Compiling byteorder v1.5.0
+   Compiling wait-timeout v0.2.1
+   Compiling objc2-encode v4.1.0
+   Compiling hashbrown v0.12.3
+   Compiling winnow v0.7.13
+   Compiling ident_case v1.0.1
+   Compiling typeid v1.0.3
+   Compiling toml_writer v1.0.4
+   Compiling darling_core v0.21.3
+   Compiling erased-serde v0.4.8
+   Compiling thiserror v2.0.17
+   Compiling phf_shared v0.8.0
+   Compiling unic-char-range v0.9.0
+   Compiling unic-common v0.9.0
+   Compiling proc-macro-hack v0.5.20+deprecated
+   Compiling unic-char-property v0.9.0
+   Compiling unic-ucd-version v0.9.0
+   Compiling phf_shared v0.10.0
+   Compiling serde_derive v1.0.228
+   Compiling zerofrom-derive v0.1.6
+   Compiling yoke-derive v0.8.0
+   Compiling zerovec-derive v0.11.1
+   Compiling displaydoc v0.2.5
+   Compiling thiserror-impl v1.0.69
+   Compiling tokio-macros v2.6.0
+   Compiling tracing-attributes v0.1.30
+   Compiling zerofrom v0.1.6
+   Compiling async-trait v0.1.89
+   Compiling toml_parser v1.0.4
+   Compiling tokio v1.48.0
+   Compiling rand_core v0.5.1
+   Compiling phf_macros v0.11.3
+   Compiling rand_pcg v0.2.1
+   Compiling darling_macro v0.21.3
+   Compiling rand_chacha v0.2.2
+   Compiling thiserror-impl v2.0.17
+   Compiling rand v0.7.3
+   Compiling darling v0.21.3
+   Compiling new_debug_unreachable v1.0.6
+   Compiling alloc-no-stdlib v2.0.4
+   Compiling phf_generator v0.10.0
+   Compiling alloc-stdlib v0.2.2
+   Compiling unic-ucd-ident v0.9.0
+   Compiling tracing v0.1.41
+   Compiling rand_core v0.9.3
+   Compiling string_cache_codegen v0.5.4
+   Compiling phf_codegen v0.11.3
+   Compiling precomputed-hash v0.1.1
+   Compiling mac v0.1.1
+   Compiling brotli-decompressor v5.0.0
+   Compiling futf v0.1.5
+   Compiling markup5ever v0.14.1
+   Compiling phf_generator v0.8.0
+   Compiling phf_codegen v0.8.0
+   Compiling semver v1.0.27
+   Compiling serde_spanned v1.0.3
+   Compiling toml_datetime v0.7.3
+   Compiling http-body v1.0.1
+   Compiling dtoa v1.0.10
+   Compiling yoke v0.8.0
+   Compiling atomic-waker v1.1.2
+   Compiling same-file v1.0.6
+   Compiling time-core v0.1.6
+   Compiling num-conv v0.1.0
+   Compiling utf-8 v0.7.6
+   Compiling powerfmt v0.2.0
+   Compiling cssparser v0.29.6
+   Compiling phf_macros v0.10.0
+   Compiling tendril v0.4.3
+   Compiling deranged v0.5.4
+   Compiling walkdir v2.5.0
+   Compiling dtoa-short v0.3.5
+   Compiling brotli v8.0.2
+   Compiling toml v0.9.8
+   Compiling serde_with_macros v3.15.0
+   Compiling rustls-webpki v0.101.7
+   Compiling sct v0.7.1
+   Compiling selectors v0.24.0
+   Compiling rand_chacha v0.9.0
+   Compiling toml_datetime v0.6.3
+   Compiling serde_urlencoded v0.7.1
+   Compiling serde_spanned v0.6.9
+   Compiling chrono v0.4.42
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling toml_edit v0.20.2
+   Compiling string_cache v0.8.9
+   Compiling uuid v1.18.1
+   Compiling phf v0.11.3
+   Compiling cssparser-macros v0.6.1
+   Compiling zerovec v0.11.4
+   Compiling zerotrie v0.2.2
+   Compiling ctor v0.2.9
+   Compiling camino v1.2.1
+   Compiling nodrop v0.1.14
+   Compiling dunce v1.0.5
+   Compiling glob v0.3.3
+   Compiling tokio-util v0.7.16
+   Compiling objc2-core-foundation v0.3.2
+   Compiling matches v0.1.10
+   Compiling toml v0.8.2
+   Compiling convert_case v0.4.0
+   Compiling block2 v0.6.2
+   Compiling phf v0.10.1
+   Compiling servo_arc v0.2.0
+   Compiling h2 v0.3.27
+   Compiling h2 v0.4.12
+   Compiling derive_more v0.99.20
+   Compiling rand v0.9.2
+   Compiling swift-rs v1.0.7
+   Compiling tokio-rustls v0.24.1
+   Compiling match_token v0.1.0
+   Compiling phf v0.8.0
+   Compiling fxhash v0.2.1
+   Compiling serde_derive_internals v0.29.1
+   Compiling schemars v0.8.22
+   Compiling bit-vec v0.8.0
+   Compiling quick-error v1.2.3
+   Compiling html5ever v0.29.1
+   Compiling rusty-fork v0.3.1
+   Compiling bit-set v0.8.0
+   Compiling objc2-foundation v0.3.2
+   Compiling cfb v0.7.3
+   Compiling tinystr v0.8.1
+   Compiling potential_utf v0.1.3
+   Compiling icu_collections v2.0.0
+   Compiling icu_locale_core v2.0.0
+   Compiling schemars_derive v0.8.22
+   Compiling hyper v0.14.32
+   Compiling hyper v1.7.0
+   Compiling cargo-platform v0.1.9
+   Compiling icu_provider v2.0.0
+   Compiling jsonptr v0.6.3
+   Compiling assert-json-diff v2.0.2
+   Compiling icu_properties v2.0.1
+   Compiling icu_normalizer v2.0.0
+   Compiling http-body-util v0.1.3
+   Compiling rand_xorshift v0.4.0
+   Compiling dyn-clone v1.0.20
+   Compiling anstyle v1.0.13
+   Compiling hyper-util v0.1.17
+   Compiling similar v2.7.0
+   Compiling unarray v0.1.4
+   Compiling json-patch v3.0.1
+   Compiling cargo_metadata v0.19.2
+   Compiling proptest v1.8.0
+   Compiling serde-untagged v0.1.9
+   Compiling infer v0.19.0
+   Compiling serde_with v3.15.0
+   Compiling utf8parse v0.2.2
+   Compiling idna_adapter v1.2.1
+   Compiling mockito v1.7.0
+   Compiling anstyle-parse v0.2.7
+   Compiling anstyle-query v1.1.4
+   Compiling idna v1.1.0
+   Compiling option-ext v0.2.0
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling hyper-rustls v0.24.2
+   Compiling colorchoice v1.0.4
+   Compiling target-lexicon v0.13.3
+   Compiling dirs-sys v0.5.0
+   Compiling clap_lex v0.7.6
+   Compiling anstream v0.6.21
+   Compiling objc2-core-text v0.3.2
+   Compiling dirs v6.0.0
+   Compiling url v2.5.7
+   Compiling objc2-core-graphics v0.3.2
+   Compiling clap_builder v4.5.49
+   Compiling objc2-core-video v0.3.2
+   Compiling rustc_version v0.4.1
+   Compiling clap_derive v4.5.49
+   Compiling sharded-slab v0.1.7
+   Compiling reqwest v0.11.27
+   Compiling matchers v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling kuchikiki v0.8.8-speedreader
+   Compiling urlpattern v0.3.0
+   Compiling quick-xml v0.38.3
+   Compiling thread_local v1.1.9
+   Compiling crc32fast v1.5.0
+   Compiling nu-ansi-term v0.50.3
+   Compiling simd-adler32 v0.3.7
+   Compiling base64 v0.22.1
+   Compiling pyo3-build-config v0.27.1
+   Compiling embed-resource v3.0.6
+   Compiling time v0.3.44
+   Compiling tracing-subscriber v0.3.20
+   Compiling adler2 v2.0.1
+   Compiling tauri-winres v0.3.3
+   Compiling miniz_oxide v0.8.9
+   Compiling cargo_toml v0.22.3
+   Compiling time-macros v0.2.24
+   Compiling crossbeam-utils v0.8.21
+   Compiling fdeflate v0.3.7
+   Compiling tauri-utils v2.7.0
+   Compiling aicred-core v0.1.0 (/Users/kipp/openclaw/aicred/core)
+   Compiling clap v4.5.49
+   Compiling flate2 v1.1.4
+   Compiling dpi v0.1.2
+   Compiling plist v1.8.0
+   Compiling cookie v0.18.1
+   Compiling raw-window-handle v0.6.2
+   Compiling png v0.17.16
+   Compiling objc2-security v0.3.2
+   Compiling objc2-javascript-core v0.3.2
+   Compiling foreign-types-macros v0.2.3
+   Compiling core-foundation v0.10.1
+   Compiling foreign-types-shared v0.3.1
+   Compiling doc-comment v0.3.3
+   Compiling predicates-core v1.0.9
+   Compiling core-graphics-types v0.2.0
+   Compiling crossbeam-channel v0.5.15
+   Compiling foreign-types v0.5.0
+   Compiling float-cmp v0.10.0
+   Compiling tauri-runtime v2.8.0
+   Compiling os_str_bytes v6.6.1
+   Compiling signal-hook v0.3.18
+   Compiling normalize-line-endings v0.3.0
+   Compiling difflib v0.4.0
+   Compiling wry v0.53.4
+   Compiling assert_cmd v2.0.17
+   Compiling termtree v0.5.1
+   Compiling core-graphics v0.24.0
+   Compiling predicates-tree v1.0.12
+   Compiling predicates v3.1.3
+   Compiling clap_lex v0.2.4
+   Compiling ico v0.4.0
+   Compiling bstr v1.12.0
+   Compiling atty v0.2.14
+   Compiling dispatch v0.2.0
+   Compiling strsim v0.10.0
+   Compiling unicode-segmentation v1.12.0
+   Compiling cbindgen v0.26.0
+   Compiling textwrap v0.16.2
+   Compiling tauri-runtime-wry v2.8.1
+   Compiling termcolor v1.4.1
+   Compiling toml v0.5.11
+   Compiling clap v3.2.25
+   Compiling serialize-to-javascript-impl v0.1.2
+   Compiling os_pipe v1.2.3
+   Compiling keyboard-types v0.7.0
+   Compiling heck v0.4.1
+   Compiling sigchld v0.2.4
+   Compiling serde_repr v0.1.20
+   Compiling embed_plist v1.2.2
+   Compiling serialize-to-javascript v0.1.2
+   Compiling pathdiff v0.2.3
+   Compiling shared_child v1.1.1
+   Compiling open v5.3.2
+   Compiling pyo3-macros-backend v0.27.1
+   Compiling pyo3-ffi v0.27.1
+   Compiling memoffset v0.9.1
+   Compiling pyo3 v0.27.1
+   Compiling unindent v0.2.4
+   Compiling indoc v2.0.6
+   Compiling aicred v0.1.0 (/Users/kipp/openclaw/aicred/cli)
+   Compiling tauri-build v2.4.1
+   Compiling tauri-plugin v2.4.0
+   Compiling tauri-codegen v2.4.0
+   Compiling objc2-core-data v0.3.2
+   Compiling objc2-cloud-kit v0.3.2
+   Compiling objc2-quartz-core v0.3.2
+   Compiling objc2-core-image v0.3.2
+   Compiling objc2-app-kit v0.3.2
+   Compiling pyo3-macros v0.27.1
+   Compiling aicred-ffi v0.1.0 (/Users/kipp/openclaw/aicred/ffi)
+   Compiling tauri v2.8.5
+   Compiling tauri-plugin-shell v2.3.1
+   Compiling tauri-macros v2.4.0
+   Compiling aicred-gui v0.1.0 (/Users/kipp/openclaw/aicred/gui/src-tauri)
+   Compiling aicred-python v0.1.0 (/Users/kipp/openclaw/aicred/bindings/python)
+   Compiling objc2-web-kit v0.3.2
+   Compiling tao v0.34.4
+   Compiling window-vibrancy v0.6.0
+   Compiling muda v0.17.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.51s
+     Running unittests src/lib.rs (target/debug/deps/aicred_cli-27694d476ce93fb2)
+
+running 5 tests
+test commands::labels::tests::test_get_labels_for_target_matches_model_basename ... ok
+test commands::labels::tests::test_get_labels_for_target_matches_provider_and_model ... ok
+test commands::labels::tests::test_get_labels_for_target_rejects_wrong_provider_prefix ... ok
+test commands::labels::tests::test_get_labels_for_target_ignores_different_provider ... ok
+test commands::labels::tests::test_label_scan_finds_best_match_across_instances ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests src/main.rs (target/debug/deps/aicred-65e1e72802b3ead5)
+
+running 5 tests
+test commands::labels::tests::test_get_labels_for_target_matches_provider_and_model ... ok
+test commands::labels::tests::test_get_labels_for_target_ignores_different_provider ... ok
+test commands::labels::tests::test_get_labels_for_target_rejects_wrong_provider_prefix ... ok
+test commands::labels::tests::test_get_labels_for_target_matches_model_basename ... ok
+test commands::labels::tests::test_label_scan_finds_best_match_across_instances ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/cli_tests.rs (target/debug/deps/cli_tests-5b2cb815f484f744)
+
+running 41 tests
+Scanning for GenAI credentials...
+test test_instances_direct_id_lookup_nonexistent ... ok
+test test_graceful_handling_missing_providers_directory ... ok
+test test_invalid_command ... ok
+{
+  "config_instances": [],
+  "directories_scanned": 0,
+  "files_scanned": 0,
+  "home_directory": "/var/folders/5l/55nn1xv13vv7pnnsbfp1ntw00000gn/T/kf_cli_audit_77527",
+  "keys": [],
+  "metadata": {
+    "probe_failures": 0,
+    "probe_models_discovered": 0,
+    "probe_successful": 0,
+    "probe_total_instances": 0
+  },
+  "providers_scanned": [
+    "huggingface",
+    "ollama",
+    "litellm",
+    "openrouter",
+    "groq",
+    "openai",
+    "common-config",
+    "anthropic"
+  ],
+  "scan_completed_at": "2026-02-05T03:32:40.418616Z",
+  "scan_started_at": "2026-02-05T03:32:40.414865Z"
+}
+test test_invalid_format ... ok
+test test_instances_direct_id_lookup ... ok
+test test_instances_direct_id_lookup_with_include_values ... ok
+test test_instances_list_with_custom_home ... ok
+test test_instances_list_command ... ok
+test test_audit_logging ... ok
+test test_all_output_formats ... ok
+test test_provider_exclusion ... ok
+test test_labels_help_commands ... ok
+test test_labels_assign_error_handling ... ok
+test test_provider_filtering ... ok
+test test_labels_add_and_assign_positional_syntax ... ok
+test test_labels_assign_with_tuple_flag ... ok
+test test_scan_dry_run ... ok
+test test_list_command_reads_providers_directly ... ok
+test test_instances_default_behavior ... ok
+test test_labels_assign_with_name_flag ... ok
+test test_scan_help ... ok
+test test_scan_with_format ... ok
+test test_provider_file_schema_validation ... ok
+test test_labels_assign_multiple_to_same_tuple ... ok
+test test_scan_update_with_no_providers_found ... ok
+test test_version_command ... ok
+test test_version_contains_pkg_version ... ok
+test test_labels_remove_command ... ok
+test test_validation_failure_handling ... ok
+test test_validation_failure_empty_instance_id ... ok
+test test_validation_failure_with_invalid_yaml ... ok
+test test_labels_list_command ... ok
+test test_atomic_file_operations ... ok
+test test_concurrent_scan_update_operations ... ok
+test test_api_key_field_name_serialization ... ok
+test test_scan_update_preserves_provider_data_and_metadata ... ok
+test test_multiple_scans_dont_create_duplicates ... ok
+test test_providers_integrity_after_scan_update ... ok
+test test_scan_update_creates_providers_only ... ok
+test test_scan_update_collects_metadata_correctly ... ok
+test test_metadata_collection_with_multiple_providers ... ok
+
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+
+     Running tests/setenv_integration_tests.rs (target/debug/deps/setenv_integration_tests-dd55e1daf718183c)
+
+running 10 tests
+test test_setenv_command_error_handling ... ok
+test test_setenv_command_custom_metadata_variables ... ok
+test test_setenv_command_fish_format ... ok
+test test_setenv_command_empty_labels ... ok
+test test_setenv_command_bash_format ... ok
+test test_setenv_command_multiple_scanners ... ok
+test test_setenv_command_dry_run_mode ... ok
+test test_setenv_command_powershell_format ... ok
+test test_setenv_command_variable_resolution_accuracy ... ok
+test test_setenv_command_special_characters_in_labels ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/tagging_integration_tests.rs (target/debug/deps/tagging_integration_tests-e668e0d9ab48227b)
+
+running 11 tests
+test cli_integration_tests::test_cli_error_handling ... ok
+test cli_integration_tests::test_cli_help_commands ... ok
+test cli_integration_tests::test_cli_file_persistence ... ok
+test cli_integration_tests::test_cli_tag_lifecycle ... ok
+test cli_integration_tests::test_cli_label_assignment_workflow ... ok
+test cli_integration_tests::test_cli_validation_errors ... ok
+test cli_integration_tests::test_cli_tag_assignment_workflow ... ok
+test cli_integration_tests::test_cli_label_uniqueness_constraint ... ok
+test cli_integration_tests::test_cli_label_lifecycle ... ok
+test cli_integration_tests::test_cli_concurrent_operations ... ok
+test cli_integration_tests::test_cli_large_dataset_handling ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests/wrap_integration_tests.rs (target/debug/deps/wrap_integration_tests-05d81979c0767ff4)
+
+running 23 tests
+test test_wrap_command_dry_run ... ok
+test test_wrap_command_custom_metadata ... ok
+test test_wrap_command_basic_execution ... ok
+test test_wrap_command_confidence_threshold ... ok
+test test_wrap_command_empty_labels ... ok
+test test_wrap_command_error_handling ... ok
+test test_wrap_command_different_scanners ... ok
+test test_wrap_command_missing_required_vars ... ok
+test test_wrap_command_integration_with_cli ... ok
+test test_wrap_dry_run_masks_sensitive_data ... ok
+test test_wrap_command_multiple_labels ... ok
+test test_wrap_missing_required_environment_variables ... ok
+test test_wrap_error_handling_invalid_commands ... ok
+test test_wrap_command_label_priority ... ok
+test test_wrap_command_special_characters_in_labels ... ok
+test test_wrap_with_label_mappings ... ok
+test test_wrap_mixed_success_failure_scenarios ... ok
+test test_wrap_with_direct_provider_model_specifications ... ok
+test test_wrap_output_format_and_variable_correctness ... ok
+test test_wrap_with_specific_scanner_targeting ... ok
+test test_wrap_with_unset_environment_variables ... ok
+test test_wrap_with_no_scanners_configured ... ok
+test test_wrap_with_multiple_labels_and_scanners ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/aicred_core-5b512a7a5075362d)
+
+running 298 tests
+test env_resolver::tests::test_env_var_mapping_struct ... ok
+test models::config_instance::tests::test_config_instance_creation ... ok
+test models::config_instance::tests::test_config_path_string ... ok
+test models::config_instance::tests::test_load_or_create_with_nonexistent_file ... ok
+test models::config_instance::tests::test_adding_keys ... ok
+test models::config_instance::tests::test_adding_multiple_keys ... ok
+test models::config_instance::tests::test_metadata ... ok
+test models::config_instance::tests::test_current_format_deserialization ... ok
+test models::config_validator::tests::test_validate_provider_instance_yaml_valid ... ok
+test models::config_validator::tests::test_validate_provider_instances_yaml_empty_collection ... ok
+test env_resolver::tests::test_resolve_from_mappings ... ok
+test models::config_validator::tests::test_validate_provider_instance_yaml_with_keys_and_models ... ok
+test models::config_validator::tests::test_validate_provider_instance_yaml_missing_required_field ... ok
+test models::config_validator::tests::test_validate_provider_instance_yaml_invalid_yaml ... ok
+test env_resolver::tests::test_missing_required_variable ... ok
+test env_resolver::tests::test_dry_run_mode ... ok
+test models::config_validator::tests::test_validate_provider_instances_yaml_invalid_yaml ... ok
+test env_resolver::tests::test_env_resolver_basic ... ok
+test models::discovered_key::tests::test_description ... ok
+test models::config_validator::tests::test_validate_provider_instance_yaml_empty_id ... ok
+test models::config_validator::tests::test_validate_provider_instances_yaml_invalid_instance ... ok
+test models::config_validator::tests::test_validate_provider_instances_yaml_multiple_invalid ... ok
+test models::discovered_key::tests::test_hash_consistency ... ok
+test models::config_validator::tests::test_validate_provider_instances_yaml_valid ... ok
+test models::discovered_key::tests::test_position_setting ... ok
+test models::discovered_key::tests::test_redacted_value_emoji_long_key ... ok
+test models::discovered_key::tests::test_redacted_value_emoji_short_key ... ok
+test models::discovered_key::tests::test_redacted_value_unicode_long_key ... ok
+test models::discovered_key::tests::test_redacted_value_unicode_short_key ... ok
+test models::discovered_key::tests::test_short_key_redaction ... ok
+test models::label::tests::test_label_creation ... ok
+test models::discovered_key::tests::test_with_full_value ... ok
+test models::label::tests::test_label_get_provider_model_tuple ... ok
+test models::label::tests::test_label_provider_model_tuple_scope ... ok
+test models::label::tests::test_label_set_provider_model_tuple ... ok
+test models::discovered_key::tests::test_discovered_key_creation ... ok
+test models::discovered_key::tests::test_redacted_key ... ok
+test models::label::tests::test_label_setters ... ok
+test models::label::tests::test_label_uniqueness ... ok
+test models::label::tests::test_label_validation ... ok
+test models::label::tests::test_label_validation_with_provider_model_tuple ... ok
+test models::label::tests::test_label_with_color ... ok
+test models::label::tests::test_label_with_description ... ok
+test models::label::tests::test_label_serialization_with_provider_model_tuple ... ok
+test models::label::tests::test_label_with_metadata ... ok
+test models::label::tests::test_label_without_provider_model_tuple ... ok
+test models::label::tests::test_label_with_provider_model_tuple ... ok
+test models::label_assignment::tests::test_assignment_target_methods ... ok
+test models::label_assignment::tests::test_assignment_target_description ... ok
+test models::label_assignment::tests::test_label_assignment_conflicts ... ok
+test models::label_assignment::tests::test_label_assignment_target_description ... ok
+test models::label_assignment::tests::test_label_assignment_target_methods ... ok
+test models::label_assignment::tests::test_label_assignment_to_instance ... ok
+test models::label_assignment::tests::test_label_assignment_to_model ... ok
+test models::label_assignment::tests::test_label_assignment_validation ... ok
+test models::label_assignment::tests::test_label_assignment_with_metadata ... ok
+test models::label_assignment::tests::test_provider_model_tuple_assignment_matching ... ok
+test models::label_assignment::tests::test_provider_model_tuple_assignment_with_complex_model_names ... ok
+test models::model::tests::test_capabilities_default ... ok
+test models::model::tests::test_model_builder ... ok
+test models::model::tests::test_model_creation ... ok
+test models::model::tests::test_model_validation ... ok
+test models::model::tests::test_token_cost ... ok
+test models::model_metadata::tests::test_model_architecture_creation ... ok
+test models::model_metadata::tests::test_model_metadata_creation ... ok
+test models::model_metadata::tests::test_model_pricing_creation ... ok
+test models::model_metadata::tests::test_model_metadata_serialization ... ok
+test models::provider::tests::test_provider_builder ... ok
+test models::provider::tests::test_provider_creation ... ok
+test models::provider::tests::test_provider_validation ... ok
+test models::provider_config::tests::test_add_keys ... ok
+test models::provider_config::tests::test_default_key ... ok
+test models::provider_config::tests::test_keys_by_environment ... ok
+test models::provider_config::tests::test_provider_config_creation ... ok
+test models::provider_instance::tests::test_provider_instance_creation ... ok
+test models::provider_instance::tests::test_provider_instance_validation ... ok
+test models::provider_instance::tests::test_provider_instance_with_api_key ... ok
+test models::provider_instance::tests::test_token_cost ... ok
+test models::provider_instances::tests::test_active_instances ... ok
+test models::provider_instances::tests::test_add_and_get_instance ... ok
+test models::provider_instances::tests::test_empty_collection ... ok
+test models::provider_instances::tests::test_all_models ... ok
+test models::provider_instances::tests::test_instances_by_type ... ok
+test models::provider_instances::tests::test_instances_with_valid_keys ... ok
+test models::provider_instances::tests::test_merge_collections ... ok
+test models::provider_instances::tests::test_remove_instance ... ok
+test models::provider_key::tests::test_environment_display ... ok
+test models::provider_key::tests::test_provider_key_creation ... ok
+test models::provider_key::tests::test_provider_key_with_value ... ok
+test models::provider_key::tests::test_redacted_value_emoji_long_key ... ok
+test models::provider_key::tests::test_redacted_value_emoji_short_key ... ok
+test models::provider_key::tests::test_redacted_value_long_key ... ok
+test models::provider_key::tests::test_redacted_value_short_key ... ok
+test models::provider_key::tests::test_redacted_value_unicode_long_key ... ok
+test models::provider_key::tests::test_redacted_value_unicode_short_key ... ok
+test models::provider_key::tests::test_validation_status ... ok
+test models::provider_key::tests::test_validation_status_display ... ok
+test models::scan_result::tests::test_config_instances ... ok
+test models::scan_result::tests::test_key_statistics ... ok
+test models::scan_result::tests::test_filtering_keys ... ok
+test models::scan_result::tests::test_adding_keys ... ok
+test models::scan_result::tests::test_scan_summary ... ok
+test models::tag::tests::test_tag_creation ... ok
+test models::tag::tests::test_tag_validation ... ok
+test models::tag::tests::test_tag_setters ... ok
+test models::tag::tests::test_tag_with_color ... ok
+test models::tag::tests::test_tag_with_description ... ok
+test models::scan_result::tests::test_scan_result_creation ... ok
+test models::tag::tests::test_tag_with_metadata ... ok
+test models::tag_assignment::tests::test_tag_assignment_to_instance ... ok
+test models::tag_assignment::tests::test_assignment_target_methods ... ok
+test models::tag_assignment::tests::test_tag_assignment_to_model ... ok
+test models::tag_assignment::tests::test_tag_assignment_validation ... ok
+test models::tag_assignment::tests::test_assignment_target_description ... ok
+test models::tag_assignment::tests::test_tag_assignment_with_metadata ... ok
+test models::tests::tests::test_has_api_key_vs_has_non_empty_api_key ... ok
+test models::tests::tests::test_discovered_key_redaction ... ok
+test models::tests::tests::test_model_creation ... ok
+test models::tests::tests::test_malformed_metadata_handling ... ok
+test models::tests::tests::test_provider_config_to_instance_all_confidence_levels ... ok
+test models::tests::tests::test_provider_config_to_instance_with_minimal_metadata ... ok
+test models::tests::tests::test_provider_config_to_instance_with_empty_api_key ... ok
+test models::tests::tests::test_provider_config_to_instance_all_environments ... ok
+test models::tests::tests::test_provider_config_to_instance_all_validation_statuses ... ok
+test models::tests::tests::test_provider_config_to_instance_with_missing_api_key ... ok
+test models::tests::tests::test_provider_config_to_instance_with_full_metadata ... ok
+test models::tests::tests::test_provider_config_with_multiple_keys_uses_first ... ok
+test models::tests::tests::test_provider_creation ... ok
+test models::tests::tests::test_provider_instance_to_config_with_full_metadata ... ok
+test models::tests::tests::test_provider_instance_to_config_without_api_key ... ok
+test models::tests::tests::test_provider_instance_to_config_without_metadata ... ok
+test models::tests::tests::test_round_trip_conversion_with_custom_environment ... ok
+test models::tests::tests::test_round_trip_conversion_preserves_metadata ... ok
+test models::tests::tests::test_round_trip_conversion_with_empty_key ... ok
+test models::tests::tests::test_scan_result_collection ... ok
+test parser::tests::test_ambiguous_detection_defaults_to_plain ... ok
+test parser::tests::test_detect_format_from_extension ... ok
+test parser::tests::test_detect_format_from_content ... ok
+test parser::tests::test_invalid_json_errors ... ok
+test parser::tests::test_merge_configs ... ok
+test parser::tests::test_parse_comments_only ... ok
+test parser::tests::test_parse_dotenv ... ok
+test parser::tests::test_parse_empty_file ... ok
+test parser::tests::test_parse_ini ... ok
+test parser::tests::test_parse_json ... ok
+test plugins::tests::test_common_config_plugin ... ok
+test plugins::tests::test_confidence_scoring ... ok
+test parser::tests::test_parse_yaml ... ok
+test plugins::tests::test_duplicate_plugin_registration ... ok
+test plugins::tests::test_plugin_registry ... ok
+test providers::anthropic::tests::test_anthropic_plugin_name ... ok
+test providers::anthropic::tests::test_confidence_scoring ... ok
+test providers::anthropic::tests::test_get_instance_models_with_configured_models ... ok
+test providers::anthropic::tests::test_get_instance_models_with_valid_configured_models ... ok
+test providers::anthropic::tests::test_get_instance_models_without_keys ... ok
+test providers::anthropic::tests::test_is_instance_configured ... ok
+test plugins::tests::test_default_probe_models_async ... ok
+test providers::anthropic::tests::test_validate_invalid_base_url ... ok
+test providers::anthropic::tests::test_validate_no_keys_with_models ... ok
+test providers::anthropic::tests::test_validate_valid_instance ... ok
+test providers::groq::tests::test_confidence_scoring ... ok
+test providers::groq::tests::test_get_instance_models_with_configured_models ... ok
+test providers::groq::tests::test_get_instance_models_without_keys ... ok
+test providers::groq::tests::test_groq_plugin_name ... ok
+test providers::groq::tests::test_is_instance_configured ... ok
+test providers::groq::tests::test_validate_invalid_base_url ... ok
+test providers::groq::tests::test_validate_no_keys_with_models ... ok
+test providers::groq::tests::test_validate_valid_instance ... ok
+test providers::huggingface::tests::test_confidence_scoring ... ok
+test providers::huggingface::tests::test_get_instance_models_with_configured_models ... ok
+test providers::huggingface::tests::test_get_instance_models_without_keys ... ok
+test providers::huggingface::tests::test_huggingface_plugin_name ... ok
+test providers::huggingface::tests::test_is_instance_configured ... ok
+test providers::huggingface::tests::test_validate_invalid_base_url ... ok
+test providers::huggingface::tests::test_validate_no_keys_with_models ... ok
+test providers::huggingface::tests::test_validate_valid_instance ... ok
+test providers::litellm::tests::test_confidence_scoring ... ok
+test providers::litellm::tests::test_get_instance_models_with_configured_models ... ok
+test providers::litellm::tests::test_get_instance_models_without_keys ... ok
+test providers::litellm::tests::test_initialize_instance ... ok
+test providers::litellm::tests::test_is_instance_configured ... ok
+test providers::litellm::tests::test_litellm_plugin_name ... ok
+test providers::litellm::tests::test_validate_invalid_base_url ... ok
+test providers::litellm::tests::test_validate_no_keys_with_models ... ok
+test providers::litellm::tests::test_validate_valid_instance ... ok
+test providers::ollama::tests::test_confidence_scoring ... ok
+test providers::ollama::tests::test_get_instance_models_with_configured_models ... ok
+test providers::ollama::tests::test_get_instance_models_without_keys ... ok
+test providers::ollama::tests::test_ollama_plugin_name ... ok
+test providers::ollama::tests::test_validate_empty_model_id ... ok
+test providers::ollama::tests::test_validate_invalid_base_url ... ok
+test providers::ollama::tests::test_validate_valid_instance ... ok
+test providers::ollama::tests::test_initialize_instance ... ok
+test providers::ollama::tests::test_is_instance_configured ... ok
+test providers::openai::tests::test_confidence_scoring ... ok
+test providers::openai::tests::test_get_instance_models_with_configured_models ... ok
+test providers::openai::tests::test_get_instance_models_without_keys ... ok
+test providers::openai::tests::test_initialize_instance ... ok
+test providers::openai::tests::test_hostname_validation_invalid_urls ... ok
+test providers::openai::tests::test_hostname_validation_valid_urls ... ok
+test providers::openai::tests::test_is_instance_configured ... ok
+test providers::openai::tests::test_openai_config_defaults ... ok
+test providers::openai::tests::test_openai_config_from_env ... ok
+test providers::openai::tests::test_openai_plugin_name ... ok
+test providers::openai::tests::test_validate_invalid_base_url ... ok
+test providers::openai::tests::test_validate_no_keys_with_models ... ok
+test providers::openai::tests::test_validate_valid_instance ... ok
+test providers::openrouter::tests::test_openrouter_can_handle_file ... ok
+test providers::openrouter::tests::test_openrouter_confidence_score ... ok
+test providers::openrouter::tests::test_openrouter_plugin_name ... ok
+test providers::openrouter::tests::test_parse_price ... ok
+test providers::openrouter::tests::test_transform_model ... ok
+test scanner::tests::test_scan_nonexistent_directory ... ok
+test scanner::tests::test_scanner_config_default ... ok
+test scanner::tests::test_scanner_creation ... ok
+test scanners::claude_desktop::tests::test_claude_desktop_scanner_name ... ok
+test scanners::claude_desktop::tests::test_is_valid_claude_config ... ok
+test scanners::claude_desktop::tests::test_create_config_instance ... ok
+test scanner::tests::test_scan_file_instead_of_directory ... ok
+test scanners::claude_desktop::tests::test_can_handle_file ... ok
+test scanners::claude_desktop::tests::test_parse_config_without_api_key ... ok
+test scanners::claude_desktop::tests::test_parse_config_with_metadata ... ok
+test scanners::gsh::tests::test_can_handle_file ... ok
+test scanners::claude_desktop::tests::test_parse_valid_config ... ok
+test scanners::gsh::tests::test_create_config_instance ... ok
+test scanners::gsh::tests::test_base_url_still_skipped ... ok
+test scanners::gsh::tests::test_get_confidence ... ok
+test scanners::claude_desktop::tests::test_scan_paths ... ok
+test scanners::gsh::tests::test_gsh_scanner_name ... ok
+test scanners::gsh::tests::test_is_valid_gsh_config ... ok
+test scanners::gsh::tests::test_model_id_capture ... ok
+test scanners::gsh::tests::test_parse_gshrc_combined ... ok
+test scanners::gsh::tests::test_parse_gshrc_fast_model ... ok
+test scanners::gsh::tests::test_parse_gshrc_slow_model ... ok
+test scanners::langchain::tests::test_can_handle_file ... ok
+test scanners::gsh::tests::test_scan_paths ... ok
+test scanners::langchain::tests::test_create_config_instance ... ok
+test scanners::langchain::tests::test_is_valid_langchain_config ... ok
+test scanners::langchain::tests::test_langchain_scanner_name ... ok
+test scanners::langchain::tests::test_parse_valid_json_config ... ok
+test scanners::langchain::tests::test_parse_valid_yaml_config ... ok
+test scanners::ragit::tests::test_is_valid_ragit_config ... ok
+test scanners::ragit::tests::test_create_config_instance ... ok
+test scanners::langchain::tests::test_scan_paths ... ok
+test scanners::ragit::tests::test_ragit_scanner_name ... ok
+test scanners::ragit::tests::test_can_handle_file ... ok
+test scanners::ragit::tests::test_parse_valid_config ... ok
+test scanners::roo_code::tests::test_create_config_instance ... ok
+test scanners::ragit::tests::test_scan_paths ... ok
+test scanners::roo_code::tests::test_has_roo_code_settings ... ok
+test scanners::roo_code::tests::test_can_handle_file ... ok
+test scanners::roo_code::tests::test_parse_invalid_json_returns_empty ... ok
+test scanners::roo_code::tests::test_roo_code_scanner_name ... ok
+test scanners::roo_code::tests::test_parse_valid_config ... ok
+test scanners::tests::test_build_instances_from_keys ... ok
+test scanners::tests::test_build_provider_instances_basic ... ok
+test scanners::roo_code::tests::test_scan_paths ... ok
+test scanners::tests::test_build_provider_instances_invalid_temperature ... ok
+test scanners::tests::test_build_provider_instances_custom_metadata ... ok
+test scanners::tests::test_build_provider_instances_multiple_keys ... ok
+test scanners::tests::test_build_provider_instances_no_api_keys ... ok
+test scanners::tests::test_build_provider_instances_with_line_numbers ... ok
+test scanners::tests::test_build_provider_instances_with_metadata ... ok
+test scanners::tests::test_group_keys_by_provider ... ok
+test scanners::tests::test_scanner_registry ... ok
+test tests::test_create_default_registry ... ok
+test tests::test_is_config_file ... ok
+test tests::test_filter_registry ... ok
+test tests::test_scan_options_builder ... ok
+test tests::test_scan_options_default ... ok
+test utils::provider_model_tuple::tests::test_as_str ... ok
+test utils::provider_model_tuple::tests::test_display ... ok
+test utils::provider_model_tuple::tests::test_from_tuple ... ok
+test utils::provider_model_tuple::tests::test_into_string ... ok
+test utils::provider_model_tuple::tests::test_matches_provider_instance ... ok
+test utils::provider_model_tuple::tests::test_parse_invalid_tuples ... ok
+test utils::provider_model_tuple::tests::test_parse_valid_tuples ... ok
+test utils::provider_model_tuple::tests::test_parse_with_whitespace ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_display_format ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_edge_cases ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_equality ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_from_tuple ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_hash ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_into_string ... ok
+test utils::provider_model_tuple::tests::test_provider_model_tuple_scenarios ... ok
+test scanners::gsh::tests::test_parse_config_with_gshrc ... ok
+test scanners::gsh::tests::test_parse_valid_config ... ok
+test scanners::gsh::tests::test_duplicate_key_prevention ... ok
+test scanners::ragit::tests::test_parse_env_file ... ok
+test scanners::gsh::tests::test_extract_keys_from_shell_script ... ok
+test scanners::gsh::tests::test_actual_duplicate_keys_issue ... ok
+test scanners::gsh::tests::test_real_duplicate_issue ... ok
+test providers::anthropic::tests::test_probe_models_with_empty_key ... ok
+test providers::anthropic::tests::test_probe_models_with_invalid_api_key ... ok
+test providers::anthropic::tests::test_probe_models_integration_success_scenario ... ok
+test providers::anthropic::tests::test_probe_models_malformed_response_handling ... ok
+test providers::anthropic::tests::test_probe_models_with_network_timeout_simulation ... ok
+test providers::anthropic::tests::test_fetch_supported_models_direct_error_handling ... ok
+
+test result: ok. 298 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/architecture_validation_tests.rs (target/debug/deps/architecture_validation_tests-5d8b01aeed37fc96)
+
+running 8 tests
+test test_invalid_config_edge_case ... ok
+test test_claude_desktop_scanner_architecture ... ok
+test test_roo_code_scanner_architecture ... ok
+test test_gsh_missing_keys_edge_case ... ok
+test test_no_duplicate_keys_across_scanners ... ok
+test test_provider_instance_counts ... ok
+test test_settings_mapping ... ok
+test test_gsh_scanner_architecture ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/builtin_scanners_tests.rs (target/debug/deps/builtin_scanners_tests-15cf874ffaf6155a)
+
+running 19 tests
+test test_claude_desktop_scanner ... ok
+test test_ragit_scanner_integration ... ok
+test test_gsh_scanner_integration ... ok
+test test_langchain_scanner_integration ... ok
+test test_register_builtin_scanners_includes_gsh ... ok
+test test_register_builtin_scanners ... ok
+test test_roo_code_scanner ... ok
+test test_ragit_scanner_parse_config ... ok
+test test_scanner_instance_creation ... ok
+test test_langchain_scanner_parse_config ... ok
+test test_scanner_registry_get_scanners_for_file ... ok
+test test_gsh_scanner_parse_config_simple_pairs ... ok
+test test_gsh_scanner_parse_config_comments_and_empty_lines ... ok
+test test_gsh_scanner_scan_instances ... ok
+test test_ragit_scanner_env_parsing ... ok
+test test_gsh_scanner_parse_config_quoted_values ... ok
+test test_gsh_scanner_parse_config_export_statements ... ok
+test test_gsh_scanner_parse_config_multiple_providers ... ok
+test test_gsh_scanner_edge_cases ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/config_storage_tests.rs (target/debug/deps/config_storage_tests-1d005cff9cb1e866)
+
+running 10 tests
+test test_backward_compatibility_removed ... ok
+test test_error_handling_missing_files ... ok
+test test_invalid_yaml_handling ... ok
+test test_empty_providers_handling ... ok
+test test_manifest_creation_and_validation ... ok
+test test_legacy_format_removed ... ok
+test test_error_handling_corrupted_files ... ok
+test test_schema_validation ... ok
+test test_provider_file_crud_operations ... ok
+test test_manifest_integrity_after_multiple_updates ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running tests/env_var_api_tests.rs (target/debug/deps/env_var_api_tests-45a48c926f9f9718)
+
+running 15 tests
+test test_backward_compatibility ... ok
+test test_claude_desktop_scanner_env_var_schema ... ok
+test test_claude_desktop_scanner_label_mappings ... ok
+test test_env_var_declaration_construction ... ok
+test test_env_var_types ... ok
+test test_gsh_scanner_label_mappings ... ok
+test test_gsh_scanner_env_var_schema ... ok
+test test_label_mapping_consistency ... ok
+test test_label_mapping_construction ... ok
+test test_langchain_scanner_env_var_schema ... ok
+test test_langchain_scanner_label_mappings ... ok
+test test_ragit_scanner_env_var_schema ... ok
+test test_ragit_scanner_label_mappings ... ok
+test test_roo_code_scanner_env_var_schema ... ok
+test test_roo_code_scanner_label_mappings ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/id_consistency_integration_tests.rs (target/debug/deps/id_consistency_integration_tests-4856a37fe60ed052)
+
+running 3 tests
+test test_label_assignment_for_newly_discovered_instances ... ok
+test test_complete_scan_update_workflow_with_id_validation ... ok
+test test_instance_id_consistency_across_operations ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/integration_tests.rs (target/debug/deps/integration_tests-a73417b22ff07514)
+
+running 5 tests
+test test_anthropic_model_detection_without_api_key ... ok
+test test_application_scanner_integration ... ok
+test test_scanner_based_provider_discovery ... ok
+test test_full_scan_workflow ... ok
+test test_anthropic_auto_model_detection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/multi_key_tests.rs (target/debug/deps/multi_key_tests-8bb37d1a98bc9530)
+
+running 7 tests
+test test_provider_key_creation ... ok
+test test_validation_status_transitions ... ok
+test test_provider_config_with_multiple_keys ... ok
+test test_backward_compatibility_from_old_format ... ok
+test test_provider_config_key_count_by_environment ... ok
+test test_provider_key_serialization ... ok
+test test_provider_config_serialization ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/parser_tests.rs (target/debug/deps/parser_tests-29d70c0a4c14c186)
+
+running 6 tests
+test test_toml_detection_with_table_array ... ok
+test test_ini_detection_with_sections ... ok
+test test_toml_with_quoted_keys ... ok
+test test_toml_detection_with_dotted_keys ... ok
+test test_ambiguous_content_defaults_to_ini ... ok
+test test_json_array_handling ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/probe_scan_integration_tests.rs (target/debug/deps/probe_scan_integration_tests-792eea469daf10b9)
+
+running 4 tests
+test test_scan_with_probe_models_disabled ... ok
+test test_scan_with_probe_models_enabled ... ok
+test test_scan_graceful_error_handling_with_probing ... ok
+test test_probe_statistics_in_metadata ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/proptests.rs (target/debug/deps/proptests-a29a476cc6443966)
+
+running 3 tests
+test confidence_score_within_bounds ... ok
+test discovered_key_hash_consistency ... ok
+test redaction_never_exposes_full_value ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/provider_probe_tests.rs (target/debug/deps/provider_probe_tests-f43fc0c4aac42777)
+
+running 7 tests
+test test_openrouter_probe_authentication_failure ... ok
+test test_openrouter_probe_server_error ... ok
+test test_openrouter_probe_success ... ok
+test test_openrouter_probe_with_minimal_model_data ... ok
+test test_openrouter_probe_empty_response ... ok
+test test_openrouter_probe_malformed_response ... ok
+test test_openrouter_probe_network_error ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s
+
+     Running tests/real_config_validation_tests.rs (target/debug/deps/real_config_validation_tests-864d835c21ca2d79)
+
+running 6 tests
+test test_claude_desktop_real_config_validation ... ok
+test test_roo_code_real_config_validation ... ok
+test test_gsh_real_config_validation ... ok
+test test_no_duplicate_providers ... ok
+test test_output_format_consistency ... ok
+test test_model_count_accuracy ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/scanner_tests.rs (target/debug/deps/scanner_tests-56abbab7f60e2ec6)
+
+running 42 tests
+test test_empty_keys_no_provider_instances ... ok
+test test_provider_instance_validation_status ... ok
+test test_edge_case_invalid_temperature_value ... ok
+test test_edge_case_only_metadata_no_keys ... ok
+test test_provider_instances_deduplication ... ok
+test test_line_numbers_preserved ... ok
+test test_provider_instances_validation ... ok
+test test_default_base_url_generation ... ok
+test test_confidence_levels_all_environments ... ok
+test test_multiple_configs_same_provider ... ok
+test test_mixed_providers_separate_instances ... ok
+test test_multiple_models_same_provider ... ok
+test test_edge_case_empty_api_key_value ... ok
+test test_instance_id_generation ... ok
+test test_all_key_types_comprehensive ... ok
+test test_provider_instances_with_multiple_value_types ... ok
+test test_complete_flow_with_provider_instances ... ok
+test test_scan_result_functionality ... ok
+test test_scanner_can_handle_file ... ok
+test test_scanner_plugin_ext_access_token_type ... ok
+test test_scanner_get_scanners_for_file ... ok
+test test_scanner_parse_config ... ok
+test test_scanner_plugin_ext_bearer_token_type ... ok
+test test_scanner_plugin_ext_all_value_types ... ok
+test test_scanner_plugin_ext_confidence_to_environment_mapping ... ok
+test test_scanner_plugin_ext_build_instances_from_keys ... ok
+test test_scanner_plugin_ext_build_provider_instances ... ok
+test test_scanner_plugin_ext_missing_api_key_edge_case ... ok
+test test_scanner_plugin_ext_group_keys_by_provider ... ok
+test test_scanner_plugin_ext_invalid_temperature ... ok
+test test_scanner_plugin_ext_no_api_keys ... ok
+test test_scanner_plugin_ext_multiple_models ... ok
+test test_scanner_plugin_ext_secret_key_type ... ok
+test test_scanner_plugin_ext_multiple_providers ... ok
+test test_scanner_plugin_ext_multiple_keys_different_confidence ... ok
+test test_scanner_plugin_ext_with_line_numbers ... ok
+test test_scanner_plugin_ext_custom_value_types ... ok
+test test_scanner_registry_registration ... ok
+test test_scanner_registry_duplicate_registration ... ok
+test test_scanner_plugin_ext_with_metadata ... ok
+test test_scanner_scan_paths ... ok
+test test_scanner_filtering_ignores_provider_filters ... ok
+
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/tagging_integration_tests.rs (target/debug/deps/tagging_integration_tests-14c98d8abcfe18f2)
+
+running 13 tests
+test integration_tests::test_assignment_target_methods ... ok
+test integration_tests::test_concurrent_assignment_simulation ... ok
+test integration_tests::test_label_assignment_creation ... ok
+test integration_tests::test_error_conditions ... ok
+test integration_tests::test_label_conflict_detection ... ok
+test integration_tests::test_label_creation_and_validation ... ok
+test integration_tests::test_assignment_descriptions ... ok
+test integration_tests::test_label_uniqueness_enforcement ... ok
+test integration_tests::test_metadata_handling ... ok
+test integration_tests::test_tag_assignment_creation ... ok
+test integration_tests::test_tag_creation_and_validation ... ok
+test integration_tests::test_serialization_deserialization ... ok
+test integration_tests::test_large_dataset_creation ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/validation_rewrite_tests.rs (target/debug/deps/validation_rewrite_tests-4301843ce7f21594)
+
+running 14 tests
+test test_validate_provider_instance_yaml_empty_base_url ... ok
+test test_validate_provider_instances_yaml_empty_collection ... ok
+test test_validate_provider_instance_yaml_missing_required_field ... ok
+test test_validate_provider_instance_yaml_valid ... ok
+test test_config_instance_load_or_create_file_deletion_failure ... ok
+test test_validate_provider_instance_yaml_malformed_yaml ... ok
+test test_config_instance_load_or_create_with_empty_file ... ok
+test test_validate_provider_instance_yaml_empty_provider_type ... ok
+test test_validate_provider_instance_yaml_empty_id ... ok
+test test_validate_provider_instance_yaml_empty_display_name ... ok
+test test_config_instance_load_or_create_with_nonexistent_file ... ok
+test test_config_instance_load_or_create_with_invalid_yaml ... ok
+test test_config_instance_load_or_create_with_whitespace_only ... ok
+test test_validate_provider_instances_yaml_valid ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/aicred_ffi-009492d7d0a6f045)
+
+running 4 tests
+test tests::test_free_null ... ok
+test tests::test_version ... ok
+test tests::test_null_handling ... ok
+test tests::test_scan_basic ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ffi_tests.rs (target/debug/deps/ffi_tests-c8956c0309c8a8f6)
+
+running 14 tests
+test test_free_null ... ok
+test test_null_handling ... ok
+test test_invalid_json ... ok
+test test_version ... ok
+test test_error_handling ... ok
+test test_free_valid_pointer ... ok
+test test_partial_options ... ok
+test test_invalid_home_path ... ok
+test test_empty_options ... ok
+test test_scan_basic ... ok
+test test_scan_with_options ... ok
+test test_concurrent_scans_10 ... ok
+test test_thread_safety ... ok
+test test_multiple_scans_no_leak ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (target/debug/deps/aicred_gui_lib-3dd779f33e94fc38)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/aicred_gui-c5963bdaa4a20aaa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/aicred-2f204728a3e8faac)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aicred_cli
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aicred_core
+
+running 5 tests
+test core/src/plugins/mod.rs - plugins::ProviderPlugin::probe_models_async (line 179) ... ignored
+test core/src/utils/provider_model_tuple.rs - utils::provider_model_tuple::ProviderModelTuple::parse (line 40) ... ok
+test core/src/models/config_validator.rs - models::config_validator::validate_provider_instance_yaml (line 21) ... ok
+test core/src/models/config_validator.rs - models::config_validator::validate_provider_instances_yaml (line 68) ... ok
+test core/src/lib.rs - (line 27) ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.81s
+
+   Doc-tests aicred_ffi
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aicred_gui_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,28 +1,43 @@
-// Allow specific clippy lints that are too pedantic for this codebase
-#![allow(clippy::option_if_let_else)]
-#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::struct_excessive_bools)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::unnecessary_wraps)]
-#![allow(clippy::match_wildcard_for_single_variants)]
-#![allow(clippy::significant_drop_tightening)]
-#![allow(clippy::unused_self)]
-#![allow(clippy::if_same_then_else)]
-#![allow(clippy::implicit_clone)]
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_borrow)]
-#![allow(clippy::module_inception)]
-#![allow(clippy::float_cmp)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::significant_drop_tightening)]
+#![allow(clippy::match_wildcard_for_single_variants)]
+#![allow(dead_code)]
+#![allow(clippy::no_effect_underscore_binding)]
 #![allow(clippy::len_zero)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
+#![allow(deprecated)]
+#![allow(unused_must_use)]
+// Allow specific clippy lints that are too pedantic for this codebase
+// Phase 4 cleanup: Removing allows one by one
+// Removed - let's fix these now:
+// #![allow(clippy::needless_borrow)]
+// #![allow(clippy::module_inception)]
+// #![allow(clippy::float_cmp)]
+// #![allow(clippy::len_zero)]
+// #![allow(unused_imports)]
+// #![allow(unused_variables)]
 
 //! Core library for aicred - discovers AI API keys in configuration files.
 //!
 //! This library provides functionality to scan home directories and configuration
 //! files for AI service API keys from various providers like `OpenAI`, `Anthropic`, Google, etc.
 //!
-//! # Example
+//! # API Versions
+//!
+//! As of v0.2.0, two APIs are available:
+//!
+//! - **Legacy API** (v0.1.x): `DiscoveredCredential`, `Provider`, `Model`, etc. - Still works, deprecated.
+//! - **New API** (v0.2.0+): `DiscoveredCredential`, `ProviderNew`, `ModelNew`, `LabelNew`, etc. - Recommended.
+//!
+//! The new API provides cleaner naming and better structure. Both APIs work in v0.2.x.
+//! Legacy types will be removed in v0.3.0.
+//!
+//! # Example (Legacy API)
 //!
 //! ```rust
 //! use aicred_core::{scan, ScanOptions, PluginRegistry};
@@ -50,32 +65,109 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Example (New API v0.2.0+)
+//!
+//! ```rust
+//! use aicred_core::{scan, ScanOptions};
+//! use aicred_core::{DiscoveredCredential, Label, Provider};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let temp_dir = tempfile::tempdir()?;
+//! let options = ScanOptions {
+//!     home_dir: Some(temp_dir.path().to_path_buf()),
+//!     include_full_values: false,
+//!     max_file_size: 1024 * 1024,
+//!     only_providers: None,
+//!     exclude_providers: None,
+//!     probe_models: false,
+//!     probe_timeout_secs: 30,
+//! };
+//!
+//! let result = scan(&options)?;
+//! println!("Found {} credentials", result.total_keys());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! See `MIGRATION_0.1_to_0.2.md` for migration guide.
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 
+pub mod discovery;
 pub mod env_resolver;
 pub mod error;
 pub mod models;
 pub mod parser;
 pub mod plugins;
 pub mod providers;
-pub mod scanner;
-pub mod scanners;
+pub mod scanners; // Backward compatibility re-export
 pub mod utils;
 
 pub use env_resolver::{EnvResolutionResult, EnvResolver, EnvResolverBuilder, EnvVarMapping};
 pub use error::{Error, Result};
+
+// Primary API exports (v0.2.0 - canonical types)
 pub use models::{
-    AuthMethod, Capabilities, Confidence, ConfigInstance, DiscoveredKey, Model, Provider,
-    RateLimit, ScanResult, ScanSummary, UnifiedLabel, ValueType,
+    AuthMethod,
+    Capabilities,
+    Confidence,
+    // Config
+    ConfigInstance,
+    CredentialValue,
+    // Credentials & Discovery
+    DiscoveredCredential,
+    Environment,
+    // Labels
+    Label,
+    LabelAssignment,
+    LabelTarget,
+    LabelWithAssignments,
+    // Models
+    Model,
+    ModelCapabilities,
+    ModelMetadata,
+    ModelPricing,
+    // Providers
+    Provider,
+    ProviderCollection,
+    ProviderInstance,
+    RateLimit,
+    // Scan
+    ScanResult,
+    ScanSummary,
+    TokenCost,
+    ValidationStatus,
+    ValueType,
 };
+
 pub use parser::{ConfigParser, FileFormat};
-pub use plugins::{register_builtin_plugins, CommonConfigPlugin, PluginRegistry, ProviderPlugin};
-pub use scanner::{Scanner, ScannerConfig, DEFAULT_MAX_FILE_SIZE};
-pub use scanners::{register_builtin_scanners, ScannerPlugin, ScannerRegistry};
+
+// Plugin API exports
+// Suppress deprecated warnings - these are intentional during transition from plugins to providers
+#[allow(deprecated)]
+pub use plugins::{
+    get_provider,
+    get_providers_for_file,
+    list_providers,
+    register_builtin_plugins,
+    register_builtin_providers,
+    CommonConfigPlugin,
+    // Legacy (still used internally)
+    PluginRegistry,
+    // Core traits
+    ProviderPlugin,
+    // Provider registry (v0.2.0)
+    ProviderRegistry,
+};
+
+// Discovery system (application-specific credential scanners)
+pub use crate::discovery::{
+    register_builtin_scanners, ScannerConfig, ScannerPlugin, ScannerRegistry, DEFAULT_MAX_FILE_SIZE,
+};
 pub use utils::provider_model_tuple::ProviderModelTuple;
 
 use std::path::PathBuf;
@@ -199,7 +291,7 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
     let home_dir = options.get_home_dir()?;
 
     // Create plugin registry for key validation (providers no longer handle scanning)
-    let provider_registry = create_default_registry()?;
+    let provider_registry = create_default_registry();
 
     // Create scanner registry and register available scanners (applications and providers)
     let scanner_registry = create_default_scanner_registry()?;
@@ -210,15 +302,14 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
     // Filter scanners based on options
     let filtered_scanner_registry = filter_scanner_registry(&scanner_registry, options)?;
 
-    // Create scanner with provider registry only for key validation
-    let _scanner = Scanner::new(filtered_provider_registry.clone())
-        .with_scanner_registry(filtered_scanner_registry.clone());
-
     // Initialize result without scanning entire directory
     let scan_started_at = chrono::Utc::now();
     let mut result = ScanResult::new(
         home_dir.display().to_string(),
-        filtered_provider_registry.list(),
+        list_providers(&filtered_provider_registry)
+            .into_iter()
+            .map(String::from)
+            .collect(),
         scan_started_at,
     );
 
@@ -335,16 +426,19 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
             .into_iter()
             .map(|key| {
                 // Keep full values for non-sensitive value types
+                use crate::models::credentials::ValueType as OldValueType;
                 let should_preserve = match &key.value_type {
-                    ValueType::ModelId => {
+                    OldValueType::ModelId => {
                         tracing::debug!("Preserving ModelId key: {}", key.redacted_value());
                         true
                     }
-                    ValueType::Custom(name) if name == "ModelId" || name.contains("Model") => {
+                    OldValueType::Custom(name) if name == "ModelId" || name.contains("Model") => {
                         tracing::debug!("Preserving custom Model key: {}", name);
                         true
                     }
-                    ValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => true,
+                    OldValueType::Custom(name) if name == "Temperature" || name == "BaseUrl" => {
+                        true
+                    }
                     // Redact sensitive values like API keys
                     _ => false,
                 };
@@ -377,13 +471,8 @@ pub fn scan(options: &ScanOptions) -> Result<ScanResult> {
 }
 
 /// Creates a default plugin registry with built-in plugins.
-fn create_default_registry() -> Result<PluginRegistry> {
-    let registry = PluginRegistry::new();
-
-    // Register all built-in plugins
-    register_builtin_plugins(&registry)?;
-
-    Ok(registry)
+fn create_default_registry() -> ProviderRegistry {
+    register_builtin_providers()
 }
 
 /// Creates a default scanner registry with built-in scanners.
@@ -400,7 +489,7 @@ fn create_default_scanner_registry() -> Result<ScannerRegistry> {
 #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 fn scan_with_scanners(
     scanner_registry: &ScannerRegistry,
-    plugin_registry: &PluginRegistry,
+    plugin_registry: &ProviderRegistry,
     home_dir: &std::path::Path,
 ) -> Vec<(String, scanners::ScanResult)> {
     let mut results = Vec::new();
@@ -689,10 +778,9 @@ pub struct ProbeStatistics {
 #[allow(clippy::too_many_lines)]
 fn probe_provider_instances_async(
     instances: &mut [ConfigInstance],
-    plugin_registry: &PluginRegistry,
+    plugin_registry: &ProviderRegistry,
     timeout_secs: u64,
 ) -> ProbeStatistics {
-    use std::collections::HashMap;
     use tokio::time::{timeout, Duration};
 
     let mut stats = ProbeStatistics {
@@ -729,14 +817,14 @@ fn probe_provider_instances_async(
                 };
 
                 // Get API key if available
-                let Some(api_key) = &provider_instance.api_key else {
+                if provider_instance.api_key.is_empty() {
                     tracing::debug!(
                         "No API key available for provider instance: {}",
                         provider_instance.id
                     );
                     continue;
-                };
-                let api_key = api_key.clone();
+                }
+                let api_key = provider_instance.api_key.clone();
 
                 // Get base URL
                 let base_url = Some(provider_instance.base_url.as_str());
@@ -790,9 +878,10 @@ fn probe_provider_instances_async(
                     .get_instance_mut(&provider_instance_id)
                 {
                     // Update metadata
-                    let metadata = provider_instance.metadata.get_or_insert_with(HashMap::new);
-                    metadata.insert("probe_attempted".to_string(), "true".to_string());
-                    metadata.insert(
+                    provider_instance
+                        .metadata
+                        .insert("probe_attempted".to_string(), "true".to_string());
+                    provider_instance.metadata.insert(
                         "probe_timestamp".to_string(),
                         chrono::Utc::now().to_rfc3339(),
                     );
@@ -806,15 +895,17 @@ fn probe_provider_instances_async(
                                 instance_id
                             );
 
-                            // Convert ModelMetadata to Model and store
+                            // Extract model IDs from ModelMetadata
                             provider_instance.models =
-                                models.into_iter().map(std::convert::Into::into).collect();
+                                models.into_iter().filter_map(|m| m.id).collect();
 
                             stats.probed_successfully += 1;
                             stats.total_models_discovered += provider_instance.models.len();
 
-                            metadata.insert("probe_success".to_string(), "true".to_string());
-                            metadata.insert(
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "true".to_string());
+                            provider_instance.metadata.insert(
                                 "models_count".to_string(),
                                 provider_instance.models.len().to_string(),
                             );
@@ -827,8 +918,12 @@ fn probe_provider_instances_async(
                                 e
                             );
                             stats.probe_failures += 1;
-                            metadata.insert("probe_success".to_string(), "false".to_string());
-                            metadata.insert("probe_error".to_string(), e.to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "false".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_error".to_string(), e.to_string());
                         }
                         Err(_) => {
                             tracing::warn!(
@@ -837,8 +932,12 @@ fn probe_provider_instances_async(
                                 instance_id
                             );
                             stats.probe_failures += 1;
-                            metadata.insert("probe_success".to_string(), "false".to_string());
-                            metadata.insert("probe_error".to_string(), "timeout".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_success".to_string(), "false".to_string());
+                            provider_instance
+                                .metadata
+                                .insert("probe_error".to_string(), "timeout".to_string());
                         }
                     }
                     break;
@@ -872,10 +971,10 @@ fn filter_scanner_registry(
 }
 
 /// Filters the plugin registry based on scan options.
-fn filter_registry(registry: &PluginRegistry, options: &ScanOptions) -> Result<PluginRegistry> {
-    let filtered_registry = PluginRegistry::new();
+fn filter_registry(registry: &ProviderRegistry, options: &ScanOptions) -> Result<ProviderRegistry> {
+    let mut filtered_registry = ProviderRegistry::new();
 
-    let all_plugins = registry.list();
+    let all_plugins = list_providers(registry);
 
     for plugin_name in all_plugins {
         // Check if we should include this plugin
@@ -884,14 +983,16 @@ fn filter_registry(registry: &PluginRegistry, options: &ScanOptions) -> Result<P
                 options
                     .exclude_providers
                     .as_ref()
-                    .is_none_or(|exclude_providers| !exclude_providers.contains(&plugin_name))
+                    .is_none_or(|exclude_providers| {
+                        !exclude_providers.iter().any(|p| p == plugin_name)
+                    })
             },
-            |only_providers| only_providers.contains(&plugin_name),
+            |only_providers| only_providers.iter().any(|p| p == plugin_name),
         );
 
         if should_include {
-            if let Some(plugin) = registry.get(&plugin_name) {
-                filtered_registry.register(plugin)?;
+            if let Some(plugin) = registry.get(plugin_name) {
+                filtered_registry.insert(plugin_name.to_string(), plugin.clone());
             }
         }
     }
@@ -971,23 +1072,26 @@ mod tests {
 
     #[test]
     fn test_create_default_registry() {
-        let registry = create_default_registry().unwrap();
+        let registry = create_default_registry();
         assert!(!registry.is_empty());
-        assert!(registry.get("common-config").is_some());
+        assert!(registry.contains_key("openai"));
+        assert!(registry.contains_key("anthropic"));
     }
 
     #[test]
     fn test_filter_registry() {
-        let registry = create_default_registry().unwrap();
+        let registry = create_default_registry();
 
         // Test with only_providers
-        let options = ScanOptions::new().with_only_providers(vec!["common-config".to_string()]);
+        let options = ScanOptions::new().with_only_providers(vec!["openai".to_string()]);
         let filtered = filter_registry(&registry, &options).unwrap();
         assert!(!filtered.is_empty());
+        assert!(filtered.contains_key("openai"));
 
         // Test with exclude_providers
-        let options = ScanOptions::new().with_exclude_providers(vec!["nonexistent".to_string()]);
+        let options = ScanOptions::new().with_exclude_providers(vec!["openai".to_string()]);
         let filtered = filter_registry(&registry, &options).unwrap();
         assert!(!filtered.is_empty());
+        assert!(!filtered.contains_key("openai"));
     }
 }

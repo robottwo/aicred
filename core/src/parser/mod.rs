@@ -1,8 +1,8 @@
 //! Parser module for detecting and parsing configuration file formats.
 
 // Allow clippy lints for the parser module
-#![allow(clippy::option_if_let_else)]
 #![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::module_name_repetitions)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 
 use crate::error::{Error, Result};
@@ -87,13 +87,11 @@ impl ConfigParser {
             let has_table_array = trimmed.contains("[[");
             let has_dotted_key = trimmed.lines().any(|line| {
                 let line = line.trim();
-                if let Some(eq_pos) = line.find('=') {
+                line.find('=').is_some_and(|eq_pos| {
                     let key_part = &line[..eq_pos].trim();
                     // Check for dotted keys (key with dots) or quoted keys
                     key_part.contains('.') || (key_part.starts_with('"') && key_part.ends_with('"'))
-                } else {
-                    false
-                }
+                })
             });
 
             if has_table_array || has_dotted_key {

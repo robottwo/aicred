@@ -40,7 +40,7 @@ impl ProviderPlugin for AnthropicPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Anthropic-specific validation
         if instance.base_url.is_empty() {
@@ -76,7 +76,7 @@ impl ProviderPlugin for AnthropicPlugin {
     fn get_instance_models(&self, instance: &ProviderInstance) -> Result<Vec<String>> {
         // If instance has specific models configured, return those
         if !instance.models.is_empty() {
-            return Ok(instance.models.iter().map(|m| m.model_id.clone()).collect());
+            return Ok(instance.models.clone());
         }
 
         // Try to fetch models from API if we have a valid key
@@ -175,7 +175,7 @@ impl AnthropicPlugin {
     }
 
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -190,10 +190,11 @@ impl AnthropicPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::no_effect_underscore_binding)]
+    #![allow(clippy::float_cmp)]
+
     use super::*;
-    use crate::models::{
-        discovered_key::Confidence, Environment, ProviderInstance, ProviderKey, ValidationStatus,
-    };
+    use crate::models::ProviderInstance;
 
     #[test]
     fn test_anthropic_plugin_name() {
@@ -219,28 +220,18 @@ mod tests {
     #[test]
     fn test_validate_valid_instance() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-ant-test123".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-ant-test123".to_string());
 
         // Add a model
-        let model =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        instance.add_model(model);
+        instance.add_model("claude-3-sonnet".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_ok());
@@ -249,11 +240,11 @@ mod tests {
     #[test]
     fn test_validate_invalid_base_url() {
         let plugin = AnthropicPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://invalid-url.com".to_string(),
+            String::new(),
         );
 
         let result = plugin.validate_instance(&instance);
@@ -265,17 +256,15 @@ mod tests {
     #[test]
     fn test_validate_no_keys_with_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
         // Add a model but no keys
-        let model =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        instance.add_model(model);
+        instance.add_model("claude-3-sonnet".to_string());
 
         let result = plugin.validate_instance(&instance);
         assert!(result.is_err());
@@ -286,20 +275,16 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_configured_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
         // Add models
-        let model1 =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        let model2 =
-            crate::models::Model::new("claude-3-opus".to_string(), "Claude 3 Opus".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("claude-3-sonnet".to_string());
+        instance.add_model("claude-3-opus".to_string());
 
         let model_list = plugin.get_instance_models(&instance).unwrap();
         assert_eq!(model_list.len(), 2);
@@ -310,11 +295,11 @@ mod tests {
     #[test]
     fn test_get_instance_models_without_keys() {
         let plugin = AnthropicPlugin;
-        let instance = ProviderInstance::new(
+        let instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
         let models = plugin.get_instance_models(&instance).unwrap();
@@ -324,26 +309,18 @@ mod tests {
     #[test]
     fn test_is_instance_configured() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
         // Without keys, should return false
         assert!(!plugin.is_instance_configured(&instance).unwrap());
 
-        // Add a valid key
-        let mut key = ProviderKey::new(
-            "test-key".to_string(),
-            "/test/path".to_string(),
-            Confidence::High,
-            Environment::Production,
-        );
-        key.value = Some("sk-ant-test123".to_string());
-        key.validation_status = ValidationStatus::Valid;
-        instance.set_api_key(key.value.unwrap_or_default());
+        // Set a valid API key directly on the instance
+        instance.set_api_key("sk-ant-test123".to_string());
 
         // With valid key and URL, should return true
         assert!(plugin.is_instance_configured(&instance).unwrap());
@@ -386,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_fetch_supported_models_direct_error_handling() {
-        let plugin = AnthropicPlugin;
+        let _plugin = AnthropicPlugin;
 
         // Test the direct fetch method with invalid credentials
         let result = AnthropicPlugin::fetch_supported_models("sk-ant-invalid-key");
@@ -416,20 +393,16 @@ mod tests {
     #[test]
     fn test_get_instance_models_with_valid_configured_models() {
         let plugin = AnthropicPlugin;
-        let mut instance = ProviderInstance::new(
+        let mut instance = ProviderInstance::new_without_models(
             "test-anthropic".to_string(),
-            "Test Anthropic".to_string(),
             "anthropic".to_string(),
             "https://api.anthropic.com".to_string(),
+            String::new(),
         );
 
         // Add some pre-configured models
-        let model1 =
-            crate::models::Model::new("claude-3-sonnet".to_string(), "Claude 3 Sonnet".to_string());
-        let model2 =
-            crate::models::Model::new("claude-3-opus".to_string(), "Claude 3 Opus".to_string());
-        instance.add_model(model1);
-        instance.add_model(model2);
+        instance.add_model("claude-3-sonnet".to_string());
+        instance.add_model("claude-3-opus".to_string());
 
         // Should return the configured models regardless of API key status
         let instance_models = plugin.get_instance_models(&instance).unwrap();

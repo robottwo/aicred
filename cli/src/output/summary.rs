@@ -62,43 +62,28 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     println!("    API Key: {}", "configured".green());
                 }
                 if !provider_instance.models.is_empty() {
-                    let model_names: Vec<String> = provider_instance
-                        .models
-                        .iter()
-                        .map(|m| m.name.clone())
-                        .collect();
-                    println!("        Models: {}", model_names.join(", "));
+                    println!("        Models: {}", provider_instance.models.join(", "));
 
                     // Show tags and labels for each model
                     for model in &provider_instance.models {
                         if let Ok(tags) =
-                            get_tags_for_target(&instance.instance_id, Some(&model.name), None)
+                            get_tags_for_target(&instance.instance_id, Some(model), None)
                         {
                             if !tags.is_empty() {
-                                println!("          {} tags:", model.name);
+                                println!("          {} tags:", model);
                                 for tag in tags {
-                                    let tag_display = if let Some(ref color) = tag.color {
-                                        format!("{} ({})", tag.name, color)
-                                    } else {
-                                        tag.name.clone()
-                                    };
-                                    println!("            - {}", tag_display);
+                                    println!("            - {}", tag.name);
                                 }
                             }
                         }
 
                         if let Ok(labels) =
-                            get_labels_for_target(&instance.instance_id, Some(&model.name), None)
+                            get_labels_for_target(&instance.instance_id, Some(model), None)
                         {
                             if !labels.is_empty() {
-                                println!("          {} labels:", model.name);
+                                println!("          {} labels:", model);
                                 for label in labels {
-                                    let label_display = if let Some(ref color) = label.color {
-                                        format!("{} ({})", label.name, color)
-                                    } else {
-                                        label.name.clone()
-                                    };
-                                    println!("            - {}", label_display);
+                                    println!("            - {}", label.name);
                                 }
                             }
                         }
@@ -110,12 +95,7 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     if !tags.is_empty() {
                         println!("    Tags:");
                         for tag in tags {
-                            let tag_display = if let Some(ref color) = tag.color {
-                                format!("{} ({})", tag.name, color)
-                            } else {
-                                tag.name.clone()
-                            };
-                            println!("      - {}", tag_display);
+                            println!("      - {}", tag.name);
                         }
                     }
                 }
@@ -125,22 +105,15 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                     if !labels.is_empty() {
                         println!("    Labels:");
                         for label in labels {
-                            let label_display = if let Some(ref color) = label.color {
-                                format!("{} ({})", label.name, color)
-                            } else {
-                                label.name.clone()
-                            };
-                            println!("      - {}", label_display);
+                            println!("      - {}", label.name);
                         }
                     }
                 }
 
-                if let Some(metadata) = &provider_instance.metadata {
-                    if !metadata.is_empty() {
-                        println!("    Settings:");
-                        for (key, value) in metadata {
-                            println!("      {}: {}", key, value);
-                        }
+                if !provider_instance.metadata.is_empty() {
+                    println!("    Settings:");
+                    for (key, value) in &provider_instance.metadata {
+                        println!("      {}: {}", key, value);
                     }
                 }
             }
@@ -164,15 +137,10 @@ pub fn output_summary(result: &ScanResult, verbose: bool) -> Result<(), anyhow::
                 for provider_instance in provider_instances {
                     println!(
                         "      - {} ({})",
-                        provider_instance.display_name, provider_instance.provider_type
+                        provider_instance.id, provider_instance.provider_type
                     );
                     if !provider_instance.models.is_empty() {
-                        let model_names: Vec<String> = provider_instance
-                            .models
-                            .iter()
-                            .map(|m| m.name.clone())
-                            .collect();
-                        println!("        Models: {}", model_names.join(", "));
+                        println!("        Models: {}", provider_instance.models.join(", "));
                     }
                 }
             }
