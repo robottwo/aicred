@@ -65,7 +65,7 @@ impl OpenRouterPlugin {
     fn transform_model(model: OpenRouterModel) -> ModelMetadata {
         let metadata = ModelMetadata {
             id: Some(model.id.clone()),
-            name: model.name.clone(),
+            name: model.name.clone().or_else(|| Some("Unknown".to_string())),
             architecture: model.architecture.as_ref().and_then(|a| a.modality.clone()),
             parameter_count: None,
             training_cutoff: None,
