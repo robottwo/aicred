@@ -189,7 +189,6 @@ mod tests {
 
     use super::*;
     use crate::models::ProviderInstance;
-    
 
     #[test]
     fn test_openai_plugin_name() {

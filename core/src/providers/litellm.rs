@@ -14,7 +14,9 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // LiteLLM keys are typically longer and more complex
-        if (key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase)) || key.len() >= 30 {
+        if (key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase))
+            || key.len() >= 30
+        {
             0.85 // High confidence for complex and long keys
         } else {
             0.50 // Lower confidence for shorter keys

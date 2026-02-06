@@ -3,7 +3,6 @@
 // Allow clippy lints for the plugins module
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::significant_drop_tightening)]
-
 // Suppress deprecated warnings - these are intentional during transition from plugins to providers
 #![allow(deprecated)]
 

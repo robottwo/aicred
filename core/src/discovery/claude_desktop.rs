@@ -88,10 +88,11 @@ impl ClaudeDesktopScanner {
         };
 
         // Extract keys from JSON config
-        let discovered_keys = Self::extract_keys_from_json(&json_value, path).map_or_else(Vec::new, |keys| {
-            result.add_keys(keys.clone());
-            keys
-        });
+        let discovered_keys =
+            Self::extract_keys_from_json(&json_value, path).map_or_else(Vec::new, |keys| {
+                result.add_keys(keys.clone());
+                keys
+            });
 
         // Build provider instances from discovered keys using the helper function
         tracing::info!(
@@ -173,8 +174,9 @@ impl ClaudeDesktopScanner {
                 if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
                     if Self::is_valid_claude_config(&json_value) {
                         // Extract keys from the config
-                        let discovered_keys = Self::extract_keys_from_json(&json_value, &config_path)
-                            .unwrap_or_default();
+                        let discovered_keys =
+                            Self::extract_keys_from_json(&json_value, &config_path)
+                                .unwrap_or_default();
 
                         // Build provider instances from keys
                         let provider_instances = match self.build_instances_from_keys(

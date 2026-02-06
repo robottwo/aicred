@@ -114,7 +114,7 @@ impl GshScanner {
         let mut seen_hashes = std::collections::HashSet::new();
 
         // Parse GSH-specific configuration
-        let gsh_keys = Self::parse_gshrc(content, path);
+        let gsh_keys = self.parse_gshrc(content, path);
         for key in gsh_keys {
             // Only add if we haven't seen this key hash before
             if seen_hashes.insert(key.hash.clone()) {
@@ -123,7 +123,7 @@ impl GshScanner {
         }
 
         // Also parse general shell script format as fallback
-        let shell_keys = Self::extract_keys_from_shell_script(content, path);
+        let shell_keys = self.extract_keys_from_shell_script(content, path);
         for key in shell_keys {
             // Only add if we haven't seen this key hash before
             if seen_hashes.insert(key.hash.clone()) {
@@ -213,14 +213,14 @@ impl GshScanner {
                     let mut unique_keys = Vec::new();
                     let mut seen_hashes = std::collections::HashSet::new();
 
-                    let gsh_keys = Self::parse_gshrc(&content, &config_path);
+                    let gsh_keys = self.parse_gshrc(&content, &config_path);
                     for key in gsh_keys {
                         if seen_hashes.insert(key.hash.clone()) {
                             unique_keys.push(key);
                         }
                     }
 
-                    let shell_keys = Self::extract_keys_from_shell_script(&content, &config_path);
+                    let shell_keys = self.extract_keys_from_shell_script(&content, &config_path);
                     for key in shell_keys {
                         if seen_hashes.insert(key.hash.clone()) {
                             unique_keys.push(key);
@@ -257,7 +257,8 @@ impl GshScanner {
     }
 
     /// Parse GSH-specific configuration from .gshrc file using key/value pairs.
-    fn parse_gshrc(content: &str, path: &Path) -> Vec<DiscoveredCredential> {
+    #[allow(clippy::unused_self)]
+    fn parse_gshrc(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Define the specific keys we want to look for
@@ -384,7 +385,9 @@ impl GshScanner {
             }
 
             // Handle export statements (remove export prefix)
-            let line = line.strip_prefix("export ").map_or(line, |stripped| stripped.trim());
+            let line = line
+                .strip_prefix("export ")
+                .map_or(line, |stripped| stripped.trim());
 
             // Split on first = sign
             if let Some(eq_pos) = line.find('=') {
@@ -410,10 +413,8 @@ impl GshScanner {
     }
 
     /// Extract keys from shell script format (KEY=value pairs).
-    fn extract_keys_from_shell_script(
-        content: &str,
-        path: &Path,
-    ) -> Vec<DiscoveredCredential> {
+    #[allow(clippy::unused_self)]
+    fn extract_keys_from_shell_script(&self, content: &str, path: &Path) -> Vec<DiscoveredCredential> {
         let mut keys = Vec::new();
 
         // Common API key patterns in shell scripts - handle both quoted and unquoted values

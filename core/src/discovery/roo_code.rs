@@ -287,14 +287,17 @@ impl RooCodeScanner {
         };
 
         // Extract keys from JSON config
-        let discovered_keys = Self::extract_keys_from_json(&json_value, path).map_or_else(|| {
-            tracing::debug!("No keys extracted from JSON");
-            Vec::new()
-        }, |keys| {
-            tracing::debug!("Extracted {} keys from JSON", keys.len());
-            result.add_keys(keys.clone());
-            keys
-        });
+        let discovered_keys = Self::extract_keys_from_json(&json_value, path).map_or_else(
+            || {
+                tracing::debug!("No keys extracted from JSON");
+                Vec::new()
+            },
+            |keys| {
+                tracing::debug!("Extracted {} keys from JSON", keys.len());
+                result.add_keys(keys.clone());
+                keys
+            },
+        );
 
         // Build provider instances from discovered keys using the helper function
         tracing::info!(
@@ -586,10 +589,7 @@ impl RooCodeScanner {
     }
 
     /// Scan settings files for Roo Code configuration.
-    fn scan_settings_files(
-        home_dir: &Path,
-        instances: &mut Vec<ConfigInstance>,
-    ) {
+    fn scan_settings_files(home_dir: &Path, instances: &mut Vec<ConfigInstance>) {
         let settings_paths = [
             home_dir.join(".vscode").join("settings.json"),
             home_dir.join(".vscode-insiders").join("settings.json"),
