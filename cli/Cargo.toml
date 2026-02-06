@@ -28,6 +28,11 @@ hex = "0.4"
 regex = "1.10"
 tempfile = "3.0"
 
+# Wizard mode dependencies
+inquire = "0.7"
+indicatif = "0.17"
+console = "0.15"
+
 [dev-dependencies]
 assert_cmd = "2.0"
 tempfile = "3.0"
