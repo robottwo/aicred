@@ -73,6 +73,15 @@ pub fn load_provider_instances(home: Option<&Path>) -> Result<ProviderCollection
                             metadata: std::collections::HashMap::new(),
                         };
 
+                        // Extract direct api_key field if present
+                        if let Some(api_key_val) =
+                            map.get(serde_yaml::Value::String("api_key".to_string()))
+                        {
+                            if let Some(k) = api_key_val.as_str() {
+                                instance.api_key = k.to_string();
+                            }
+                        }
+
                         // Active flag
                         if let Some(active_val) =
                             map.get(serde_yaml::Value::String("active".to_string()))

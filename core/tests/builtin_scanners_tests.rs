@@ -59,13 +59,11 @@ fn test_langchain_scanner_parse_config() {
     assert_eq!(result.keys.len(), 3);
     assert_eq!(result.instances.len(), 1);
 
-    // Verify provider_instances are NOT populated by built-in scanners
-    // Built-in scanners only discover keys; provider_instances are populated elsewhere
+    // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
-    assert_eq!(
-        instance.provider_instances.len(),
-        0,
-        "Built-in scanners don't populate provider_instances"
+    assert!(
+        instance.provider_instances.len() > 0,
+        "Built-in scanners now populate provider_instances"
     );
 
     // Test YAML parsing
@@ -85,12 +83,11 @@ llm:
     assert_eq!(result.keys.len(), 2);
     assert_eq!(result.instances.len(), 1);
 
-    // Built-in scanners don't populate provider_instances
+    // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
-    assert_eq!(
-        instance.provider_instances.len(),
-        0,
-        "Built-in scanners don't populate provider_instances"
+    assert!(
+        instance.provider_instances.len() > 0,
+        "Built-in scanners now populate provider_instances"
     );
 }
 

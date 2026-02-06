@@ -59,10 +59,32 @@ impl ScannerPlugin for LangChainScanner {
             // Parse YAML
             if let Ok(yaml_value) = serde_yaml::from_str::<serde_yaml::Value>(content) {
                 if let Some(keys) = self.extract_keys_from_yaml(&yaml_value, path) {
-                    result.add_keys(keys);
+                    result.add_keys(keys.clone());
                 }
                 if Self::is_valid_langchain_config_yaml(&yaml_value) {
-                    let instance = self.create_config_instance_yaml(path, &yaml_value)?;
+                    let mut instance = self.create_config_instance_yaml(path, &yaml_value)?;
+
+                    // Build provider instances from discovered keys
+                    if !result.keys.is_empty() {
+                        match self.build_instances_from_keys(
+                            &result.keys,
+                            path.to_str().unwrap_or(""),
+                            None,
+                        ) {
+                            Ok(provider_instances) => {
+                                // Add each provider instance to the config instance
+                                for provider_instance in provider_instances {
+                                    if let Err(e) = instance.add_provider_instance(provider_instance) {
+                                        tracing::warn!("Failed to add provider instance to config: {}", e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to build provider instances from keys: {}", e);
+                            }
+                        }
+                    }
+
                     result.add_instance(instance);
                 }
             }
@@ -70,10 +92,32 @@ impl ScannerPlugin for LangChainScanner {
             // Parse JSON
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(content) {
                 if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
-                    result.add_keys(keys);
+                    result.add_keys(keys.clone());
                 }
                 if Self::is_valid_langchain_config(&json_value) {
-                    let instance = Self::create_config_instance(path, &json_value);
+                    let mut instance = Self::create_config_instance(path, &json_value);
+
+                    // Build provider instances from discovered keys
+                    if !result.keys.is_empty() {
+                        match self.build_instances_from_keys(
+                            &result.keys,
+                            path.to_str().unwrap_or(""),
+                            None,
+                        ) {
+                            Ok(provider_instances) => {
+                                // Add each provider instance to the config instance
+                                for provider_instance in provider_instances {
+                                    if let Err(e) = instance.add_provider_instance(provider_instance) {
+                                        tracing::warn!("Failed to add provider instance to config: {}", e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to build provider instances from keys: {}", e);
+                            }
+                        }
+                    }
+
                     result.add_instance(instance);
                 }
             }

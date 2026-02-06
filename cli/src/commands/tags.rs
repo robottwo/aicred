@@ -151,16 +151,22 @@ pub fn handle_add_tag(
     description: Option<String>,
     home: Option<&Path>,
 ) -> Result<()> {
+    // Validate tag name
+    let trimmed_name = name.trim();
+    if trimmed_name.is_empty() {
+        return Err(anyhow::anyhow!("Tag name cannot be empty"));
+    }
+
     let mut tags = load_tags(home)?;
 
     // Check if tag with this name already exists
-    if tags.iter().any(|tag| tag.name == name) {
-        return Err(anyhow::anyhow!("Tag with name '{}' already exists", name));
+    if tags.iter().any(|tag| tag.name == trimmed_name) {
+        return Err(anyhow::anyhow!("Tag with name '{}' already exists", trimmed_name));
     }
 
     let now = chrono::Utc::now();
     let tag = Label {
-        name: name.clone(),
+        name: trimmed_name.to_string(),
         description,
         created_at: now,
         metadata: std::collections::HashMap::new(),
@@ -171,7 +177,7 @@ pub fn handle_add_tag(
     // Save to disk
     save_tags(&tags, home)?;
 
-    println!("{} Tag '{}' added successfully.", "✓".green(), name);
+    println!("{} Tag '{}' added successfully.", "✓".green(), trimmed_name);
 
     Ok(())
 }

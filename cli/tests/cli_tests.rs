@@ -498,17 +498,14 @@ OPENAI_TEMPERATURE=0.8"#;
         panic!("Temperature metadata not found or not a number/string");
     }
 
-    // Verify models are correct
+    // Verify models are correct (new format: Vec<String>)
     let openai_models = openai_config2["models"].as_sequence().unwrap();
     assert_eq!(openai_models.len(), 1);
-    assert_eq!(openai_models[0]["model_id"].as_str().unwrap(), "gpt-4");
+    assert_eq!(openai_models[0].as_str().unwrap(), "gpt-4");
 
     let groq_models = groq_config2["models"].as_sequence().unwrap();
     assert_eq!(groq_models.len(), 1);
-    assert_eq!(
-        groq_models[0]["model_id"].as_str().unwrap(),
-        "llama3-8b-8192"
-    );
+    assert_eq!(groq_models[0].as_str().unwrap(), "llama3-8b-8192");
 
     let groq_config: serde_yaml::Value = serde_yaml::from_str(&groq_content2).unwrap();
 
@@ -922,7 +919,7 @@ updated_at: "2023-01-01T00:00:00Z"
         .arg(temp_home.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Test Direct ID Instance"))
+        .stdout(predicate::str::contains("test-direct-id"))
         .stdout(predicate::str::contains("openai"))
         .stdout(predicate::str::contains("https://api.openai.com/v1"));
 }
@@ -958,7 +955,7 @@ updated_at: "2023-01-01T00:00:00Z"
         .arg(temp_home.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Test Direct Values Instance"))
+        .stdout(predicate::str::contains("test-direct-values"))
         .stdout(predicate::str::contains("sk-ant-direct-test-key"));
 }
 

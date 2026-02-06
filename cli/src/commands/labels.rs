@@ -2,7 +2,7 @@
 
 use crate::utils::provider_loader::load_provider_instances;
 use aicred_core::env_resolver::LabelWithTarget;
-use aicred_core::models::{Label, LabelAssignment, LabelTarget};
+use aicred_core::models::{Label, LabelAssignment, LabelTarget, ProviderCollection};
 use aicred_core::utils::ProviderModelTuple;
 use anyhow::Result;
 use colored::*;
@@ -735,6 +735,40 @@ pub fn handle_label_scan(dry_run: bool, verbose: bool, home: Option<&Path>) -> R
     Ok(())
 }
 
+/// Save provider instances to configuration directory
+fn save_provider_instances(instances: &ProviderCollection, home: Option<&Path>) -> Result<()> {
+    let config_dir = match home {
+        Some(h) => h.to_path_buf(),
+        None => {
+            // Check HOME environment variable first (for test compatibility)
+            if let Ok(home_env) = std::env::var("HOME") {
+                std::path::PathBuf::from(home_env)
+            } else {
+                dirs_next::home_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?
+            }
+        }
+    }
+    .join(".config")
+    .join("aicred")
+    .join("inference_services");
+
+    std::fs::create_dir_all(&config_dir)?;
+
+    // Save each instance to its own file
+    for instance in instances.all_instances() {
+        // Use provider name and first 4 chars of instance ID (hash)
+        let file_name = format!("{}-{}.yaml", instance.provider_type, &instance.id[..4.min(instance.id.len())]);
+        let file_path = config_dir.join(&file_name);
+
+        // Serialize into a ProviderInstance YAML
+        let yaml_content = serde_yaml::to_string(instance)?;
+        std::fs::write(&file_path, yaml_content)?;
+    }
+
+    Ok(())
+}
+
 /// Handle the labels set command (create or update label assignment)
 pub fn handle_set_label(
     label_name: String,
@@ -757,22 +791,52 @@ pub fn handle_set_label(
         .map_err(|e| anyhow::anyhow!("Invalid provider:model tuple '{}': {}", tuple_str, e))?;
 
     // Load provider instances to find the instance_id
-    let provider_instances = load_provider_instances(home)?;
+    let mut provider_instances = load_provider_instances(home)?;
 
     // Find the matching provider instance
     let provider_instances_list = provider_instances.all_instances();
-    let provider_instance = provider_instances_list
+    let provider_instance = match provider_instances_list
         .iter()
         .find(|inst| inst.provider_type == tuple.provider())
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "No provider instance found for provider: {}",
-                tuple.provider()
-            )
-        })?;
+    {
+        Some(instance) => *instance,
+        None => {
+            // Auto-create a provider instance if none exists for this provider type
+            let instance_id = format!("auto-{}", tuple.provider());
+            let base_url = match tuple.provider().to_lowercase().as_str() {
+                "openai" => "https://api.openai.com/v1",
+                "anthropic" => "https://api.anthropic.com/v1",
+                "groq" => "https://api.groq.com/openai/v1",
+                "openrouter" => "https://openrouter.ai/api/v1",
+                "huggingface" => "https://huggingface.co/api",
+                "ollama" => "http://localhost:11434",
+                "litellm" => "http://localhost:4000",
+                _ => "https://api.example.com",
+            };
+
+            let new_instance = aicred_core::models::ProviderInstance::new(
+                instance_id.clone(),
+                format!("{} Instance", tuple.provider()),
+                tuple.provider().to_lowercase(),
+                base_url.to_string(),
+                Vec::new(),
+            );
+
+            // Add the new instance to the collection
+            provider_instances
+                .add_instance(new_instance.clone())
+                .map_err(|e| anyhow::anyhow!("Failed to create provider instance: {}", e))?;
+
+            // Save the updated instances
+            save_provider_instances(&provider_instances, home)?;
+
+            // Get reference to the newly added instance
+            provider_instances.get_instance(&instance_id).unwrap()
+        }
+    };
 
     // Create label assignment target
-    let target = if let Some(model) = provider_instance.models.iter().find(|m| {
+    let target = if let Some(model) = provider_instance.models.iter().find(|m: &&String| {
         let basename = m.rsplit('/').next().unwrap_or(m);
         basename == tuple.model()
     }) {

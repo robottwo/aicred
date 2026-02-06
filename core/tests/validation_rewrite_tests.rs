@@ -65,14 +65,11 @@ fn test_validate_provider_instance_yaml_valid() {
 #[test]
 fn test_validate_provider_instance_yaml_missing_required_field() {
     let yaml = r#"
-display_name: OpenAI Production
 provider_type: openai
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);
@@ -113,24 +110,16 @@ updated_at: 2024-01-01T00:00:00Z
 fn test_validate_provider_instance_yaml_empty_display_name() {
     let yaml = r#"
 id: openai-prod
-display_name: ""
 provider_type: openai
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);
-    assert!(result.is_err(), "Empty display name should fail validation");
-    let error = result.unwrap_err();
-    assert!(
-        error.contains("Display name cannot be empty"),
-        "Error should indicate empty display name: {}",
-        error
-    );
+    // Should succeed - display_name field was removed in v0.2.0
+    assert!(result.is_ok(), "Validation should succeed without display_name field");
 }
 
 #[test]
@@ -164,14 +153,11 @@ updated_at: 2024-01-01T00:00:00Z
 fn test_validate_provider_instance_yaml_empty_base_url() {
     let yaml = r#"
 id: openai-prod
-display_name: OpenAI Production
 provider_type: openai
 base_url: ""
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);
@@ -188,15 +174,12 @@ updated_at: 2024-01-01T00:00:00Z
 fn test_validate_provider_instance_yaml_malformed_yaml() {
     let yaml = r#"
 id: openai-prod
-display_name: OpenAI Production
-  invalid: indentation
 provider_type: openai
+  invalid: indentation
 base_url: https://api.openai.com
-keys: []
+api_key: sk-test1234567890abcdef
 models: []
 active: true
-created_at: 2024-01-01T00:00:00Z
-updated_at: 2024-01-01T00:00:00Z
 "#;
 
     let result = validate_provider_instance_yaml(yaml);

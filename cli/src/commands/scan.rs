@@ -383,9 +383,9 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                     );
                     let mut new_instance = ProviderInstance::new(
                         instance_id.to_string(),
-                        format!("{} Instance", provider_name),
                         provider_name.to_lowercase(),
                         get_default_base_url(&provider_name),
+                        String::new(), // Empty API key initially
                         Vec::new(), // Empty models initially
                     );
 
@@ -619,9 +619,9 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         );
                         let mut new_instance = ProviderInstance::new(
                             instance_id.to_string(),
-                            format!("{} Instance", provider_name),
                             provider_name.to_lowercase(),
                             get_default_base_url(&provider_name),
+                            String::new(), // Empty API key initially
                             Vec::new(), // Empty models initially
                         );
 

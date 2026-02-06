@@ -50,8 +50,7 @@ mod cli_integration_tests {
         list_cmd
             .assert()
             .success()
-            .stdout(predicate::str::contains("production"))
-            .stdout(predicate::str::contains("#ff0000"));
+            .stdout(predicate::str::contains("production"));
 
         // Test tag update
         let mut update_cmd = Command::cargo_bin("aicred").expect("Failed to find aicred binary");
@@ -97,8 +96,6 @@ mod cli_integration_tests {
         cmd.arg("labels")
             .arg("set")
             .arg("primary=openai:gpt-4")
-            .arg("--color")
-            .arg("#00ff00")
             .arg("--description")
             .arg("Primary instance");
 
@@ -116,8 +113,7 @@ mod cli_integration_tests {
         list_cmd
             .assert()
             .success()
-            .stdout(predicate::str::contains("primary"))
-            .stdout(predicate::str::contains("#00ff00"));
+            .stdout(predicate::str::contains("primary"));
 
         // Test label update
         let mut update_cmd = Command::cargo_bin("aicred").expect("Failed to find aicred binary");
@@ -126,8 +122,8 @@ mod cli_integration_tests {
             .arg("labels")
             .arg("set")
             .arg("primary=openai:gpt-4")
-            .arg("--color")
-            .arg("#ff8800");
+            .arg("--description")
+            .arg("Updated description");
 
         update_cmd
             .assert()
@@ -283,19 +279,7 @@ mod cli_integration_tests {
             .failure()
             .stderr(predicate::str::contains("already exists"));
 
-        // Test invalid color format
-        let mut color_cmd = Command::cargo_bin("aicred").expect("Failed to find aicred binary");
-        color_cmd
-            .env("HOME", _temp_dir.path())
-            .arg("tags")
-            .arg("add")
-            .arg("--name")
-            .arg("test-tag")
-            .arg("--color")
-            .arg("invalid-color");
-
-        // This should succeed (color validation is lenient) or fail gracefully
-        color_cmd.assert().success();
+        // Color field removed from Label model in v0.2.0
     }
 
     #[test]
