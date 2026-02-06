@@ -3,6 +3,7 @@ pub mod providers;
 pub mod scan;
 pub mod tags;
 pub mod wrap;
+pub mod wizard;
 
 // Re-export helper functions for use in output modules
 pub use labels::get_labels_for_target;

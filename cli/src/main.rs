@@ -36,6 +36,7 @@ use commands::{
         handle_unassign_tag, handle_update_tag,
     },
     wrap::handle_wrap,
+    wizard::{config_exists, handle_existing_config, run_wizard, ExistingConfigAction, WizardOptions},
 };
 
 /// AICred - Discover AI API keys and configurations
@@ -48,11 +49,34 @@ struct Cli {
     home: Option<String>,
 
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Interactive setup wizard for first-time configuration
+    Wizard {
+        /// Skip prompts, use defaults (auto-accept all high-confidence)
+        #[arg(long)]
+        yes: bool,
+
+        /// Skip model probing
+        #[arg(long)]
+        skip_probe: bool,
+
+        /// Probe timeout in seconds (default: 30)
+        #[arg(long)]
+        probe_timeout: Option<u64>,
+
+        /// Skip label setup
+        #[arg(long)]
+        skip_labels: bool,
+
+        /// Verbose output
+        #[arg(long, short = 'v')]
+        verbose: bool,
+    },
+
     /// Scan for GenAI credentials and configurations
     Scan {
         /// Home directory to scan (defaults to current user's home)
@@ -437,7 +461,60 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    match cli.command {
+    // Auto-launch wizard if no subcommand provided and no config exists
+    let command = if let Some(cmd) = cli.command {
+        cmd
+    } else {
+        // No subcommand provided
+        let home_path = cli.home.as_ref().map(|s| PathBuf::from(s));
+        if !config_exists(home_path.as_ref())? {
+            // No config exists, auto-launch wizard
+            Commands::Wizard {
+                yes: false,
+                skip_probe: false,
+                probe_timeout: None,
+                skip_labels: false,
+                verbose: false,
+            }
+        } else {
+            // Config exists, show help
+            return Err(anyhow!("No subcommand provided. Run 'aicred --help' for usage."));
+        }
+    };
+
+    match command {
+        Commands::Wizard {
+            yes,
+            skip_probe,
+            probe_timeout,
+            skip_labels,
+            verbose,
+        } => {
+            let options = WizardOptions {
+                auto_accept: yes,
+                skip_probe,
+                probe_timeout: probe_timeout.unwrap_or(30),
+                skip_labels,
+                verbose,
+                home: cli.home.map(PathBuf::from),
+            };
+
+            // Check if config exists
+            if config_exists(options.home.as_ref())? {
+                match handle_existing_config(options.home.as_ref())? {
+                    ExistingConfigAction::Cancel => {
+                        println!("{}", colored::Colorize::yellow("Setup cancelled."));
+                        return Ok(());
+                    }
+                    ExistingConfigAction::Replace => {
+                        // Continue with wizard
+                    }
+                }
+            }
+
+            run_wizard(options)?;
+            Ok(())
+        }
         Commands::Scan {
             home: scan_home,
             format,
