@@ -14,10 +14,8 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // LiteLLM keys are typically longer and more complex
-        if key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase) {
-            0.85 // High confidence for complex keys
-        } else if key.len() >= 30 {
-            0.85 // Medium-high confidence for longer keys (30+ chars)
+        if (key.len() >= 40 && key.contains('-') && key.chars().any(char::is_uppercase)) || key.len() >= 30 {
+            0.85 // High confidence for complex and long keys
         } else {
             0.50 // Lower confidence for shorter keys
         }
@@ -25,7 +23,7 @@ impl ProviderPlugin for LiteLLMPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // LiteLLM-specific validation
         if instance.base_url.is_empty() {
@@ -104,7 +102,7 @@ impl ProviderPlugin for LiteLLMPlugin {
 
 impl LiteLLMPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -119,6 +117,8 @@ impl LiteLLMPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
+
     use super::*;
     use crate::models::ProviderInstance;
 

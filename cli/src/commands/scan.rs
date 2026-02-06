@@ -8,7 +8,6 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 /// Sanitizes a provider name to prevent path traversal and OS issues
 fn sanitize_provider_name(name: &str) -> String {

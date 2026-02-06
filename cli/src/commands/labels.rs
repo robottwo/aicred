@@ -1026,7 +1026,7 @@ mod tests {
         let temp_dir = setup_test_env();
 
         // Create a test label
-        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let _tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let assignment = LabelAssignment {
             label_name: "thinking".to_string(),
             target: LabelTarget::ProviderModel {
@@ -1057,7 +1057,7 @@ mod tests {
         let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
-        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let _tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let assignment = LabelAssignment {
             label_name: "thinking".to_string(),
             target: LabelTarget::ProviderModel {
@@ -1086,7 +1086,7 @@ mod tests {
         let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
-        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let _tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let assignment = LabelAssignment {
             label_name: "thinking".to_string(),
             target: LabelTarget::ProviderModel {
@@ -1115,7 +1115,7 @@ mod tests {
         let temp_dir = setup_test_env();
 
         // Create a label for openai:gpt-4
-        let tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
+        let _tuple = ProviderModelTuple::parse("openai:gpt-4").unwrap();
         let assignment = LabelAssignment {
             label_name: "thinking".to_string(),
             target: LabelTarget::ProviderModel {

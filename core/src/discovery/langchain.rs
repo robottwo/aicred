@@ -58,11 +58,11 @@ impl ScannerPlugin for LangChainScanner {
         if file_name.ends_with(".yaml") || file_name.ends_with(".yml") {
             // Parse YAML
             if let Ok(yaml_value) = serde_yaml::from_str::<serde_yaml::Value>(content) {
-                if let Some(keys) = self.extract_keys_from_yaml(&yaml_value, path) {
-                    result.add_keys(keys.clone());
+                if let Some(keys) = Self::extract_keys_from_yaml(&yaml_value, path) {
+                    result.add_keys(keys);
                 }
                 if Self::is_valid_langchain_config_yaml(&yaml_value) {
-                    let mut instance = self.create_config_instance_yaml(path, &yaml_value)?;
+                    let mut instance = Self::create_config_instance_yaml(path, &yaml_value)?;
 
                     // Build provider instances from discovered keys
                     if !result.keys.is_empty() {
@@ -99,8 +99,8 @@ impl ScannerPlugin for LangChainScanner {
         } else if file_name.ends_with(".json") {
             // Parse JSON
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(content) {
-                if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
-                    result.add_keys(keys.clone());
+                if let Some(keys) = Self::extract_keys_from_json(&json_value, path) {
+                    result.add_keys(keys);
                 }
                 if Self::is_valid_langchain_config(&json_value) {
                     let mut instance = Self::create_config_instance(path, &json_value);
@@ -207,7 +207,6 @@ impl ScannerPlugin for LangChainScanner {
 impl LangChainScanner {
     /// Extract keys from JSON configuration.
     fn extract_keys_from_json(
-        &self,
         json_value: &serde_json::Value,
         path: &Path,
     ) -> Option<Vec<DiscoveredCredential>> {
@@ -294,7 +293,6 @@ impl LangChainScanner {
 
     /// Extract keys from YAML configuration.
     fn extract_keys_from_yaml(
-        &self,
         yaml_value: &serde_yaml::Value,
         path: &Path,
     ) -> Option<Vec<DiscoveredCredential>> {
@@ -302,7 +300,7 @@ impl LangChainScanner {
 
         // Convert YAML to JSON-like structure for easier processing
         if let Ok(json_value) = serde_json::to_value(yaml_value) {
-            return self.extract_keys_from_json(&json_value, path);
+            return Self::extract_keys_from_json(&json_value, path);
         }
 
         if keys.is_empty() {
@@ -373,7 +371,6 @@ impl LangChainScanner {
 
     /// Create a config instance from `LangChain` YAML configuration.
     fn create_config_instance_yaml(
-        &self,
         path: &Path,
         yaml_value: &serde_yaml::Value,
     ) -> Result<ConfigInstance> {

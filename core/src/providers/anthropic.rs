@@ -40,7 +40,7 @@ impl ProviderPlugin for AnthropicPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Anthropic-specific validation
         if instance.base_url.is_empty() {
@@ -175,7 +175,7 @@ impl AnthropicPlugin {
     }
 
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -190,6 +190,8 @@ impl AnthropicPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
+
     use super::*;
     use crate::models::ProviderInstance;
 
@@ -360,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_fetch_supported_models_direct_error_handling() {
-        let plugin = AnthropicPlugin;
+        let _plugin = AnthropicPlugin;
 
         // Test the direct fetch method with invalid credentials
         let result = AnthropicPlugin::fetch_supported_models("sk-ant-invalid-key");

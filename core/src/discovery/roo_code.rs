@@ -282,14 +282,14 @@ impl RooCodeScanner {
         };
 
         // Extract keys from JSON config
-        let discovered_keys = if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
+        let discovered_keys = Self::extract_keys_from_json(&json_value, path).map_or_else(|| {
+            tracing::debug!("No keys extracted from JSON");
+            Vec::new()
+        }, |keys| {
             tracing::debug!("Extracted {} keys from JSON", keys.len());
             result.add_keys(keys.clone());
             keys
-        } else {
-            tracing::debug!("No keys extracted from JSON");
-            Vec::new()
-        };
+        });
 
         // Build provider instances from discovered keys using the helper function
         tracing::info!(
@@ -369,7 +369,7 @@ impl RooCodeScanner {
         }
 
         // Look for settings files that might contain Roo Code configuration
-        self.scan_settings_files(home_dir, &mut instances)?;
+        Self::scan_settings_files(home_dir, &mut instances);
 
         Ok(instances)
     }
@@ -379,7 +379,6 @@ impl RooCodeScanner {
     /// Extract keys from JSON configuration.
     #[allow(clippy::cognitive_complexity)]
     fn extract_keys_from_json(
-        &self,
         json_value: &serde_json::Value,
         path: &Path,
     ) -> Option<Vec<DiscoveredCredential>> {
@@ -583,10 +582,9 @@ impl RooCodeScanner {
 
     /// Scan settings files for Roo Code configuration.
     fn scan_settings_files(
-        &self,
         home_dir: &Path,
         instances: &mut Vec<ConfigInstance>,
-    ) -> Result<()> {
+    ) {
         let settings_paths = [
             home_dir.join(".vscode").join("settings.json"),
             home_dir.join(".vscode-insiders").join("settings.json"),
@@ -605,7 +603,6 @@ impl RooCodeScanner {
                 }
             }
         }
-        Ok(())
     }
 
     /// Check if settings contain Roo Code configuration.

@@ -25,7 +25,7 @@ impl ProviderPlugin for OllamaPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Parse and enforce loopback/local + default port 11434
         let url = url::Url::parse(&instance.base_url)
@@ -106,7 +106,7 @@ impl ProviderPlugin for OllamaPlugin {
 
 impl OllamaPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -121,6 +121,8 @@ impl OllamaPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
+
     use super::*;
     use crate::models::ProviderInstance;
 

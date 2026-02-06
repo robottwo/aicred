@@ -148,7 +148,7 @@ active: true
 
     #[test]
     fn test_validate_provider_instance_yaml_with_keys_and_models() {
-        let yaml = r#"
+        let yaml = r"
 id: openai-prod
 provider_type: openai
 base_url: https://api.openai.com
@@ -164,7 +164,7 @@ capabilities:
   function_calling: true
   streaming: true
 active: true
-"#;
+";
 
         let result = validate_provider_instance_yaml(yaml);
         if let Err(e) = &result {

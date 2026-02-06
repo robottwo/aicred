@@ -14,10 +14,8 @@ impl ProviderPlugin for GroqPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // Groq keys have very specific patterns
-        if key.starts_with("gsk_") {
+        if key.starts_with("gsk_") || key.starts_with("gsk-") {
             0.95 // Very distinctive Groq prefix
-        } else if key.starts_with("gsk-") {
-            0.95 // Alternative Groq prefix format
         } else if key.len() >= 40 && key.contains('_') {
             0.70 // Might be a Groq key without the prefix
         } else {
@@ -27,7 +25,7 @@ impl ProviderPlugin for GroqPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // Groq-specific validation
         if instance.base_url.is_empty() {
@@ -94,7 +92,7 @@ impl ProviderPlugin for GroqPlugin {
 
 impl GroqPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -109,6 +107,8 @@ impl GroqPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
+
     use super::*;
     use crate::models::ProviderInstance;
 

@@ -52,7 +52,7 @@ impl ScannerPlugin for RagitScanner {
         };
 
         // Extract keys from JSON config
-        if let Some(keys) = self.extract_keys_from_json(&json_value, path) {
+        if let Some(keys) = Self::extract_keys_from_json(&json_value, path) {
             result.add_keys(keys);
         }
 
@@ -82,7 +82,7 @@ impl ScannerPlugin for RagitScanner {
         }
 
         // Look for project configs in current directory and subdirectories
-        self.scan_project_configs(Path::new("."), &mut instances)?;
+        Self::scan_project_configs(Path::new("."), &mut instances);
 
         Ok(instances)
     }
@@ -117,7 +117,6 @@ impl ScannerPlugin for RagitScanner {
 impl RagitScanner {
     /// Extract keys from JSON configuration.
     fn extract_keys_from_json(
-        &self,
         json_value: &serde_json::Value,
         path: &Path,
     ) -> Option<Vec<DiscoveredCredential>> {
@@ -292,7 +291,7 @@ impl RagitScanner {
     }
 
     /// Scan for project configurations.
-    fn scan_project_configs(&self, dir: &Path, instances: &mut Vec<ConfigInstance>) -> Result<()> {
+    fn scan_project_configs(dir: &Path, instances: &mut Vec<ConfigInstance>) {
         // Look for .ragit/config.json in current directory
         let project_config = dir.join(".ragit").join("config.json");
         if project_config.exists() {
@@ -318,8 +317,6 @@ impl RagitScanner {
                 }
             }
         }
-
-        Ok(())
     }
 }
 
@@ -403,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_parse_env_file() {
-        let scanner = RagitScanner;
+        let _scanner = RagitScanner;
         let env_content = r"
 RAGIT_API_KEY=sk-test-FAKE-12345-ragit
 OPENAI_API_KEY=sk-test-FAKE-12345-openai
@@ -415,7 +412,7 @@ OPENAI_API_KEY=sk-test-FAKE-12345-openai
 
     #[test]
     fn test_is_valid_ragit_config() {
-        let scanner = RagitScanner;
+        let _scanner = RagitScanner;
 
         let valid_config = serde_json::json!({
             "ragit_version": "1.0.0",
@@ -431,7 +428,7 @@ OPENAI_API_KEY=sk-test-FAKE-12345-openai
 
     #[test]
     fn test_create_config_instance() {
-        let scanner = RagitScanner;
+        let _scanner = RagitScanner;
         let config = serde_json::json!({
             "ragit_version": "1.2.0",
             "default_model": "gpt-4"

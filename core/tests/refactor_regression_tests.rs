@@ -71,7 +71,7 @@ fn test_scanner_registry_basics() {
 fn test_discovered_key_confidence() {
     // Test confidence enum exists and has expected variants
     use Confidence::*;
-    let levels = vec![Low, Medium, High, VeryHigh];
+    let levels = [Low, Medium, High, VeryHigh];
     assert_eq!(levels.len(), 4, "Should have 4 confidence levels");
 }
 
@@ -79,7 +79,7 @@ fn test_discovered_key_confidence() {
 fn test_value_type_variants() {
     // Test ValueType enum exists and has expected variants
     use ValueType::*;
-    let types = vec![ApiKey, AccessToken, SecretKey, BearerToken];
+    let types = [ApiKey, AccessToken, SecretKey, BearerToken];
     assert!(types.len() >= 4, "Should have multiple value types");
 }
 

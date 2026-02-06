@@ -78,10 +78,8 @@ impl ProviderPlugin for OpenAIPlugin {
 
     fn confidence_score(&self, key: &str) -> f32 {
         // OpenAI keys have very specific patterns
-        if key.starts_with("sk-proj-") {
-            0.95 // Project keys are very distinctive
-        } else if key.starts_with("sk-") {
-            0.95 // Standard OpenAI keys
+        if key.starts_with("sk-proj-") || key.starts_with("sk-") {
+            0.95 // Project and standard OpenAI keys are very distinctive
         } else if key.len() >= 40 && key.contains('-') {
             0.75 // Might be an OpenAI key without the prefix
         } else {
@@ -91,7 +89,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
     fn validate_instance(&self, instance: &ProviderInstance) -> Result<()> {
         // First perform base validation
-        self.validate_base_instance(instance)?;
+        Self::validate_base_instance(instance)?;
 
         // OpenAI-specific validation
         if instance.base_url.is_empty() {
@@ -101,14 +99,11 @@ impl ProviderPlugin for OpenAIPlugin {
         }
 
         // Check for valid OpenAI base URL patterns by parsing and validating hostname
-        let is_valid_openai_url = match Url::parse(&instance.base_url) {
-            Ok(parsed_url) => {
-                let host = parsed_url.host_str().unwrap_or("");
-                let allowed_hosts = ["api.openai.com", "openai-api-proxy.com"];
-                allowed_hosts.contains(&host)
-            }
-            Err(_) => false,
-        };
+        let is_valid_openai_url = Url::parse(&instance.base_url).is_ok_and(|parsed_url| {
+            let host = parsed_url.host_str().unwrap_or("");
+            let allowed_hosts = ["api.openai.com", "openai-api-proxy.com"];
+            allowed_hosts.contains(&host)
+        });
 
         if !is_valid_openai_url {
             return Err(Error::PluginError(
@@ -175,7 +170,7 @@ impl ProviderPlugin for OpenAIPlugin {
 
 impl OpenAIPlugin {
     /// Helper method to perform base instance validation
-    fn validate_base_instance(&self, instance: &ProviderInstance) -> Result<()> {
+    fn validate_base_instance(instance: &ProviderInstance) -> Result<()> {
         if instance.base_url.is_empty() {
             return Err(Error::PluginError("Base URL cannot be empty".to_string()));
         }
@@ -190,9 +185,11 @@ impl OpenAIPlugin {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
+
     use super::*;
     use crate::models::ProviderInstance;
-    use std::path::Path;
+    
 
     #[test]
     fn test_openai_plugin_name() {
