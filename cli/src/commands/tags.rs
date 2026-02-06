@@ -161,7 +161,10 @@ pub fn handle_add_tag(
 
     // Check if tag with this name already exists
     if tags.iter().any(|tag| tag.name == trimmed_name) {
-        return Err(anyhow::anyhow!("Tag with name '{}' already exists", trimmed_name));
+        return Err(anyhow::anyhow!(
+            "Tag with name '{}' already exists",
+            trimmed_name
+        ));
     }
 
     let now = chrono::Utc::now();

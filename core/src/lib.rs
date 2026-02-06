@@ -56,7 +56,7 @@
 //!
 //! ```rust
 //! use aicred_core::{scan, ScanOptions};
-//! use aicred_core::{DiscoveredCredential, LabelNew, ProviderNew};
+//! use aicred_core::{DiscoveredCredential, Label, Provider};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let temp_dir = tempfile::tempdir()?;

@@ -1435,11 +1435,19 @@ fn test_edge_case_empty_api_key_value() {
         "Instance is created even with empty API key"
     );
     let instance = &instances[0];
-    assert_eq!(instance.has_api_key() as usize, 0, "Empty API key means has_api_key() returns false");
+    assert_eq!(
+        instance.has_api_key() as usize,
+        0,
+        "Empty API key means has_api_key() returns false"
+    );
 
     // ProviderInstance.get_api_key() returns None for empty API keys
     // This is the new behavior after refactoring
-    assert_eq!(instance.get_api_key(), None, "Empty API key returns None from get_api_key()");
+    assert_eq!(
+        instance.get_api_key(),
+        None,
+        "Empty API key returns None from get_api_key()"
+    );
 }
 
 #[test]

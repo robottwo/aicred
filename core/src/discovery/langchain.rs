@@ -74,13 +74,21 @@ impl ScannerPlugin for LangChainScanner {
                             Ok(provider_instances) => {
                                 // Add each provider instance to the config instance
                                 for provider_instance in provider_instances {
-                                    if let Err(e) = instance.add_provider_instance(provider_instance) {
-                                        tracing::warn!("Failed to add provider instance to config: {}", e);
+                                    if let Err(e) =
+                                        instance.add_provider_instance(provider_instance)
+                                    {
+                                        tracing::warn!(
+                                            "Failed to add provider instance to config: {}",
+                                            e
+                                        );
                                     }
                                 }
                             }
                             Err(e) => {
-                                tracing::warn!("Failed to build provider instances from keys: {}", e);
+                                tracing::warn!(
+                                    "Failed to build provider instances from keys: {}",
+                                    e
+                                );
                             }
                         }
                     }
@@ -107,13 +115,21 @@ impl ScannerPlugin for LangChainScanner {
                             Ok(provider_instances) => {
                                 // Add each provider instance to the config instance
                                 for provider_instance in provider_instances {
-                                    if let Err(e) = instance.add_provider_instance(provider_instance) {
-                                        tracing::warn!("Failed to add provider instance to config: {}", e);
+                                    if let Err(e) =
+                                        instance.add_provider_instance(provider_instance)
+                                    {
+                                        tracing::warn!(
+                                            "Failed to add provider instance to config: {}",
+                                            e
+                                        );
                                     }
                                 }
                             }
                             Err(e) => {
-                                tracing::warn!("Failed to build provider instances from keys: {}", e);
+                                tracing::warn!(
+                                    "Failed to build provider instances from keys: {}",
+                                    e
+                                );
                             }
                         }
                     }

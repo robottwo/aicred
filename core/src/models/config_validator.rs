@@ -23,17 +23,22 @@ use crate::models::{ProviderCollection, ProviderInstance};
 ///
 /// let yaml = r#"
 /// id: openai-prod
-/// display_name: OpenAI Production
 /// provider_type: openai
 /// base_url: https://api.openai.com
-/// keys: []
+/// api_key: sk-test123
 /// models: []
+/// capabilities:
+///   chat: true
+///   completion: false
+///   embedding: false
+///   image_generation: false
+///   function_calling: false
+///   streaming: false
 /// active: true
-/// created_at: 2024-01-01T00:00:00Z
-/// updated_at: 2024-01-01T00:00:00Z
 /// "#;
 ///
-/// assert!(validate_provider_instance_yaml(yaml).is_ok());
+/// let result = validate_provider_instance_yaml(yaml);
+/// assert!(result.is_ok(), "Validation failed: {:?}", result.err());
 /// ```
 pub fn validate_provider_instance_yaml(content: &str) -> Result<(), String> {
     // Attempt to deserialize the YAML content
@@ -71,24 +76,32 @@ pub fn validate_provider_instance_yaml(content: &str) -> Result<(), String> {
 /// let yaml = r#"
 /// openai-prod:
 ///   id: openai-prod
-///   display_name: OpenAI Production
 ///   provider_type: openai
 ///   base_url: https://api.openai.com
-///   keys: []
+///   api_key: sk-test123
 ///   models: []
+///   capabilities:
+///     chat: true
+///     completion: false
+///     embedding: false
+///     image_generation: false
+///     function_calling: false
+///     streaming: false
 ///   active: true
-///   created_at: 2024-01-01T00:00:00Z
-///   updated_at: 2024-01-01T00:00:00Z
 /// anthropic-dev:
 ///   id: anthropic-dev
-///   display_name: Anthropic Development
 ///   provider_type: anthropic
 ///   base_url: https://api.anthropic.com
-///   keys: []
+///   api_key: sk-ant-test456
 ///   models: []
+///   capabilities:
+///     chat: true
+///     completion: false
+///     embedding: false
+///     image_generation: false
+///     function_calling: false
+///     streaming: false
 ///   active: true
-///   created_at: 2024-01-01T00:00:00Z
-///   updated_at: 2024-01-01T00:00:00Z
 /// "#;
 ///
 /// assert!(validate_provider_instances_yaml(yaml).is_ok());

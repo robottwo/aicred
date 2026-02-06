@@ -758,7 +758,11 @@ fn save_provider_instances(instances: &ProviderCollection, home: Option<&Path>) 
     // Save each instance to its own file
     for instance in instances.all_instances() {
         // Use provider name and first 4 chars of instance ID (hash)
-        let file_name = format!("{}-{}.yaml", instance.provider_type, &instance.id[..4.min(instance.id.len())]);
+        let file_name = format!(
+            "{}-{}.yaml",
+            instance.provider_type,
+            &instance.id[..4.min(instance.id.len())]
+        );
         let file_path = config_dir.join(&file_name);
 
         // Serialize into a ProviderInstance YAML

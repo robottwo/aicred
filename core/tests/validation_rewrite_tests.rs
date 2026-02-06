@@ -115,7 +115,10 @@ active: true
     let result = validate_provider_instance_yaml(yaml);
     // Note: Empty ID validation was removed in v0.2.0 refactoring
     // The YAML should deserialize and validate successfully even with empty ID
-    assert!(result.is_ok(), "Validation should succeed (empty ID not validated in v0.2.0)");
+    assert!(
+        result.is_ok(),
+        "Validation should succeed (empty ID not validated in v0.2.0)"
+    );
 }
 
 #[test]
@@ -138,7 +141,10 @@ active: true
 
     let result = validate_provider_instance_yaml(yaml);
     // Should succeed - display_name field was removed in v0.2.0
-    assert!(result.is_ok(), "Validation should succeed without display_name field");
+    assert!(
+        result.is_ok(),
+        "Validation should succeed without display_name field"
+    );
 }
 
 #[test]

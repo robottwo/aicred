@@ -386,7 +386,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                         provider_name.to_lowercase(),
                         get_default_base_url(&provider_name),
                         String::new(), // Empty API key initially
-                        Vec::new(), // Empty models initially
+                        Vec::new(),    // Empty models initially
                     );
 
                     // Check if we have probed models for this source
@@ -622,7 +622,7 @@ fn update_yaml_config(result: &aicred_core::ScanResult, home_dir: &std::path::Pa
                             provider_name.to_lowercase(),
                             get_default_base_url(&provider_name),
                             String::new(), // Empty API key initially
-                            Vec::new(), // Empty models initially
+                            Vec::new(),    // Empty models initially
                         );
 
                         // Check if we have probed models for this provider and instance
