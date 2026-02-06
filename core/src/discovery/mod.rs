@@ -1192,7 +1192,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(instances.len(), 1);
-        let _instance = &instances[0];
+        let _ = &instances[0];
         // Metadata is only set if there are special value types (temperature, headers, etc.)
         // Line numbers from DiscoveredCredential are not automatically stored in instance metadata
         // unless the instance goes through ProviderConfig conversion

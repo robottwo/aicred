@@ -595,7 +595,7 @@ GOOGLE_API_KEY="AIzaSyTest1234567890abcdef"
 
     #[test]
     fn test_is_valid_gsh_config() {
-        let _scanner = GshScanner;
+        let _ = GshScanner;
 
         let valid_config = r#"
 export OPENAI_API_KEY="sk-test1234567890abcdef"
@@ -612,7 +612,7 @@ echo "Hello World"
 
     #[test]
     fn test_create_config_instance() {
-        let _scanner = GshScanner;
+        let _ = GshScanner;
         let config = r#"
 export OPENAI_API_KEY="sk-test1234567890abcdef"
 "#;
@@ -653,7 +653,7 @@ HF_TOKEN="hf_test1234567890abcdef"
 
     #[test]
     fn test_get_confidence() {
-        let _scanner = GshScanner;
+        let _ = GshScanner;
 
         assert_eq!(
             GshScanner::get_confidence("sk-test1234567890abcdef"),

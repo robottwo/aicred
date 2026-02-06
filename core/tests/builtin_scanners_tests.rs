@@ -64,7 +64,7 @@ fn test_langchain_scanner_parse_config() {
     // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
     assert!(
-        instance.provider_instances.len() > 0,
+        !instance.provider_instances.is_empty(),
         "Built-in scanners now populate provider_instances"
     );
 
@@ -88,7 +88,7 @@ llm:
     // Verify provider_instances ARE populated by built-in scanners (new behavior in v0.2.0)
     let instance = &result.instances[0];
     assert!(
-        instance.provider_instances.len() > 0,
+        !instance.provider_instances.is_empty(),
         "Built-in scanners now populate provider_instances"
     );
 }

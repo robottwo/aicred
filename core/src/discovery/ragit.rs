@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_parse_env_file() {
-        let _scanner = RagitScanner;
+        let _ = RagitScanner;
         let env_content = r"
 RAGIT_API_KEY=sk-test-FAKE-12345-ragit
 OPENAI_API_KEY=sk-test-FAKE-12345-openai
@@ -412,7 +412,7 @@ OPENAI_API_KEY=sk-test-FAKE-12345-openai
 
     #[test]
     fn test_is_valid_ragit_config() {
-        let _scanner = RagitScanner;
+        let _ = RagitScanner;
 
         let valid_config = serde_json::json!({
             "ragit_version": "1.0.0",
@@ -428,7 +428,7 @@ OPENAI_API_KEY=sk-test-FAKE-12345-openai
 
     #[test]
     fn test_create_config_instance() {
-        let _scanner = RagitScanner;
+        let _ = RagitScanner;
         let config = serde_json::json!({
             "ragit_version": "1.2.0",
             "default_model": "gpt-4"
