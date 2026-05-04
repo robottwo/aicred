@@ -79,4 +79,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-provider API key discovery
 - Configuration management
 - CLI tool for scanning and managing providers
-
